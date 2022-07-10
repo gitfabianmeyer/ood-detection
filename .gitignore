@@ -53,3 +53,4 @@ MANIFEST
 .conda*/
 .python-version
 /data/
+/notebooks/.ipynb_checkpoints/
