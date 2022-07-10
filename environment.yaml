@@ -1,0 +1,17 @@
+name: ood
+channels:
+  - defaults
+  - conda-forge
+dependencies:
+  - python=3.8.*
+  - jupyterlab
+  - seaborn
+  - pip
+  - pytorch
+  - torchvision
+  - cudatoolkit
+  - pip:
+      - ftfy
+      - regex
+      - tqdm
+      - git+https://github.com/openai/CLIP.git
