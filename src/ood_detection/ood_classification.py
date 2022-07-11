@@ -208,7 +208,7 @@ def main():
                                                     download=True)
     flower_images = prep_subset_image_files(flower_images, args.num_samples)
     # set label to OOD label from the train set
-    flower_images.y = [oxfordiiipets_images.class_to_idx["OOD"] for i in range(len(flower_images.y))]
+    flower_images._labels = [oxfordiiipets_images.class_to_idx["OOD"] for i in range(len(flower_images._labels))]
     caltech_loader = torch.utils.data.DataLoader(flower_images)
 
     # get img_features and targets
