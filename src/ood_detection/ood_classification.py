@@ -7,13 +7,20 @@ import torch
 import torchvision
 from tqdm import tqdm
 
-from src.ood_detection.classnames import fgvcaircraft_classes, oxford_pets_classes, imagenet_templates
+from ood_detection.classnames import fgvcaircraft_classes,\
+    oxford_pets_classes, \
+    imagenet_templates,\
+    stanford_classes,\
+    flowers_classes
 
 device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 datapath = '/mnt/c/Users/fmeyer/Git/ood-detection/data'
 pets_features_path = os.path.join(datapath, "pets_f_test.pt")
 pets_targets_path = os.path.join(datapath, "pets_t_test.pt")
-num_samples = 2
+num_samples = 15
+
+flowers = torchvision.datasets.Flowers102(datapath,
+                                         download=True)
 
 print(clip.available_models())
 VISION = 'RN50'
@@ -22,8 +29,11 @@ load_test = False
 
 
 def get_ood_targets(clip_model, templates):
+    #TODO here add more classes for OOD
     # collect label embeddings from another dataset plan and simple, maybe just a random vector in clip space
     classnames = fgvcaircraft_classes
+    classnames.extend(stanford_classes)
+    classnames.extend(flowers_classes)
     embedding = []
     for classname in classnames:
         class_embeddings = get_normed_embeddings(classname, clip_model, templates)
@@ -40,6 +50,9 @@ def zeroshot_classifier(classnames: list, templates: list, clip_model):
     with torch.no_grad():
         weights = []
         for classname in classnames:
+            if classname == 'OOD':
+                print("Found OOD")
+                continue
             class_embeddings = get_normed_embeddings(classname, clip_model, templates)
             weights.append(class_embeddings)
 
@@ -144,13 +157,15 @@ oxfordiiipets_loader = torch.utils.data.DataLoader(oxfordiiipets_images,
                                                    batch_size=num_samples,
                                                    num_workers=8,
                                                    shuffle=False)
+
+# add OOD label to the data
+oxfordiiipets_images.class_to_idx["OOD"] = len(oxfordiiipets_images.classes)
+oxfordiiipets_images.classes.append("OOD")
 random.seed(42)
 torch.manual_seed(42)
 # get the features for each label ( including the OOD label )
 zeroshot_weights = zeroshot_classifier(oxford_pets_classes, imagenet_templates, model)
-# add OOD label to the data, even if not really needed
-oxfordiiipets_images.class_to_idx["OOD"] = len(oxfordiiipets_images.classes)
-oxfordiiipets_images.classes.append("OOD")
+
 
 # obtain & save features
 if not load_test:
