@@ -12,7 +12,9 @@ from ood_detection.classnames import fgvcaircraft_classes, \
     oxford_pets_classes, \
     imagenet_templates, \
     stanford_classes, \
-    flowers_classes
+    flowers_classes, \
+    caltech101_classes
+
 
 device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 
@@ -22,7 +24,7 @@ def get_ood_targets(clip_model, templates):
     # collect label embeddings from another dataset plan and simple, maybe just a random vector in clip space
     classnames = fgvcaircraft_classes
     classnames.extend(stanford_classes)
-    classnames.extend(flowers_classes)
+    classnames.extend(caltech101_classes)
     print(f'Number of classes merged to OOD label: {len(classnames)}')
     print(f'From 3 Datasets')
     embedding = []
@@ -97,8 +99,8 @@ def prep_subset_image_files(dataset: torchvision.datasets, n):
     split_by_label_dict = defaultdict(list)
 
     # just use some imgs for each label
-    for i in range(len(dataset.index)):
-        split_by_label_dict[dataset.y[i]].append(dataset.index[i])
+    for i in range(len(dataset._image_files)):
+        split_by_label_dict[dataset._labels[i]].append(dataset._image_files[i])
 
     imgs = []
     targets = []
@@ -201,18 +203,19 @@ def main():
     caltech_features_path = os.path.join(datapath, "dtd_f_test.pt")
     caltech_targets_path = os.path.join(datapath, "dtd_t_test.pt")
 
-    caltech_images = torchvision.datasets.Caltech101(datapath,
-                                                     transform=preprocess,
-                                                     download=True)
-    #caltech_images = prep_subset_image_files(caltech_images, args.num_samples)
+    flower_images = torchvision.datasets.Flowers102(datapath,
+                                                    transform=preprocess,
+                                                    download=True)
+    flower_images = prep_subset_image_files(flower_images, args.num_samples)
     # set label to OOD label from the train set
-    caltech_images.y = [oxfordiiipets_images.class_to_idx["OOD"] for i in range(len(caltech_images.y))]
-    caltech_loader = torch.utils.data.DataLoader(caltech_images)
+    flower_images.y = [oxfordiiipets_images.class_to_idx["OOD"] for i in range(len(flower_images.y))]
+    caltech_loader = torch.utils.data.DataLoader(flower_images)
 
     # get img_features and targets
     load_dtd = False
     if not load_dtd:
-        caltech_features, caltech_labels = get_dataset_features(caltech_loader, model, caltech_features_path, caltech_targets_path)
+        caltech_features, caltech_labels = get_dataset_features(caltech_loader, model, caltech_features_path,
+                                                                caltech_targets_path)
     else:
         caltech_features = torch.load(caltech_features_path)
         caltech_labels = torch.load(caltech_targets_path)
