@@ -97,8 +97,8 @@ def prep_subset_image_files(dataset: torchvision.datasets, n):
     split_by_label_dict = defaultdict(list)
 
     # just use some imgs for each label
-    for i in range(len(dataset._image_files)):
-        split_by_label_dict[dataset._labels[i]].append(dataset._image_files[i])
+    for i in range(len(dataset.index)):
+        split_by_label_dict[dataset.y[i]].append(dataset.index[i])
 
     imgs = []
     targets = []
@@ -154,7 +154,7 @@ def main():
     pets_targets_path = os.path.join(datapath, "pets_t_test.pt")
 
     parser = argparse.ArgumentParser()
-    parser.add_argument('--num_samples', type=float, default=50, help='ns')
+    parser.add_argument('--num_samples', type=float, default=2, help='ns')
     parser.add_argument('--vision_model', type=str, default='RN50', help='vm')
     parser.add_argument('--load_data', type=bool, default=False, help='ld')
     parser.add_argument('--use_aircraft', type=bool, default=True, help='ua')
@@ -187,7 +187,8 @@ def main():
 
     # obtain & save features
     if not args.load_data:
-        test_features, test_labels = get_dataset_features(oxfordiiipets_loader, pets_features_path, pets_targets_path)
+        test_features, test_labels = get_dataset_features(oxfordiiipets_loader, model, pets_features_path,
+                                                          pets_targets_path)
     else:
         test_features = torch.load(pets_features_path)
         test_labels = torch.load(pets_targets_path)
@@ -197,27 +198,26 @@ def main():
 
     # for OOD in the 1-vs-all case (n wrong classes, 1 OOD class)
     print("\nOut of distribution classification")
-    dtd_features_path = os.path.join(datapath, "dtd_f_test.pt")
-    dtd_targets_path = os.path.join(datapath, "dtd_t_test.pt")
+    caltech_features_path = os.path.join(datapath, "dtd_f_test.pt")
+    caltech_targets_path = os.path.join(datapath, "dtd_t_test.pt")
 
-    dtd_images = torchvision.datasets.DTD(datapath,
-                                          split='train',
-                                          transform=preprocess,
-                                          download=True)
-    dtd_images = prep_subset_image_files(dtd_images, args.num_samples)
+    caltech_images = torchvision.datasets.Caltech101(datapath,
+                                                     transform=preprocess,
+                                                     download=True)
+    #caltech_images = prep_subset_image_files(caltech_images, args.num_samples)
     # set label to OOD label from the train set
-    dtd_images._labels = [oxfordiiipets_images.class_to_idx["OOD"] for i in range(len(dtd_images._labels))]
-    dtd_loader = torch.utils.data.DataLoader(dtd_images)
+    caltech_images.y = [oxfordiiipets_images.class_to_idx["OOD"] for i in range(len(caltech_images.y))]
+    caltech_loader = torch.utils.data.DataLoader(caltech_images)
 
     # get img_features and targets
     load_dtd = False
     if not load_dtd:
-        dtd_features, dtd_labels = get_dataset_features(dtd_loader, model, dtd_features_path, dtd_targets_path)
+        caltech_features, caltech_labels = get_dataset_features(caltech_loader, model, caltech_features_path, caltech_targets_path)
     else:
-        dtd_features = torch.load(dtd_features_path)
-        dtd_labels = torch.load(dtd_targets_path)
+        caltech_features = torch.load(caltech_features_path)
+        caltech_labels = torch.load(caltech_targets_path)
 
-    classify(dtd_features, zeroshot_weights, dtd_labels, "dtd")
+    classify(caltech_features, zeroshot_weights, caltech_labels, "dtd")
     print("DONE")
 
 
