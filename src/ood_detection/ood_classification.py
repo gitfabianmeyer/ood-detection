@@ -1,3 +1,4 @@
+import argparse
 import os.path
 import random
 from collections import defaultdict
@@ -7,33 +8,23 @@ import torch
 import torchvision
 from tqdm import tqdm
 
-from ood_detection.classnames import fgvcaircraft_classes,\
+from ood_detection.classnames import fgvcaircraft_classes, \
     oxford_pets_classes, \
-    imagenet_templates,\
-    stanford_classes,\
+    imagenet_templates, \
+    stanford_classes, \
     flowers_classes
 
 device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
-datapath = '/mnt/c/Users/fmeyer/Git/ood-detection/data'
-pets_features_path = os.path.join(datapath, "pets_f_test.pt")
-pets_targets_path = os.path.join(datapath, "pets_t_test.pt")
-num_samples = 15
-
-flowers = torchvision.datasets.Flowers102(datapath,
-                                         download=True)
-
-print(clip.available_models())
-VISION = 'RN50'
-# ALWAYS SET TO FALSE WHEN USING NEW VISION MODEL
-load_test = False
 
 
 def get_ood_targets(clip_model, templates):
-    #TODO here add more classes for OOD
+    # TODO here add more classes for OOD
     # collect label embeddings from another dataset plan and simple, maybe just a random vector in clip space
     classnames = fgvcaircraft_classes
     classnames.extend(stanford_classes)
     classnames.extend(flowers_classes)
+    print(f'Number of classes merged to OOD label: {len(classnames)}')
+    print(f'From 3 Datasets')
     embedding = []
     for classname in classnames:
         class_embeddings = get_normed_embeddings(classname, clip_model, templates)
@@ -82,7 +73,7 @@ def accuracy(output, target, top_k=(1,)):
     return [float(correct[:k].reshape(-1).float().sum(0, keepdim=True).cpu().numpy()) for k in top_k]
 
 
-def prep_subset_images(dataset: torchvision.datasets, n=num_samples):
+def prep_subset_images(dataset: torchvision.datasets, n):
     split_by_label_dict = defaultdict(list)
 
     # just use some imgs for each label
@@ -102,7 +93,7 @@ def prep_subset_images(dataset: torchvision.datasets, n=num_samples):
     return dataset
 
 
-def prep_subset_image_files(dataset: torchvision.datasets, n=num_samples):
+def prep_subset_image_files(dataset: torchvision.datasets, n):
     split_by_label_dict = defaultdict(list)
 
     # just use some imgs for each label
@@ -144,37 +135,6 @@ def get_dataset_features(loader: torch.utils.data.DataLoader, features_path, tar
         return features, labels
 
 
-model, preprocess = clip.load(VISION)
-model.eval()
-
-oxfordiiipets_images = torchvision.datasets.OxfordIIITPet(datapath,
-                                                          split='trainval',
-                                                          transform=preprocess,
-                                                          download=True)
-
-oxfordiiipets_images = prep_subset_images(oxfordiiipets_images)
-oxfordiiipets_loader = torch.utils.data.DataLoader(oxfordiiipets_images,
-                                                   batch_size=num_samples,
-                                                   num_workers=8,
-                                                   shuffle=False)
-
-# add OOD label to the data
-oxfordiiipets_images.class_to_idx["OOD"] = len(oxfordiiipets_images.classes)
-oxfordiiipets_images.classes.append("OOD")
-random.seed(42)
-torch.manual_seed(42)
-# get the features for each label ( including the OOD label )
-zeroshot_weights = zeroshot_classifier(oxford_pets_classes, imagenet_templates, model)
-
-
-# obtain & save features
-if not load_test:
-    test_features, test_labels = get_dataset_features(oxfordiiipets_loader, pets_features_path, pets_targets_path)
-else:
-    test_features = torch.load(pets_features_path)
-    test_labels = torch.load(pets_targets_path)
-
-
 def classify(features, zeroshot_weights, labels, dataset):
     top1, top5, n = 0., 0., 0.
     logits = 100. * features @ zeroshot_weights
@@ -188,31 +148,78 @@ def classify(features, zeroshot_weights, labels, dataset):
     print(f"\nClip Top5 Acc: {top5:.2f} with zeroshot on {dataset}")
 
 
-print("In distribution classification:")
-classify(test_features, zeroshot_weights, test_labels, "oxford pets")
+def main():
+    datapath = '/home/fmeyer/ood-detection/data'
+    pets_features_path = os.path.join(datapath, "pets_f_test.pt")
+    pets_targets_path = os.path.join(datapath, "pets_t_test.pt")
 
-# for OOD in the 1-vs-all case (n wrong classes, 1 OOD class)
-print("\nOut of distribution classification")
-dtd_features_path = os.path.join(datapath, "dtd_f_test.pt")
-dtd_targets_path = os.path.join(datapath, "dtd_t_test.pt")
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--num_samples', type=float, default=50, help='ns')
+    parser.add_argument('--vision_model', type=str, default='RN50', help='vm')
+    parser.add_argument('--load_data', type=bool, default=False, help='ld')
+    parser.add_argument('--use_aircraft', type=bool, default=True, help='ua')
+    parser.add_argument('--use_cars', type=bool, default=True, help='uc')
+    parser.add_argument('--use_flowers', type=bool, default=True, help='uf')
 
-dtd_images = torchvision.datasets.DTD(datapath,
-                                      split='train',
-                                      transform=preprocess,
-                                      download=True)
-dtd_images = prep_subset_image_files(dtd_images)
-# set label to OOD label from the train set
-# TODO check if worked
-dtd_images._labels = [oxfordiiipets_images.class_to_idx["OOD"] for i in range(len(dtd_images._labels))]
-dtd_loader = torch.utils.data.DataLoader(dtd_images)
+    args = parser.parse_args()
 
-# get img_features and targets
-load_dtd = False
-if not load_dtd:
-    dtd_features, dtd_labels = get_dataset_features(dtd_loader, dtd_features_path, dtd_targets_path)
-else:
-    dtd_features = torch.load(dtd_features_path)
-    dtd_labels = torch.load(dtd_targets_path)
+    # ALWAYS SET TO FALSE WHEN USING NEW VISION MODEL
+    model, preprocess = clip.load(args.vision_model)
+    model.eval()
 
-classify(dtd_features, zeroshot_weights, dtd_labels, "dtd")
-print("DONE")
+    oxfordiiipets_images = torchvision.datasets.OxfordIIITPet(datapath,
+                                                              split='trainval',
+                                                              transform=preprocess,
+                                                              download=True)
+    oxfordiiipets_images = prep_subset_images(oxfordiiipets_images, args.num_samples)
+    oxfordiiipets_loader = torch.utils.data.DataLoader(oxfordiiipets_images,
+                                                       batch_size=16,
+                                                       num_workers=8,
+                                                       shuffle=False)
+
+    # add OOD label to the data
+    oxfordiiipets_images.class_to_idx["OOD"] = len(oxfordiiipets_images.classes)
+    oxfordiiipets_images.classes.append("OOD")
+    random.seed(42)
+    torch.manual_seed(42)
+    # get the features for each label ( including the OOD label )
+    zeroshot_weights = zeroshot_classifier(oxford_pets_classes, imagenet_templates, model)
+
+    # obtain & save features
+    if not args.load_data:
+        test_features, test_labels = get_dataset_features(oxfordiiipets_loader, pets_features_path, pets_targets_path)
+    else:
+        test_features = torch.load(pets_features_path)
+        test_labels = torch.load(pets_targets_path)
+
+    print("In distribution classification:")
+    classify(test_features, zeroshot_weights, test_labels, "oxford pets")
+
+    # for OOD in the 1-vs-all case (n wrong classes, 1 OOD class)
+    print("\nOut of distribution classification")
+    dtd_features_path = os.path.join(datapath, "dtd_f_test.pt")
+    dtd_targets_path = os.path.join(datapath, "dtd_t_test.pt")
+
+    dtd_images = torchvision.datasets.DTD(datapath,
+                                          split='train',
+                                          transform=preprocess,
+                                          download=True)
+    dtd_images = prep_subset_image_files(dtd_images, args.num_samples)
+    # set label to OOD label from the train set
+    dtd_images._labels = [oxfordiiipets_images.class_to_idx["OOD"] for i in range(len(dtd_images._labels))]
+    dtd_loader = torch.utils.data.DataLoader(dtd_images)
+
+    # get img_features and targets
+    load_dtd = False
+    if not load_dtd:
+        dtd_features, dtd_labels = get_dataset_features(dtd_loader, dtd_features_path, dtd_targets_path)
+    else:
+        dtd_features = torch.load(dtd_features_path)
+        dtd_labels = torch.load(dtd_targets_path)
+
+    classify(dtd_features, zeroshot_weights, dtd_labels, "dtd")
+    print("DONE")
+
+
+if __name__ == '__main__':
+    main()
