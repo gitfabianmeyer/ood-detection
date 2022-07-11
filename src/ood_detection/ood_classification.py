@@ -115,7 +115,7 @@ def prep_subset_image_files(dataset: torchvision.datasets, n):
     return dataset
 
 
-def get_dataset_features(loader: torch.utils.data.DataLoader, features_path, targets_path):
+def get_dataset_features(loader: torch.utils.data.DataLoader, model, features_path, targets_path):
     features = []
     labels = []
     with torch.no_grad():
@@ -212,7 +212,7 @@ def main():
     # get img_features and targets
     load_dtd = False
     if not load_dtd:
-        dtd_features, dtd_labels = get_dataset_features(dtd_loader, dtd_features_path, dtd_targets_path)
+        dtd_features, dtd_labels = get_dataset_features(dtd_loader, model, dtd_features_path, dtd_targets_path)
     else:
         dtd_features = torch.load(dtd_features_path)
         dtd_labels = torch.load(dtd_targets_path)
