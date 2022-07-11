@@ -156,7 +156,7 @@ def main():
     pets_targets_path = os.path.join(datapath, "pets_t_test.pt")
 
     parser = argparse.ArgumentParser()
-    parser.add_argument('--num_samples', type=float, default=2, help='ns')
+    parser.add_argument('--num_samples', type=float, default=50, help='ns')
     parser.add_argument('--vision_model', type=str, default='RN50', help='vm')
     parser.add_argument('--load_data', type=bool, default=False, help='ld')
     parser.add_argument('--use_aircraft', type=bool, default=True, help='ua')
@@ -200,8 +200,8 @@ def main():
 
     # for OOD in the 1-vs-all case (n wrong classes, 1 OOD class)
     print("\nOut of distribution classification")
-    caltech_features_path = os.path.join(datapath, "dtd_f_test.pt")
-    caltech_targets_path = os.path.join(datapath, "dtd_t_test.pt")
+    caltech_features_path = os.path.join(datapath, "flowers_f_test.pt")
+    caltech_targets_path = os.path.join(datapath, "flowers_t_test.pt")
 
     flower_images = torchvision.datasets.Flowers102(datapath,
                                                     transform=preprocess,
@@ -220,7 +220,7 @@ def main():
         caltech_features = torch.load(caltech_features_path)
         caltech_labels = torch.load(caltech_targets_path)
 
-    classify(caltech_features, zeroshot_weights, caltech_labels, "dtd")
+    classify(caltech_features, zeroshot_weights, caltech_labels, "Flowers102")
     print("DONE")
 
 
