@@ -21,7 +21,7 @@ from ood_detection.config import Config
 
 from ood_detection.plotting.distributions import plot_pca_analysis
 
-device = torch.device('cuda:1' if torch.cuda.is_available() else 'cpu')
+device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 
 
 def get_ood_targets(ood_names, clip_model, templates):
@@ -237,7 +237,7 @@ def main(dataset_dictionary):
     # for OOD in the 1-vs-all case (n wrong classes, 1 OOD class)
     print("\nOut of distribution classification...")
 
-    for name, dataset in dataset_dictionary["ood"]:
+    for name, dataset in ood_dict.items():
         ood_features_path = os.path.join(curr_datapath, f"{name}_{len(dataset)}_f.pt")
         ood_targets_path = os.path.join(curr_datapath, f"{name}_{len(dataset)}_t.pt")
 
