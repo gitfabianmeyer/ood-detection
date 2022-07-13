@@ -2,8 +2,7 @@ import argparse
 import os.path
 import random
 from collections import defaultdict
-import datetime
-from typing import Dict
+from datetime import datetime
 
 import clip
 import torch
@@ -11,17 +10,18 @@ import torchvision
 from tqdm import tqdm
 
 from ood_detection.classnames import fgvcaircraft_classes, \
-    oxford_pets_classes, \
+    oxfordpets_classes, \
     imagenet_templates, \
-    stanford_classes, \
+    stanfordcars_classes, \
     flowers_classes, \
-    caltech101_classes
+    caltech101_classes, \
+    dtd_classes
 
 from ood_detection.config import Config
 
 from ood_detection.plotting.distributions import plot_pca_analysis
 
-device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
+device = torch.device('cuda:1' if torch.cuda.is_available() else 'cpu')
 
 
 def get_ood_targets(ood_names, clip_model, templates):
@@ -33,13 +33,26 @@ def get_ood_targets(ood_names, clip_model, templates):
             print(f"Using {ood_name} as ood")
             classnames.extend(fgvcaircraft_classes)
 
-        if ood_name == "stanford":
+        if ood_name == "stanfordcars":
             print(f"Using {ood_name} as ood")
-            classnames.extend(stanford_classes)
+            classnames.extend(stanfordcars_classes)
 
         if ood_name == 'caltech101':
             print(f"Using {ood_name} as ood")
             classnames.extend(caltech101_classes)
+
+        if ood_name == 'oxfordpets':
+            print(f"Using {ood_name} as ood")
+            classnames.extend(oxfordpets_classes)
+
+        if ood_name == 'flowers':
+            print(f"Using {ood_name} as ood")
+            classnames.extend(flowers_classes)
+
+        if ood_name == 'dtd':
+            print(f"Using {ood_name} as ood")
+            classnames.extend(dtd_classes)
+
     print(f'Number of classes merged to OOD label: {len(classnames)} from {len(ood_names)} sets')
 
     embedding = []
@@ -54,7 +67,7 @@ def get_ood_targets(ood_names, clip_model, templates):
     return embedding
 
 
-def zeroshot_classifier(classnames: list, templates: list, clip_model):
+def zeroshot_classifier(classnames: list, ood_names, templates: list, clip_model):
     with torch.no_grad():
         weights = []
         for classname in classnames:
@@ -65,7 +78,7 @@ def zeroshot_classifier(classnames: list, templates: list, clip_model):
             weights.append(class_embeddings)
 
         # last class is the ood class
-        weights.append(get_ood_targets(clip_model, templates))
+        weights.append(get_ood_targets(ood_names, clip_model, templates))
 
         weights = torch.stack(weights, dim=1).to(device)
         return weights
@@ -169,12 +182,9 @@ def get_classnames_from_vision_set(vision_set: torchvision.datasets):
     return vision_set.classes
 
 
-
 def main(dataset_dictionary):
-
     parser = argparse.ArgumentParser()
     parser.add_argument('--num_samples', type=float, default=50, help='ns')
-    parser.add_argument('--vision_model', type=str, default='RN50', help='vm')
     parser.add_argument('--load_data', type=bool, default=False, help='ld')
     parser.add_argument('--use_aircraft', type=bool, default=True, help='ua')
     parser.add_argument('--use_cars', type=bool, default=True, help='uc')
@@ -182,41 +192,36 @@ def main(dataset_dictionary):
     parser.add_argument('--plot', type=bool, default=True, help='pl')
     args = parser.parse_args()
 
-
     run = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     curr_datapath = os.path.join(Config.FEATURES, run)
 
-    model, preprocess = clip.load(args.vision_model)
+    model, preprocess = clip.load(Config.VISION_MODEL)
     model.eval()
 
+    ood_dict = dataset_dictionary['ood']
     id_dict = dataset_dictionary["id"]
-    id_images = id_dict.values()[0]
-
-    #id_images = torchvision.datasets.OxfordIIITPet(curr_datapath,
-    #                                               split='trainval',
-    #                                               transform=preprocess,
-    #                                               download=True)
+    id_images = list(id_dict.values())[0]
 
     id_images = prep_subset_images(id_images, args.num_samples)
     id_loader = torch.utils.data.DataLoader(id_images,
-                                                       batch_size=16,
-                                                       num_workers=8,
-                                                       shuffle=False)
+                                            batch_size=16,
+                                            num_workers=8,
+                                            shuffle=False)
     # add OOD label to the data
     id_images.class_to_idx["OOD"] = len(id_images.classes)
     id_images.classes.append("OOD")
 
     os.makedirs(curr_datapath, exist_ok=True)
 
-    id_name =  id_dict.keys()[0]
+    id_name = list(id_dict.keys())[0]
     print(f"Starting run with In-Distribution set {id_name}")
     id_features_path = os.path.join(curr_datapath, f"{id_name}_{len(id_images)}_f.pt")
     id_targets_path = os.path.join(curr_datapath, f"{id_name}_{len(id_images)}_t.pt")
 
-
     # get the features for each label ( including the OOD label )
-    id_classnames = get_classnames_from_vision_set(id_dict.values()[0])
-    zeroshot_weights = zeroshot_classifier(id_classnames, imagenet_templates, model)
+    id_classnames = get_classnames_from_vision_set(list(id_dict.values())[0])
+    ood_classnames = ood_dict.keys()
+    zeroshot_weights = zeroshot_classifier(id_classnames, ood_classnames, imagenet_templates, model)
 
     # obtain & save features
     if not args.load_data:
@@ -247,13 +252,9 @@ def main(dataset_dictionary):
                                                         ood_features_path,
                                                         ood_targets_path)
         classify(ood_features, zeroshot_weights, ood_labels, name)
-        print(80* "-")
+        print(80 * "-")
 
     if args.plot:
         plot_pca_analysis(curr_datapath)
 
     print("Finished zeroshot classification")
-
-
-if __name__ == '__main__':
-    main()
