@@ -54,3 +54,4 @@ MANIFEST
 .python-version
 /data/
 /notebooks/.ipynb_checkpoints/
+/scripts/

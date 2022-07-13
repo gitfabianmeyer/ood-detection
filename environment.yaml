@@ -1,7 +1,7 @@
 name: ood
 channels:
   - defaults
-  - conda-forge
+  - pytorch
 dependencies:
   - python=3.8.*
   - jupyterlab

@@ -2,6 +2,8 @@ import argparse
 import os.path
 import random
 from collections import defaultdict
+import datetime
+from typing import Dict
 
 import clip
 import torch
@@ -15,18 +17,31 @@ from ood_detection.classnames import fgvcaircraft_classes, \
     flowers_classes, \
     caltech101_classes
 
+from ood_detection.config import Config
+
+from ood_detection.plotting.distributions import plot_pca_analysis
 
 device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 
 
-def get_ood_targets(clip_model, templates):
+def get_ood_targets(ood_names, clip_model, templates):
     # TODO here add more classes for OOD
     # collect label embeddings from another dataset plan and simple, maybe just a random vector in clip space
-    classnames = fgvcaircraft_classes
-    classnames.extend(stanford_classes)
-    classnames.extend(caltech101_classes)
-    print(f'Number of classes merged to OOD label: {len(classnames)}')
-    print(f'From 3 Datasets')
+    classnames = []
+    for ood_name in ood_names:
+        if ood_name == "fgvcaircraft":
+            print(f"Using {ood_name} as ood")
+            classnames.extend(fgvcaircraft_classes)
+
+        if ood_name == "stanford":
+            print(f"Using {ood_name} as ood")
+            classnames.extend(stanford_classes)
+
+        if ood_name == 'caltech101':
+            print(f"Using {ood_name} as ood")
+            classnames.extend(caltech101_classes)
+    print(f'Number of classes merged to OOD label: {len(classnames)} from {len(ood_names)} sets')
+
     embedding = []
     for classname in classnames:
         class_embeddings = get_normed_embeddings(classname, clip_model, templates)
@@ -150,10 +165,12 @@ def classify(features, zeroshot_weights, labels, dataset):
     print(f"\nClip Top5 Acc: {top5:.2f} with zeroshot on {dataset}")
 
 
-def main():
-    datapath = '/home/fmeyer/ood-detection/data'
-    pets_features_path = os.path.join(datapath, "pets_f_test.pt")
-    pets_targets_path = os.path.join(datapath, "pets_t_test.pt")
+def get_classnames_from_vision_set(vision_set: torchvision.datasets):
+    return vision_set.classes
+
+
+
+def main(dataset_dictionary):
 
     parser = argparse.ArgumentParser()
     parser.add_argument('--num_samples', type=float, default=50, help='ns')
@@ -162,66 +179,80 @@ def main():
     parser.add_argument('--use_aircraft', type=bool, default=True, help='ua')
     parser.add_argument('--use_cars', type=bool, default=True, help='uc')
     parser.add_argument('--use_flowers', type=bool, default=True, help='uf')
-
+    parser.add_argument('--plot', type=bool, default=True, help='pl')
     args = parser.parse_args()
 
-    # ALWAYS SET TO FALSE WHEN USING NEW VISION MODEL
+
+    run = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    curr_datapath = os.path.join(Config.FEATURES, run)
+
     model, preprocess = clip.load(args.vision_model)
     model.eval()
 
-    oxfordiiipets_images = torchvision.datasets.OxfordIIITPet(datapath,
-                                                              split='trainval',
-                                                              transform=preprocess,
-                                                              download=True)
-    oxfordiiipets_images = prep_subset_images(oxfordiiipets_images, args.num_samples)
-    oxfordiiipets_loader = torch.utils.data.DataLoader(oxfordiiipets_images,
+    id_dict = dataset_dictionary["id"]
+    id_images = id_dict.values()[0]
+
+    #id_images = torchvision.datasets.OxfordIIITPet(curr_datapath,
+    #                                               split='trainval',
+    #                                               transform=preprocess,
+    #                                               download=True)
+
+    id_images = prep_subset_images(id_images, args.num_samples)
+    id_loader = torch.utils.data.DataLoader(id_images,
                                                        batch_size=16,
                                                        num_workers=8,
                                                        shuffle=False)
-
     # add OOD label to the data
-    oxfordiiipets_images.class_to_idx["OOD"] = len(oxfordiiipets_images.classes)
-    oxfordiiipets_images.classes.append("OOD")
-    random.seed(42)
-    torch.manual_seed(42)
+    id_images.class_to_idx["OOD"] = len(id_images.classes)
+    id_images.classes.append("OOD")
+
+    os.makedirs(curr_datapath, exist_ok=True)
+
+    id_name =  id_dict.keys()[0]
+    print(f"Starting run with In-Distribution set {id_name}")
+    id_features_path = os.path.join(curr_datapath, f"{id_name}_{len(id_images)}_f.pt")
+    id_targets_path = os.path.join(curr_datapath, f"{id_name}_{len(id_images)}_t.pt")
+
+
     # get the features for each label ( including the OOD label )
-    zeroshot_weights = zeroshot_classifier(oxford_pets_classes, imagenet_templates, model)
+    id_classnames = get_classnames_from_vision_set(id_dict.values()[0])
+    zeroshot_weights = zeroshot_classifier(id_classnames, imagenet_templates, model)
 
     # obtain & save features
     if not args.load_data:
-        test_features, test_labels = get_dataset_features(oxfordiiipets_loader, model, pets_features_path,
-                                                          pets_targets_path)
+        test_features, test_labels = get_dataset_features(id_loader, model, id_features_path,
+                                                          id_targets_path)
     else:
-        test_features = torch.load(pets_features_path)
-        test_labels = torch.load(pets_targets_path)
+        test_features = torch.load(id_features_path)
+        test_labels = torch.load(id_targets_path)
 
     print("In distribution classification:")
-    classify(test_features, zeroshot_weights, test_labels, "oxford pets")
+    classify(test_features, zeroshot_weights, test_labels, id_name)
 
     # for OOD in the 1-vs-all case (n wrong classes, 1 OOD class)
-    print("\nOut of distribution classification")
-    caltech_features_path = os.path.join(datapath, "flowers_f_test.pt")
-    caltech_targets_path = os.path.join(datapath, "flowers_t_test.pt")
+    print("\nOut of distribution classification...")
 
-    flower_images = torchvision.datasets.Flowers102(datapath,
-                                                    transform=preprocess,
-                                                    download=True)
-    flower_images = prep_subset_image_files(flower_images, args.num_samples)
-    # set label to OOD label from the train set
-    flower_images._labels = [oxfordiiipets_images.class_to_idx["OOD"] for i in range(len(flower_images._labels))]
-    caltech_loader = torch.utils.data.DataLoader(flower_images)
+    for name, dataset in dataset_dictionary["ood"]:
+        ood_features_path = os.path.join(curr_datapath, f"{name}_{len(dataset)}_f.pt")
+        ood_targets_path = os.path.join(curr_datapath, f"{name}_{len(dataset)}_t.pt")
 
-    # get img_features and targets
-    load_dtd = False
-    if not load_dtd:
-        caltech_features, caltech_labels = get_dataset_features(caltech_loader, model, caltech_features_path,
-                                                                caltech_targets_path)
-    else:
-        caltech_features = torch.load(caltech_features_path)
-        caltech_labels = torch.load(caltech_targets_path)
+        ood_images = prep_subset_image_files(dataset, args.num_samples)
 
-    classify(caltech_features, zeroshot_weights, caltech_labels, "Flowers102")
-    print("DONE")
+        # set label to OOD label from the train set
+        ood_images._labels = [id_images.class_to_idx["OOD"] for _ in range(len(ood_images._labels))]
+        ood_loader = torch.utils.data.DataLoader(ood_images)
+
+        ood_features, ood_labels = get_dataset_features(ood_loader,
+                                                        model,
+                                                        ood_features_path,
+                                                        ood_targets_path)
+        classify(ood_features, zeroshot_weights, ood_labels, name)
+        print(80* "-")
+
+    if args.plot:
+        plot_pca_analysis(curr_datapath)
+
+    print("Finished zeroshot classification")
 
 
 if __name__ == '__main__':
