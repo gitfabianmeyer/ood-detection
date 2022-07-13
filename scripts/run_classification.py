@@ -1,6 +1,5 @@
 import clip
 from ood_detection import ood_classification
-import preprocess as preprocess
 import torchvision
 
 from ood_detection.config import Config
