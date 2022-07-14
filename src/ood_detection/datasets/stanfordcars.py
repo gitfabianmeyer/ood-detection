@@ -11,13 +11,20 @@ class StandardizedStanfordCars(torchvision.datasets.StanfordCars):
         self._image_files = [tup[0] for tup in self._samples]
 
     def __getitem__(self, idx):
-        image_file, label = self._image_files[idx], self._labels[idx]
-        image = PIL.Image.open(image_file).convert("RGB")
 
-        if self.transform:
-            image = self.transform(image)
+        try:
+            image_file, label = self._image_files[idx], self._labels[idx]
+            image = PIL.Image.open(image_file).convert("RGB")
 
-        if self.target_transform:
-            label = self.target_transform(label)
+            if self.transform:
+                image = self.transform(image)
 
-        return image, label
+            if self.target_transform:
+                label = self.target_transform(label)
+
+            return image, label
+        except IndexError as ind_err:
+            print(self._image_files)
+            print(self._labels)
+            print(f"IDX {idx}")
+            raise ind_err
