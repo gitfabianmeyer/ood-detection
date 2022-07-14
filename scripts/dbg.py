@@ -9,19 +9,21 @@ from ood_detection.datasets.flowers102 import FlowersWithLabels
 from ood_detection.datasets.stanfordcars import StandardizedStanfordCars
 from ood_detection.ood_classification import prep_subset_image_files, get_dataset_features
 
+from src.ood_detection.datasets.caltech import StandardizedCaltech
+
 datapath = Config.DATAPATH
 
 model, preprocess = clip.load(Config.VISION_MODEL)
 model.eval()
 
-cars = StandardizedStanfordCars(Config.DATAPATH,
-                                transform=preprocess)
+calt = StandardizedCaltech(Config.DATAPATH,
+                           transform=preprocess)
 
-cars = prep_subset_image_files(cars, 3)
+calt = prep_subset_image_files(calt, 3)
 
 # set label to OOD label from the train set
-cars._labels = [38 for _ in range(len(cars._labels))]
-ood_loader = torch.utils.data.DataLoader(cars,
+calt._labels = [38 for _ in range(len(calt._labels))]
+ood_loader = torch.utils.data.DataLoader(calt,
                                          batch_size=16,
                                          num_workers=8,
                                          shuffle=False
