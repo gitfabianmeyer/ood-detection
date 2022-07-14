@@ -129,7 +129,6 @@ def prep_subset_image_files(dataset: torchvision.datasets, n):
     # just use some imgs for each label
     for i in range(len(dataset._image_files)):
         split_by_label_dict[dataset._labels[i]].append(dataset._image_files[i])
-
     imgs = []
     targets = []
 
