@@ -244,7 +244,11 @@ def main(dataset_dictionary):
 
         # set label to OOD label from the train set
         ood_images._labels = [id_images.class_to_idx["OOD"] for _ in range(len(ood_images._labels))]
-        ood_loader = torch.utils.data.DataLoader(ood_images)
+        ood_loader = torch.utils.data.DataLoader(ood_images,
+                                                 batch_size=16,
+                                                 num_workers=8,
+                                                 shuffle=False
+                                                 )
 
         ood_features, ood_labels = get_dataset_features(ood_loader,
                                                         model,
