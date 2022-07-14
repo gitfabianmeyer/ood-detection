@@ -189,6 +189,7 @@ def main(dataset_dictionary):
     parser.add_argument('--use_cars', type=bool, default=True, help='uc')
     parser.add_argument('--use_flowers', type=bool, default=True, help='uf')
     parser.add_argument('--plot', type=bool, default=True, help='pl')
+    parser.add_argument('--batch_size', type=int, default=64, help='bs')
     args = parser.parse_args()
 
     run = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -203,7 +204,7 @@ def main(dataset_dictionary):
 
     id_images = prep_subset_images(id_images, args.num_samples)
     id_loader = torch.utils.data.DataLoader(id_images,
-                                            batch_size=16,
+                                            batch_size=args.batch_size,
                                             num_workers=8,
                                             shuffle=False)
     # add OOD label to the data
@@ -245,7 +246,7 @@ def main(dataset_dictionary):
         # set label to OOD label from the train set
         ood_images._labels = [id_images.class_to_idx["OOD"] for _ in range(len(ood_images._labels))]
         ood_loader = torch.utils.data.DataLoader(ood_images,
-                                                 batch_size=16,
+                                                 batch_size=args.batch_size,
                                                  num_workers=8,
                                                  shuffle=False
                                                  )
