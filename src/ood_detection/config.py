@@ -6,3 +6,4 @@ class Config:
     PLOTS = os.path.join(DATAPATH, 'plots')
     FEATURES = os.path.join(DATAPATH, 'features')
     VISION_MODEL = 'ViT-L/14@336px'
+    MODELS = os.path.join(DATAPATH, "models")

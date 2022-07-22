@@ -16,3 +16,4 @@ dependencies:
       - tqdm
       - git+https://github.com/openai/CLIP.git
       - sklearn
+      - nltk
