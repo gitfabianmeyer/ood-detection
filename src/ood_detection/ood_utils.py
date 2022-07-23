@@ -2,9 +2,9 @@ import clip
 import torch
 
 from ood_detection.classnames import fgvcaircraft_classes, caltech101_classes, oxfordpets_classes, flowers_classes, \
-    dtd_classes
+    dtd_classes, stanfordcars_classes
 
-from ood_detection.classnames import stanfordcars_classes
+device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 
 
 def classify(features, zeroshot_weights, labels, dataset):
@@ -41,14 +41,14 @@ def get_normed_embeddings(classname, clip_model, templates):
     return class_embeddings
 
 
-def zeroshot_classifier(classnames: list, ood_names, templates: list, clip_model):
+def zeroshot_classifier(classnames: list, templates: list, clip_model):
     with torch.no_grad():
         weights = []
         for classname in classnames:
             class_embeddings = get_normed_embeddings(classname, clip_model, templates)
             weights.append(class_embeddings)
 
-        # last class is the ood class
+        weights = torch.stack(weights)
         return weights
 
 
@@ -60,9 +60,6 @@ def get_individual_ood_weights(caption, clip_model, templates):
 
     # take the center of this OOD
     embeddings = torch.stack(embeddings)
-    embeddings /= embeddings.norm(dim=-1, keepdim=True)
-    embeddings = embeddings.mean(dim=0)
-    embeddings /= embeddings.norm()
     return embeddings
 
 

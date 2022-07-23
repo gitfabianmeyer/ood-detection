@@ -1,5 +1,5 @@
 import PIL
-import torchvision.datasets
+import torchvision
 
 
 class StandardizedStanfordCars(torchvision.datasets.StanfordCars):
