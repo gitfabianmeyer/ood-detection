@@ -48,7 +48,7 @@ def zeroshot_classifier(classnames: list, templates: list, clip_model):
             class_embeddings = get_normed_embeddings(classname, clip_model, templates)
             weights.append(class_embeddings)
 
-        weights = torch.stack(weights)
+        weights = torch.stack(weights, dim=1)
         return weights
 
 
@@ -59,7 +59,7 @@ def get_individual_ood_weights(caption, clip_model, templates):
         embeddings.append(word_embedding)
 
     # take the center of this OOD
-    embeddings = torch.stack(embeddings)
+    embeddings = torch.stack(embeddings, dim=1)
     return embeddings
 
 

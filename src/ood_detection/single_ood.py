@@ -3,9 +3,10 @@ import os
 import PIL
 import clip
 import torch
+import torchvision.datasets
 from PIL import Image
 from nltk.corpus import stopwords
-from ood_detection.classnames import imagenet_templates, stanfordcars_classes
+from ood_detection.classnames import imagenet_templates, stanfordcars_classes, oxfordpets_classes
 from ood_detection.config import Config
 
 from ood_detection.models.dummy_zoc import CaptionGenerator
@@ -26,7 +27,7 @@ def run_batch_ood(image: PIL.Image,
                   caption_generator: CaptionGenerator,
                   clip_model,
                   preprocess,
-                  zero_shot_weights,
+                  class_weights,
                   stop_words=None):
     # generate the pseudo labels aka the caption
     image = preprocess(image).unsqueeze(0).to(device)
@@ -44,7 +45,7 @@ def run_batch_ood(image: PIL.Image,
                                                       clip_model,
                                                       templates=imagenet_templates)
 
-    zeroshot_weights = torch.cat([zero_shot_weights, ind_class_embeddings], dim=0).to(device)
+    zeroshot_weights = torch.cat([class_weights, ind_class_embeddings], dim=1).to(device)
 
     clip_model.eval()
     image = image.to(device)
@@ -81,23 +82,26 @@ def main():
                                          prefix_length=10)
 
     templates = imagenet_templates
-    classnames = stanfordcars_classes
+    classnames = oxfordpets_classes
+    dataset = torchvision.datasets.OxfordIIITPet(Config.DATAPATH)
 
     # get the label features
     zeroshot_weights = zeroshot_classifier(classnames, templates, clip_model)
 
     # get an image and according label
-    image = 'stanford_cars/cars_train/00003.jpg'
+    image = 'oxford-iiit-pet/images/pug_2.jpg'
     image_path = os.path.join(Config.DATAPATH, image)
     im = Image.open(image_path)
 
-    run_batch_ood(im,
-                  target=80,
-                  caption_generator=caption_generator,
-                  clip_model=clip_model,
-                  preprocess=preprocess,
-                  zero_shot_weights=zeroshot_weights,
-                  stop_words=stopwords)
+    pred = run_batch_ood(im,
+                         target=dataset.class_to_idx["Pug"],
+                         caption_generator=caption_generator,
+                         clip_model=clip_model,
+                         preprocess=preprocess,
+                         class_weights=zeroshot_weights,
+                         stop_words=stopwords)
+    pred_name = dataset.classes[pred]
+    print(pred_name)
 
 
 if __name__ == '__main__':
