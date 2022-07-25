@@ -74,18 +74,19 @@ def main():
     clip_model, preprocess = clip.load(Config.VISION_MODEL)
     clip_model.eval()
     print("Loading GPT2 tokenizer")
-    tokenizer = GPT2Tokenizer.from_pretrained("gpt2")
+    # tokenizer = GPT2Tokenizer.from_pretrained("gpt2")
 
     print("Initializing CaptionGenerator")
-    caption_generator = CaptionGenerator(model_path=model_path,
-                                         clip_model=clip_model,
-                                         tokenizer=tokenizer,
-                                         prefix_length=10)
+    #caption_generator = CaptionGenerator(model_path=model_path,
+    #                                     clip_model=clip_model,
+    #                                     tokenizer=tokenizer,
+    #                                     prefix_length=10)
 
     templates = imagenet_templates
     classnames = oxfordpets_classes
     dataset = torchvision.datasets.OxfordIIITPet(Config.DATAPATH,
                                                  transform=preprocess)
+    print(f"Classifying {len(dataset._images)} images")
     dataloader = torch.utils.data.DataLoader(dataset,
                                              batch_size=256,
                                              num_workers=8)
