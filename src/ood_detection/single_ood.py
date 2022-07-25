@@ -10,9 +10,10 @@ from ood_detection.classnames import imagenet_templates, stanfordcars_classes, o
 from ood_detection.config import Config
 
 from ood_detection.models.dummy_zoc import CaptionGenerator
+from tqdm import tqdm
 from transformers import GPT2Tokenizer
 
-from src.ood_detection.ood_utils import get_individual_ood_weights, zeroshot_classifier
+from src.ood_detection.ood_utils import get_individual_ood_weights, zeroshot_classifier, accuracy
 
 device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 stopwords = set(stopwords.words('english'))
@@ -83,25 +84,42 @@ def main():
 
     templates = imagenet_templates
     classnames = oxfordpets_classes
-    dataset = torchvision.datasets.OxfordIIITPet(Config.DATAPATH)
+    dataset = torchvision.datasets.OxfordIIITPet(Config.DATAPATH,
+                                                 transform=preprocess)
+    dataloader = torch.utils.data.DataLoader(dataset,
+                                             batch_size=256,
+                                             num_workers=8)
 
     # get the label features
     zeroshot_weights = zeroshot_classifier(classnames, templates, clip_model)
 
-    # get an image and according label
-    image = 'oxford-iiit-pet/images/pug_2.jpg'
-    image_path = os.path.join(Config.DATAPATH, image)
-    im = Image.open(image_path)
+    features = []
+    labels = []
 
-    pred = run_batch_ood(im,
-                         target=dataset.class_to_idx["Pug"],
-                         caption_generator=caption_generator,
-                         clip_model=clip_model,
-                         preprocess=preprocess,
-                         class_weights=zeroshot_weights,
-                         stop_words=stopwords)
-    pred_name = dataset.classes[pred]
-    print(pred_name)
+    with torch.no_grad():
+        for images, targets in tqdm(dataloader):
+            images = images.to(device)
+            targets = targets.to(device)
+            images_features = clip_model.encode_image(images)
+            images_features /= images_features.norm(dim=-1, keepdim=True)
+
+            features.append(images_features)
+            labels.append(targets)
+
+        features = torch.cat(features)
+        labels = torch.cat(labels)
+
+    # zeroshotting
+    top1, top5, n = 0., 0., 0.
+    logits = 100. * features @ zeroshot_weights
+    acc1, acc5 = accuracy(logits, labels, top_k=(1, 5))
+
+    n += features.size(0)
+    top1 = (top1 / n) * 100
+    top5 = (top5 / n) * 100
+
+    print(f"\nClip Top1 Acc: {top1:.2f} with zeroshot")
+    print(f"\nClip Top1 Acc: {top5:.2f} with zeroshot")
 
 
 if __name__ == '__main__':

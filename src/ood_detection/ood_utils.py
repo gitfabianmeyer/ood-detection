@@ -25,7 +25,6 @@ def classify(features, zeroshot_weights, labels, dataset):
 def accuracy(output, target, top_k=(1,)):
     pred = output.topk(max(top_k), 1, True, True)[1].t()
     correct = pred.eq(target.view(1, -1).expand_as(pred))
-    # TODO here you get the the class predictions
 
     return [float(correct[:k].reshape(-1).float().sum(0, keepdim=True).cpu().numpy()) for k in top_k]
 
