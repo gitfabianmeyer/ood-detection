@@ -13,9 +13,10 @@ from ood_detection.models.dummy_zoc import CaptionGenerator
 from tqdm import tqdm
 from transformers import GPT2Tokenizer
 
-from src.ood_detection.ood_utils import get_individual_ood_weights, zeroshot_classifier, accuracy
+from ood_detection.ood_utils import get_individual_ood_weights, zeroshot_classifier, accuracy
 
-device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
+device = Config.DEVICE
+print(f"Using {device}")
 stopwords = set(stopwords.words('english'))
 
 

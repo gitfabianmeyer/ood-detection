@@ -2,6 +2,7 @@ from typing import Tuple
 
 import clip
 import torch.cuda
+from ood_detection.config import Config
 from torch import nn
 from transformers import GPT2LMHeadModel, GPT2Tokenizer
 
@@ -10,7 +11,7 @@ from ood_detection.models.captioning_utils import generate_beam, generate2
 use_beam_search = True
 model_path = ""
 
-device = 'cuda:0' if torch.cuda.is_available() else 'cpu'
+device = Config.DEVICE
 
 T = torch.Tensor
 D = device
