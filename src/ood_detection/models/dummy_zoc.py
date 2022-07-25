@@ -71,9 +71,14 @@ class CaptionGenerator:
         self.model.eval()
         self.model = self.model.to(self.device)
 
-    def generate_caption(self, image):
+    def generate_caption(self, image, encoded = False):
         with torch.no_grad():
-            prefix = self.clip_model.encode_image(image).to(device, dtype=torch.float32)
+
+            if not encoded:
+                print("inside encoded")
+                prefix = self.clip_model.encode_image(image).to(device, dtype=torch.float32)
+            else:
+                prefix = image
             prefix_embed = self.model.clip_project(prefix).reshape(1, self.prefix_length, -1)
             if use_beam_search:
                 generated_text_prefix = generate_beam(self.model, self.tokenizer, embed=prefix_embed)[0]

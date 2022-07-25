@@ -1,5 +1,7 @@
 import os
 
+from transformers import GPT2Tokenizer
+
 os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
 os.environ["CUDA_VISIBLE_DEVICES"] = "1"
 
@@ -69,7 +71,11 @@ def run_batch_ood(image: PIL.Image,
     return pred
 
 
-def main():
+def clean_caption(caption, classnames):
+    return [word for word in caption.split() if word not in classnames][:5]
+
+
+def main(generate_caption=True):
     # initialize everything
     model_path = os.path.join(Config.MODELS, 'generator_weights.pt')
 
@@ -77,13 +83,13 @@ def main():
     clip_model, preprocess = clip.load(Config.VISION_MODEL)
     clip_model.eval()
     print("Loading GPT2 tokenizer")
-    # tokenizer = GPT2Tokenizer.from_pretrained("gpt2")
+    tokenizer = GPT2Tokenizer.from_pretrained("gpt2")
 
     print("Initializing CaptionGenerator")
-    # caption_generator = CaptionGenerator(model_path=model_path,
-    #                                     clip_model=clip_model,
-    #                                     tokenizer=tokenizer,
-    #                                     prefix_length=10)
+    caption_generator = CaptionGenerator(model_path=model_path,
+                                         clip_model=clip_model,
+                                         tokenizer=tokenizer,
+                                         prefix_length=10)
 
     templates = imagenet_templates
     classnames = oxfordpets_classes
@@ -105,19 +111,38 @@ def main():
             images = images.to(device)
             targets = targets.to(device)
             images_features = clip_model.encode_image(images)
-            images_features /= images_features.norm(dim=-1, keepdim=True)
 
+            if generate_caption:
+                captions = [caption_generator.generate_caption(img_feat, encoded=True) for img_feat in images_features]
+                captions = [clean_caption(caption, classnames) for caption in captions]
+
+            images_features /= images_features.norm(dim=-1, keepdim=True)
             features.append(images_features)
             labels.append(targets)
 
         features = torch.cat(features)
         labels = torch.cat(labels)
 
-    # zeroshotting
-    top1, top5, n = 0., 0., 0.
-    logits = 100. * features @ zeroshot_weights
-    acc1, acc5 = accuracy(logits, labels, top_k=(1, 5))
+        # now: for each triple image | label | ood_label:
+        # do: append ood_label to labels
+        # do: classify
 
+    full_logits = []
+    for image, label, ood_labels in zip(features, labels, captions):
+        ind_class_embeddings = get_individual_ood_weights(ood_labels,
+                                                          clip_model,
+                                                          templates=imagenet_templates)
+        ind_zeroshot_weights = torch.cat([zeroshot_weights, ind_class_embeddings], dim=1).to(device)
+
+        # zeroshotting
+        top1, top5, n = 0., 0., 0.
+        logits = 100. * features @ ind_zeroshot_weights
+        full_logits.append(logits)
+
+    full_logits = torch.cat(full_logits)
+    print(f"Shape should be: {len(dataset.classes) + 5} x {len(dataset._images)} and is: {full_logits.shape}")
+    # no adapation needed, as new labels are always wrong
+    acc1, acc5 = accuracy(full_logits, labels, top_k=(1, 5))
     top1 += acc1
     top5 += acc5
 
