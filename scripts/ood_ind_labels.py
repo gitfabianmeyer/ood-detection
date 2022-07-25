@@ -1,9 +1,11 @@
 import os
 
-from transformers import GPT2Tokenizer
-
 os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
 os.environ["CUDA_VISIBLE_DEVICES"] = "1"
+
+from transformers import GPT2Tokenizer
+
+
 
 import PIL
 import clip
@@ -110,7 +112,7 @@ def main(generate_caption=True):
         for images, targets in tqdm(dataloader):
             images = images.to(device)
             targets = targets.to(device)
-            images_features = clip_model.encode_image(images)
+            images_features = clip_model.encode_image(images, dtype=torch.float32)
 
             if generate_caption:
                 captions = [caption_generator.generate_caption(img_feat, encoded=True) for img_feat in images_features]

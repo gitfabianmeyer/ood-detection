@@ -71,11 +71,10 @@ class CaptionGenerator:
         self.model.eval()
         self.model = self.model.to(self.device)
 
-    def generate_caption(self, image, encoded = False):
+    def generate_caption(self, image, encoded=False):
         with torch.no_grad():
 
             if not encoded:
-                print("inside encoded")
                 prefix = self.clip_model.encode_image(image).to(device, dtype=torch.float32)
             else:
                 prefix = image
