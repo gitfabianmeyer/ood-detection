@@ -112,7 +112,7 @@ def main(generate_caption=True):
         for images, targets in tqdm(dataloader):
             images = images.to(device)
             targets = targets.to(device)
-            images_features = clip_model.encode_image(images, dtype=torch.float32)
+            images_features = clip_model.encode_image(images).to(device, dtype=torch.float32)
 
             if generate_caption:
                 captions = [caption_generator.generate_caption(img_feat, encoded=True) for img_feat in images_features]
