@@ -8,8 +8,5 @@ class Config:
     FEATURES = os.path.join(DATAPATH, 'features')
     VISION_MODEL = 'ViT-B/32'
     MODELS = os.path.join(DATAPATH, "models")
-    gpu = 1
-    os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
-    os.environ["CUDA_VISIBLE_DEVICES"] = gpu
-    DEVICE = torch.device(f'cuda:{gpu}' if torch.cuda.is_available() else 'cpu')
+    DEVICE = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 

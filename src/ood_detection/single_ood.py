@@ -1,5 +1,8 @@
 import os
 
+os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
+os.environ["CUDA_VISIBLE_DEVICES"] = 1
+
 import PIL
 import clip
 import torch
@@ -11,7 +14,6 @@ from ood_detection.config import Config
 
 from ood_detection.models.dummy_zoc import CaptionGenerator
 from tqdm import tqdm
-from transformers import GPT2Tokenizer
 
 from ood_detection.ood_utils import get_individual_ood_weights, zeroshot_classifier, accuracy
 
@@ -78,7 +80,7 @@ def main():
     # tokenizer = GPT2Tokenizer.from_pretrained("gpt2")
 
     print("Initializing CaptionGenerator")
-    #caption_generator = CaptionGenerator(model_path=model_path,
+    # caption_generator = CaptionGenerator(model_path=model_path,
     #                                     clip_model=clip_model,
     #                                     tokenizer=tokenizer,
     #                                     prefix_length=10)
