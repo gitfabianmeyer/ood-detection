@@ -122,8 +122,8 @@ def main(generate_caption=True):
             features.append(images_features)
             labels.append(targets)
 
-        features = torch.cat(features)
-        labels = torch.cat(labels)
+        features = torch.cat(features, dtype=torch.float32)
+        labels = torch.cat(labels, dtype=torch.float32)
 
         # now: for each triple image | label | ood_label:
         # do: append ood_label to labels
@@ -134,7 +134,7 @@ def main(generate_caption=True):
         ind_class_embeddings = get_individual_ood_weights(ood_labels,
                                                           clip_model,
                                                           templates=imagenet_templates)
-        ind_zeroshot_weights = torch.cat([zeroshot_weights, ind_class_embeddings], dim=1).to(device)
+        ind_zeroshot_weights = torch.cat([zeroshot_weights, ind_class_embeddings], dim=1).to(device, dtype=torch.float32)
 
         # zeroshotting
         top1, top5, n = 0., 0., 0.

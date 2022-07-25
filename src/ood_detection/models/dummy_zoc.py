@@ -83,6 +83,5 @@ class CaptionGenerator:
                 generated_text_prefix = generate_beam(self.model, self.tokenizer, embed=prefix_embed)[0]
             else:
                 generated_text_prefix = generate2(self.model, self.tokenizer, embed=prefix_embed)
-            print('\n')
-            print(generated_text_prefix)
+
             return generated_text_prefix
