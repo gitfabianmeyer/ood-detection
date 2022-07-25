@@ -1,7 +1,7 @@
 import os
 
 os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
-os.environ["CUDA_VISIBLE_DEVICES"] = 1
+os.environ["CUDA_VISIBLE_DEVICES"] = "1"
 
 import PIL
 import clip
@@ -118,12 +118,15 @@ def main():
     logits = 100. * features @ zeroshot_weights
     acc1, acc5 = accuracy(logits, labels, top_k=(1, 5))
 
+    top1 += acc1
+    top5 += acc5
+
     n += features.size(0)
     top1 = (top1 / n) * 100
     top5 = (top5 / n) * 100
 
     print(f"\nClip Top1 Acc: {top1:.2f} with zeroshot")
-    print(f"\nClip Top1 Acc: {top5:.2f} with zeroshot")
+    print(f"\nClip Top5 Acc: {top5:.2f} with zeroshot")
 
 
 if __name__ == '__main__':
