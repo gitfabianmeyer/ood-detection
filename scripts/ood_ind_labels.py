@@ -1,4 +1,5 @@
 import os
+from datetime import datetime
 
 os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
 os.environ["CUDA_VISIBLE_DEVICES"] = "1"
@@ -22,9 +23,9 @@ from ood_detection.ood_utils import get_individual_ood_weights, zeroshot_classif
 device = Config.DEVICE
 print(f"Using {device}")
 stopwords = set(stopwords.words('english'))
-batch_size = 32
-load_zeroshot = False
-load_features = False
+batch_size = 256
+load_zeroshot = True
+load_features = True
 
 
 def remove_stopwords(caption, stop_words=stopwords):
@@ -80,12 +81,19 @@ def clean_caption(caption, classnames):
 
 def main(generate_caption=True):
     # initialize everything
-    run = "pets"
+
+    in_distri_set = "pets"
+    run = in_distri_set
+    #run = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    curr_datapath = os.path.join(Config.FEATURES, run)
+    os.makedirs(curr_datapath, exist_ok=True)
+
+
     model_path = os.path.join(Config.MODELS, 'generator_weights.pt')
-    zeroshot_path = os.path.join(Config.MODELS, f'{run}_zeroshot.pt')
-    features_path = os.path.join(Config.MODELS, f'{run}_features.pt')
-    targets_path = os.path.join(Config.MODELS, f'{run}_targets.pt')
-    ind_labels_path = os.path.join(Config.MODELS, f'{run}_ind_labels.pt')
+    zeroshot_path = os.path.join(curr_datapath, f'{in_distri_set}_zeroshot.pt')
+    features_path = os.path.join(curr_datapath, f'{in_distri_set}_features.pt')
+    targets_path = os.path.join(curr_datapath, f'{in_distri_set}_targets.pt')
+    ind_labels_path = os.path.join(curr_datapath, f'{in_distri_set}_ind_labels.pt')
     print(f"Loading CLIP with Vision Modul: {Config.VISION_MODEL}...")
     clip_model, preprocess = clip.load(Config.VISION_MODEL)
     clip_model.eval()
@@ -107,8 +115,11 @@ def main(generate_caption=True):
         torch.save(zeroshot_weights, zeroshot_path)
         print(f"Saved zsw at {zeroshot_path}")
     else:
-        zeroshot_weights = torch.load(zeroshot_path)
-
+        if torch.cuda.is_available():
+            zeroshot_weights = torch.load(zeroshot_path)
+        else:
+            zeroshot_weights = torch.load(zeroshot_path, map_location=torch.device('cpu'))
+        print("Loaded zeroshot weights")
     dataset = torchvision.datasets.OxfordIIITPet(Config.DATAPATH,
                                                  transform=preprocess)
     print(f"Classifying {len(dataset._images)} images")
@@ -127,7 +138,8 @@ def main(generate_caption=True):
                 images_features = clip_model.encode_image(images).to(device, dtype=torch.float32)
 
                 if generate_caption:
-                    captions = [caption_generator.generate_caption(img_feat, encoded=True) for img_feat in images_features]
+                    captions = [caption_generator.generate_caption(img_feat, encoded=True) for img_feat in
+                                images_features]
                     captions = [clean_caption(caption, classnames) for caption in captions]
 
                 images_features /= images_features.norm(dim=-1, keepdim=True)
@@ -138,13 +150,19 @@ def main(generate_caption=True):
             features = torch.cat(features).to('cpu')
             labels = torch.cat(labels).to('cpu')
 
+        print(type(features))
         torch.save(features, features_path)
+        print(type(labels))
         torch.save(labels, targets_path)
         print(f"Saved at {features_path}")
     else:
-        features = torch.load(features_path)
-        labels = torch.load(labels)
-
+        if torch.cuda.is_available():
+            features = torch.load(features_path)
+            labels = torch.load(labels)
+        else:
+            features = torch.load(features_path, map_location=torch.device('cpu'))
+            labels = torch.load(labels, map_location=torch.device('cpu'))
+        print("loaded features")
     if torch.cuda.is_available():
         print("Trying to clear memory on CUDA")
         torch.cuda.empty_cache()
@@ -160,9 +178,7 @@ def main(generate_caption=True):
         ind_class_embeddings = get_individual_ood_weights(ood_labels,
                                                           clip_model,
                                                           templates=imagenet_templates).to('cpu', dtype=torch.float32)
-        print("got ind class embeddings")
         ind_zeroshot_weights = torch.cat([zeroshot_weights, ind_class_embeddings], dim=1)
-        print("Send ind_zeroshot to CPU")
         # zeroshotting
         top1, top5, n = 0., 0., 0.
         logits = 100. * image @ ind_zeroshot_weights
