@@ -138,11 +138,14 @@ def main(generate_caption=True):
     # do: classify
 
     full_logits = []
+
+    zeroshot_weights = zeroshot_weights.to('cpu')
     for image, ood_labels in zip(features, captions):
         ind_class_embeddings = get_individual_ood_weights(ood_labels,
                                                           clip_model,
                                                           templates=imagenet_templates)
         print("got ind class embeddings")
+        zeroshot_weights = zeroshot_weights.to('cpu')
         ind_zeroshot_weights = torch.cat([zeroshot_weights, ind_class_embeddings], dim=1).to('cpu',
                                                                                              dtype=torch.float32)
         print("Send ind_zeroshot to CPU")
