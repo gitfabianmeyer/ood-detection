@@ -57,7 +57,7 @@ def get_individual_ood_weights(caption, clip_model, templates):
         embeddings.append(word_embedding)
 
     # take the center of this OOD
-    embeddings = torch.stack(embeddings, dim=1)
+    embeddings = torch.stack(embeddings, dim=1).to('cpu')
     return embeddings
 
 
