@@ -158,10 +158,10 @@ def main(generate_caption=True):
     else:
         if torch.cuda.is_available():
             features = torch.load(features_path)
-            labels = torch.load(labels)
+            labels = torch.load(targets_path)
         else:
             features = torch.load(features_path, map_location=torch.device('cpu'))
-            labels = torch.load(labels, map_location=torch.device('cpu'))
+            labels = torch.load(targets_path, map_location=torch.device('cpu'))
         print("loaded features")
     if torch.cuda.is_available():
         print("Trying to clear memory on CUDA")
