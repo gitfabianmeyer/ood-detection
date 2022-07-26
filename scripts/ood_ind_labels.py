@@ -24,8 +24,8 @@ device = Config.DEVICE
 print(f"Using {device}")
 stopwords = set(stopwords.words('english'))
 batch_size = 256
-load_zeroshot = True
-load_features = True
+load_zeroshot = False
+load_features = False
 
 
 def remove_stopwords(caption, stop_words=stopwords):
@@ -94,6 +94,7 @@ def main(generate_caption=True):
     features_path = os.path.join(curr_datapath, f'{in_distri_set}_features.pt')
     targets_path = os.path.join(curr_datapath, f'{in_distri_set}_targets.pt')
     ind_labels_path = os.path.join(curr_datapath, f'{in_distri_set}_ind_labels.pt')
+    captions_path = os.path.join(curr_datapath, f'{in_distri_set}_captions.txt')
     print(f"Loading CLIP with Vision Modul: {Config.VISION_MODEL}...")
     clip_model, preprocess = clip.load(Config.VISION_MODEL)
     clip_model.eval()
@@ -150,11 +151,13 @@ def main(generate_caption=True):
             features = torch.cat(features).to('cpu')
             labels = torch.cat(labels).to('cpu')
 
-        print(type(features))
+
         torch.save(features, features_path)
-        print(type(labels))
         torch.save(labels, targets_path)
         print(f"Saved at {features_path}")
+        with open(captions_path, 'w', encoding='utf-8') as f:
+            for c in captions:
+                f.write(" ".join(c) + '\n')
     else:
         if torch.cuda.is_available():
             features = torch.load(features_path)
@@ -162,7 +165,11 @@ def main(generate_caption=True):
         else:
             features = torch.load(features_path, map_location=torch.device('cpu'))
             labels = torch.load(targets_path, map_location=torch.device('cpu'))
-        print("loaded features")
+
+        with open(captions_path, 'r', encoding='utf-8') as f:
+            captions = [caption.rstrip('\n').split(" ") for caption in f]
+
+        print("loaded features and captions")
     if torch.cuda.is_available():
         print("Trying to clear memory on CUDA")
         torch.cuda.empty_cache()
