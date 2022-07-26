@@ -5,8 +5,6 @@ os.environ["CUDA_VISIBLE_DEVICES"] = "1"
 
 from transformers import GPT2Tokenizer
 
-
-
 import PIL
 import clip
 import torch
@@ -24,7 +22,8 @@ from ood_detection.ood_utils import get_individual_ood_weights, zeroshot_classif
 device = Config.DEVICE
 print(f"Using {device}")
 stopwords = set(stopwords.words('english'))
-batch_size = 4
+batch_size = 32
+
 
 def remove_stopwords(caption, stop_words=stopwords):
     return [word for word in caption.split(" ") if word not in stop_words]
@@ -122,21 +121,27 @@ def main(generate_caption=True):
             features.append(images_features)
             labels.append(targets)
 
-            break
+        # free space on cuda
+        features = torch.cat(features).to('cpu')
+        labels = torch.cat(labels).to('cpu')
 
-        features = torch.cat(features)
-        labels = torch.cat(labels)
+    if torch.cuda.is_available():
+        print("Trying to clear memory on CUDA")
+        torch.cuda.empty_cache()
+        features = features.to(device)
+        labels = labels.to(device)
+    # now: for each triple image | label | ood_label:
+    # do: append ood_label to labels
+    # do: classify
 
-        # now: for each triple image | label | ood_label:
-        # do: append ood_label to labels
-        # do: classify
 
     full_logits = []
     for image, label, ood_labels in zip(features, labels, captions):
         ind_class_embeddings = get_individual_ood_weights(ood_labels,
                                                           clip_model,
                                                           templates=imagenet_templates)
-        ind_zeroshot_weights = torch.cat([zeroshot_weights, ind_class_embeddings], dim=1).to(device, dtype=torch.float32)
+        ind_zeroshot_weights = torch.cat([zeroshot_weights, ind_class_embeddings], dim=1).to(device,
+                                                                                             dtype=torch.float32)
 
         # zeroshotting
         top1, top5, n = 0., 0., 0.
