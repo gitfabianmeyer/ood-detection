@@ -24,7 +24,7 @@ from ood_detection.ood_utils import get_individual_ood_weights, zeroshot_classif
 device = Config.DEVICE
 print(f"Using {device}")
 stopwords = set(stopwords.words('english'))
-
+batch_size = 4
 
 def remove_stopwords(caption, stop_words=stopwords):
     return [word for word in caption.split(" ") if word not in stop_words]
@@ -99,7 +99,7 @@ def main(generate_caption=True):
                                                  transform=preprocess)
     print(f"Classifying {len(dataset._images)} images")
     dataloader = torch.utils.data.DataLoader(dataset,
-                                             batch_size=256,
+                                             batch_size=batch_size,
                                              num_workers=8)
 
     # get the label features
@@ -122,8 +122,10 @@ def main(generate_caption=True):
             features.append(images_features)
             labels.append(targets)
 
-        features = torch.cat(features, dtype=torch.float32)
-        labels = torch.cat(labels, dtype=torch.float32)
+            break
+
+        features = torch.cat(features)
+        labels = torch.cat(labels)
 
         # now: for each triple image | label | ood_label:
         # do: append ood_label to labels
@@ -138,10 +140,10 @@ def main(generate_caption=True):
 
         # zeroshotting
         top1, top5, n = 0., 0., 0.
-        logits = 100. * features @ ind_zeroshot_weights
+        logits = 100. * image @ ind_zeroshot_weights
         full_logits.append(logits)
 
-    full_logits = torch.cat(full_logits)
+    full_logits = torch.stack(full_logits)
     print(f"Shape should be: {len(dataset.classes) + 5} x {len(dataset._images)} and is: {full_logits.shape}")
     # no adapation needed, as new labels are always wrong
     acc1, acc5 = accuracy(full_logits, labels, top_k=(1, 5))
