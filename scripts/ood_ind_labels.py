@@ -1,4 +1,5 @@
 import os
+import time
 
 os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
 os.environ["CUDA_VISIBLE_DEVICES"] = "1"
@@ -128,26 +129,29 @@ def main(generate_caption=True):
     if torch.cuda.is_available():
         print("Trying to clear memory on CUDA")
         torch.cuda.empty_cache()
-        features = features.to(device)
-        labels = labels.to(device)
+        # features = features.to(device)
+        # labels = labels.to(device)
+        print("Waiting 10 seconds to debug")
+        time.sleep(10)
     # now: for each triple image | label | ood_label:
     # do: append ood_label to labels
     # do: classify
 
-
     full_logits = []
-    for image, label, ood_labels in zip(features, labels, captions):
+    for image, ood_labels in zip(features, captions):
         ind_class_embeddings = get_individual_ood_weights(ood_labels,
                                                           clip_model,
                                                           templates=imagenet_templates)
-        ind_zeroshot_weights = torch.cat([zeroshot_weights, ind_class_embeddings], dim=1).to(device,
+        print("got ind class embeddings")
+        ind_zeroshot_weights = torch.cat([zeroshot_weights, ind_class_embeddings], dim=1).to('cpu',
                                                                                              dtype=torch.float32)
-
+        print("Send ind_zeroshot to CPU")
         # zeroshotting
         top1, top5, n = 0., 0., 0.
         logits = 100. * image @ ind_zeroshot_weights
         full_logits.append(logits)
 
+    print("Stacking full logits")
     full_logits = torch.stack(full_logits)
     print(f"Shape should be: {len(dataset.classes) + 5} x {len(dataset._images)} and is: {full_logits.shape}")
     # no adapation needed, as new labels are always wrong
