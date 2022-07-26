@@ -1,4 +1,5 @@
 import os
+import time
 from datetime import datetime
 
 os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
@@ -181,7 +182,11 @@ def main(generate_caption=True):
     full_logits = []
 
     zeroshot_weights = zeroshot_weights.to('cpu')
-    for image, ood_labels in zip(features, captions):
+
+    print(f"Tensor features on cuda: {features.is_cuda}")
+    print(f"Tensor features on cuda: {features.is_cuda}")
+
+    for i, (image, ood_labels) in enumerate(zip(features, captions)):
         ind_class_embeddings = get_individual_ood_weights(ood_labels,
                                                           clip_model,
                                                           templates=imagenet_templates).to('cpu', dtype=torch.float32)
@@ -191,8 +196,18 @@ def main(generate_caption=True):
         logits = 100. * image @ ind_zeroshot_weights
         full_logits.append(logits)
 
+        if i % 200 == 0:
+            print(f"in image {i}. Sleeping for 3")
+            print(f"Tensor ind_class_embeddings on cuda: {ind_class_embeddings.is_cuda}")
+            print(f"Tensor ind_zeroshot_weights on cuda: {ind_zeroshot_weights.is_cuda}")
+            print(f"Tensor logits on cuda: {logits.is_cuda}")
+            time.sleep(3)
+
+
     print("Stacking full logits")
     full_logits = torch.stack(full_logits)
+    print(f"Tensor full_logits on cuda: {full_logits.is_cuda}")
+
     print(f"Shape should be: {len(dataset.classes) + 5} x {len(dataset._images)} and is: {full_logits.shape}")
     # no adapation needed, as new labels are always wrong
     acc1, acc5 = accuracy(full_logits, labels, top_k=(1, 5))
