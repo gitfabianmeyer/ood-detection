@@ -1,5 +1,4 @@
 import os
-import time
 
 os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
 os.environ["CUDA_VISIBLE_DEVICES"] = "1"
@@ -24,6 +23,8 @@ device = Config.DEVICE
 print(f"Using {device}")
 stopwords = set(stopwords.words('english'))
 batch_size = 32
+load_zeroshot = False
+load_features = False
 
 
 def remove_stopwords(caption, stop_words=stopwords):
@@ -79,8 +80,12 @@ def clean_caption(caption, classnames):
 
 def main(generate_caption=True):
     # initialize everything
+    run = "pets"
     model_path = os.path.join(Config.MODELS, 'generator_weights.pt')
-
+    zeroshot_path = os.path.join(Config.MODELS, f'{run}_zeroshot.pt')
+    features_path = os.path.join(Config.MODELS, f'{run}_features.pt')
+    targets_path = os.path.join(Config.MODELS, f'{run}_targets.pt')
+    ind_labels_path = os.path.join(Config.MODELS, f'{run}_ind_labels.pt')
     print(f"Loading CLIP with Vision Modul: {Config.VISION_MODEL}...")
     clip_model, preprocess = clip.load(Config.VISION_MODEL)
     clip_model.eval()
@@ -95,6 +100,15 @@ def main(generate_caption=True):
 
     templates = imagenet_templates
     classnames = oxfordpets_classes
+
+    # get the label features
+    if not load_zeroshot:
+        zeroshot_weights = zeroshot_classifier(classnames, templates, clip_model)
+        torch.save(zeroshot_weights, zeroshot_path)
+        print(f"Saved zsw at {zeroshot_path}")
+    else:
+        zeroshot_weights = torch.load(zeroshot_path)
+
     dataset = torchvision.datasets.OxfordIIITPet(Config.DATAPATH,
                                                  transform=preprocess)
     print(f"Classifying {len(dataset._images)} images")
@@ -102,37 +116,39 @@ def main(generate_caption=True):
                                              batch_size=batch_size,
                                              num_workers=8)
 
-    # get the label features
-    zeroshot_weights = zeroshot_classifier(classnames, templates, clip_model)
-
     features = []
     labels = []
 
-    with torch.no_grad():
-        for images, targets in tqdm(dataloader):
-            images = images.to(device)
-            targets = targets.to(device)
-            images_features = clip_model.encode_image(images).to(device, dtype=torch.float32)
+    if not load_features:
+        with torch.no_grad():
+            for images, targets in tqdm(dataloader):
+                images = images.to(device)
+                targets = targets.to(device)
+                images_features = clip_model.encode_image(images).to(device, dtype=torch.float32)
 
-            if generate_caption:
-                captions = [caption_generator.generate_caption(img_feat, encoded=True) for img_feat in images_features]
-                captions = [clean_caption(caption, classnames) for caption in captions]
+                if generate_caption:
+                    captions = [caption_generator.generate_caption(img_feat, encoded=True) for img_feat in images_features]
+                    captions = [clean_caption(caption, classnames) for caption in captions]
 
-            images_features /= images_features.norm(dim=-1, keepdim=True)
-            features.append(images_features)
-            labels.append(targets)
+                images_features /= images_features.norm(dim=-1, keepdim=True)
+                features.append(images_features)
+                labels.append(targets)
 
-        # free space on cuda
-        features = torch.cat(features).to('cpu')
-        labels = torch.cat(labels).to('cpu')
+            # free space on cuda
+            features = torch.cat(features).to('cpu')
+            labels = torch.cat(labels).to('cpu')
+
+        torch.save(features, features_path)
+        torch.save(labels, targets_path)
+        print(f"Saved at {features_path}")
+    else:
+        features = torch.load(features_path)
+        labels = torch.load(labels)
 
     if torch.cuda.is_available():
         print("Trying to clear memory on CUDA")
         torch.cuda.empty_cache()
-        # features = features.to(device)
-        # labels = labels.to(device)
-        print("Waiting 10 seconds to debug")
-        time.sleep(10)
+
     # now: for each triple image | label | ood_label:
     # do: append ood_label to labels
     # do: classify
@@ -143,11 +159,9 @@ def main(generate_caption=True):
     for image, ood_labels in zip(features, captions):
         ind_class_embeddings = get_individual_ood_weights(ood_labels,
                                                           clip_model,
-                                                          templates=imagenet_templates)
+                                                          templates=imagenet_templates).to('cpu', dtype=torch.float32)
         print("got ind class embeddings")
-        zeroshot_weights = zeroshot_weights.to('cpu')
-        ind_zeroshot_weights = torch.cat([zeroshot_weights, ind_class_embeddings], dim=1).to('cpu',
-                                                                                             dtype=torch.float32)
+        ind_zeroshot_weights = torch.cat([zeroshot_weights, ind_class_embeddings], dim=1)
         print("Send ind_zeroshot to CPU")
         # zeroshotting
         top1, top5, n = 0., 0., 0.
