@@ -182,28 +182,20 @@ def main(generate_caption=True):
     full_logits = []
 
     for i, (image, ood_labels) in enumerate(zip(features, captions)):
-        ind_class_embeddings = get_individual_ood_weights(ood_labels,
+        with torch.no_grad():
+            ind_class_embeddings = get_individual_ood_weights(ood_labels,
                                                           clip_model,
                                                           templates=imagenet_templates)
 
-        image = image.to(device)
-        ind_zeroshot_weights = torch.cat([zeroshot_weights, ind_class_embeddings], dim=1)
-        # zeroshotting
-        top1, top5, n = 0., 0., 0.
-        logits = 100. * image @ ind_zeroshot_weights
-        logits = logits.cpu()
-        full_logits.append(logits)
+            image = image.to(device)
+            ind_zeroshot_weights = torch.cat([zeroshot_weights, ind_class_embeddings], dim=1)
+            # zeroshotting
+            top1, top5, n = 0., 0., 0.
+            logits = 100. * image @ ind_zeroshot_weights
+            logits = logits.cpu()
+            full_logits.append(logits)
 
-        if i % 30 == 0:
-            print(f"in image {i}. Sleeping for 3")
-            print(f"Tensor ind_class_embeddings on cuda: {ind_class_embeddings.is_cuda}")
-            print(f"Tensor ind_zeroshot_weights on cuda: {ind_zeroshot_weights.is_cuda}")
-            print(f"Tensor logits on cuda: {logits.is_cuda}")
-            torch.cuda.empty_cache()
-
-    print("Stacking full logits")
     full_logits = torch.stack(full_logits)
-    print(f"Tensor full_logits on cuda: {full_logits.is_cuda}")
 
     print(f"Shape should be: {len(dataset.classes) + 5} x {len(dataset._images)} and is: {full_logits.shape}")
     # no adapation needed, as new labels are always wrong
