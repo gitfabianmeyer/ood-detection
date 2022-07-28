@@ -185,6 +185,8 @@ def main(generate_caption=True):
         ind_class_embeddings = get_individual_ood_weights(ood_labels,
                                                           clip_model,
                                                           templates=imagenet_templates)
+
+        image = image.to(device)
         ind_zeroshot_weights = torch.cat([zeroshot_weights, ind_class_embeddings], dim=1)
         # zeroshotting
         top1, top5, n = 0., 0., 0.
