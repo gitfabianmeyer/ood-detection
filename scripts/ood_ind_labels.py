@@ -25,8 +25,8 @@ device = Config.DEVICE
 print(f"Using {device}")
 stopwords = set(stopwords.words('english'))
 batch_size = 256
-load_zeroshot = False
-load_features = False
+load_zeroshot = True
+load_features = True
 
 
 def remove_stopwords(caption, stop_words=stopwords):
@@ -149,8 +149,8 @@ def main(generate_caption=True):
                 labels.append(targets)
 
             # free space on cuda
-            features = torch.cat(features).to('cpu')
-            labels = torch.cat(labels).to('cpu')
+            features = torch.cat(features)
+            labels = torch.cat(labels)
 
 
         torch.save(features, features_path)
@@ -181,28 +181,23 @@ def main(generate_caption=True):
 
     full_logits = []
 
-    zeroshot_weights = zeroshot_weights.to('cpu')
-
-    print(f"Tensor features on cuda: {features.is_cuda}")
-    print(f"Tensor features on cuda: {features.is_cuda}")
-
     for i, (image, ood_labels) in enumerate(zip(features, captions)):
         ind_class_embeddings = get_individual_ood_weights(ood_labels,
                                                           clip_model,
-                                                          templates=imagenet_templates).to('cpu', dtype=torch.float32)
+                                                          templates=imagenet_templates)
         ind_zeroshot_weights = torch.cat([zeroshot_weights, ind_class_embeddings], dim=1)
         # zeroshotting
         top1, top5, n = 0., 0., 0.
         logits = 100. * image @ ind_zeroshot_weights
+        logits = logits.cpu()
         full_logits.append(logits)
 
-        if i % 200 == 0:
+        if i % 30 == 0:
             print(f"in image {i}. Sleeping for 3")
             print(f"Tensor ind_class_embeddings on cuda: {ind_class_embeddings.is_cuda}")
             print(f"Tensor ind_zeroshot_weights on cuda: {ind_zeroshot_weights.is_cuda}")
             print(f"Tensor logits on cuda: {logits.is_cuda}")
-            time.sleep(3)
-
+            torch.cuda.empty_cache()
 
     print("Stacking full logits")
     full_logits = torch.stack(full_logits)
