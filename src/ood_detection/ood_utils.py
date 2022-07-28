@@ -31,9 +31,9 @@ def accuracy(output, target, top_k=(1,)):
 def get_normed_embeddings(classname, clip_model, templates):
 
     texts = [template.format(classname) for template in templates]
-    texts = clip.tokenize(texts).to(torch.float32).to(Config.DEVICE)
+    texts = clip.tokenize(texts).to(Config.DEVICE)
     # casual normalization stuff, stolen from tip adapter paper
-    class_embeddings = clip_model.encode_text(texts)  # embed
+    class_embeddings = clip_model.encode_text(texts).to(torch.float32)  # embed
     class_embeddings /= class_embeddings.norm(dim=-1, keepdim=True)
     class_embeddings = class_embeddings.mean(dim=0)
     class_embeddings /= class_embeddings.norm()
