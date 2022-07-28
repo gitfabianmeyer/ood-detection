@@ -25,8 +25,8 @@ device = Config.DEVICE
 print(f"Using {device}")
 stopwords = set(stopwords.words('english'))
 batch_size = 256
-load_zeroshot = True
-load_features = True
+load_zeroshot = False
+load_features = False
 
 
 def remove_stopwords(caption, stop_words=stopwords):
@@ -131,7 +131,7 @@ def main(generate_caption=True):
 
     features = []
     labels = []
-
+    full_captions = []
     if not load_features:
         with torch.no_grad():
             for images, targets in tqdm(dataloader):
@@ -143,7 +143,7 @@ def main(generate_caption=True):
                     captions = [caption_generator.generate_caption(img_feat, encoded=True) for img_feat in
                                 images_features]
                     captions = [clean_caption(caption, classnames) for caption in captions]
-
+                    full_captions.extend(captions)
                 images_features /= images_features.norm(dim=-1, keepdim=True)
                 features.append(images_features)
                 labels.append(targets)
@@ -157,7 +157,7 @@ def main(generate_caption=True):
         torch.save(labels, targets_path)
         print(f"Saved at {features_path}")
         with open(captions_path, 'w', encoding='utf-8') as f:
-            for c in captions:
+            for c in full_captions:
                 f.write(" ".join(c) + '\n')
     else:
         if torch.cuda.is_available():
@@ -168,7 +168,7 @@ def main(generate_caption=True):
             labels = torch.load(targets_path, map_location=torch.device('cpu'))
 
         with open(captions_path, 'r', encoding='utf-8') as f:
-            captions = [caption.rstrip('\n').split(" ") for caption in f]
+            full_captions = [caption.rstrip('\n').split(" ") for caption in f]
 
         print("loaded features and captions")
     if torch.cuda.is_available():
@@ -181,7 +181,7 @@ def main(generate_caption=True):
 
     full_logits = []
 
-    for i, (image, ood_labels) in enumerate(zip(features, captions)):
+    for i, (image, ood_labels) in enumerate(zip(features, full_captions)):
         with torch.no_grad():
             ind_class_embeddings = get_individual_ood_weights(ood_labels,
                                                           clip_model,
@@ -195,10 +195,14 @@ def main(generate_caption=True):
             logits = logits.cpu()
             full_logits.append(logits)
 
+            # TODO either do acc here
+
     full_logits = torch.stack(full_logits)
 
     print(f"Shape should be: {len(dataset.classes) + 5} x {len(dataset._images)} and is: {full_logits.shape}")
     # no adapation needed, as new labels are always wrong
+
+    # TODO or fix it here to use labels each time. OR append 5 labels
     acc1, acc5 = accuracy(full_logits, labels, top_k=(1, 5))
     top1 += acc1
     top5 += acc5
