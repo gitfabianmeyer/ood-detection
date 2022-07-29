@@ -19,7 +19,9 @@ from ood_detection.config import Config
 from ood_detection.models.dummy_zoc import CaptionGenerator
 from tqdm import tqdm
 
-from ood_detection.ood_utils import get_individual_ood_weights, zeroshot_classifier, accuracy
+from ood_detection.ood_utils import get_individual_ood_weights, zeroshot_classifier, \
+    accuracy, save_features_labels_captions, \
+    load_features_labels_captions, get_full_logits, generate_caption_with_generator
 
 device = Config.DEVICE
 print(f"Using {device}")
@@ -77,11 +79,8 @@ def run_batch_ood(image: PIL.Image,
     return pred
 
 
-def clean_caption(caption, classnames, truncate):
-    return [word for word in caption.split() if word not in classnames][:truncate]
-
-
 def main(generate_caption=True):
+    print("Starting run")
     # initialize everything
 
     in_distri_set = "pets"
@@ -108,8 +107,10 @@ def main(generate_caption=True):
                                          tokenizer=tokenizer,
                                          prefix_length=10)
 
+    dataset = torchvision.datasets.OxfordIIITPet(Config.DATAPATH,
+                                                 transform=preprocess)
     templates = imagenet_templates
-    classnames = oxfordpets_classes
+    classnames = dataset.classes
 
     # get the label features
     if not load_zeroshot:
@@ -122,8 +123,7 @@ def main(generate_caption=True):
         else:
             zeroshot_weights = torch.load(zeroshot_path, map_location=torch.device('cpu'))
         print("Loaded zeroshot weights")
-    dataset = torchvision.datasets.OxfordIIITPet(Config.DATAPATH,
-                                                 transform=preprocess)
+
     print(f"Classifying {len(dataset._images)} images")
     dataloader = torch.utils.data.DataLoader(dataset,
                                              batch_size=batch_size,
@@ -140,9 +140,7 @@ def main(generate_caption=True):
                 images_features = clip_model.encode_image(images).to(device, dtype=torch.float32)
 
                 if generate_caption:
-                    captions = [caption_generator.generate_caption(img_feat, encoded=True) for img_feat in
-                                images_features]
-                    captions = [clean_caption(caption, classnames, cut_off_labels) for caption in captions]
+                    captions = generate_caption_with_generator(caption_generator, images_features, classnames, cut_off_labels)
                     full_captions.extend(captions)
                 images_features /= images_features.norm(dim=-1, keepdim=True)
                 features.append(images_features)
@@ -151,48 +149,19 @@ def main(generate_caption=True):
             features = torch.cat(features)
             labels = torch.cat(labels)
 
-        torch.save(features, features_path)
-        torch.save(labels, targets_path)
-        print(f"Saved at {features_path}")
-        with open(captions_path, 'w', encoding='utf-8') as f:
-            for c in full_captions:
-                f.write(" ".join(c) + '\n')
+        save_features_labels_captions(features, features_path, labels, targets_path)
+
     else:
-        if torch.cuda.is_available():
-            features = torch.load(features_path)
-            labels = torch.load(targets_path)
-        else:
-            features = torch.load(features_path, map_location=torch.device('cpu'))
-            labels = torch.load(targets_path, map_location=torch.device('cpu'))
+        features, labels, full_captions = load_features_labels_captions(features_path, targets_path, captions_path)
 
-        with open(captions_path, 'r', encoding='utf-8') as f:
-            full_captions = [caption.rstrip('\n').split(" ") for caption in f]
-
-        print("loaded features and captions")
-
-    full_logits = []
-
-    for i, (image, ood_labels) in enumerate(zip(features, full_captions)):
-        with torch.no_grad():
-            ind_class_embeddings = get_individual_ood_weights(ood_labels,
-                                                              clip_model,
-                                                              templates=imagenet_templates)
-
-            image = image.to(device)
-            ind_zeroshot_weights = torch.cat([zeroshot_weights, ind_class_embeddings], dim=1).to(device)
-            # zeroshotting
-            top1, top5, n = 0., 0., 0.
-            logits = 100. * image @ ind_zeroshot_weights
-            full_logits.append(logits)
-
-            # TODO either do acc here
-    full_logits = torch.stack(full_logits)
+    full_logits = get_full_logits(features, zeroshot_weights, full_captions, clip_model, imagenet_templates)
 
     print(
         f"Shape should be: {len(dataset.classes) + cut_off_labels} x {len(dataset._images)} and is: {full_logits.shape}")
     # no adapation needed, as new labels are always wrong
 
     # TODO or fix it here to use labels each time. OR append 5 labels
+    top1, top5, n = 0., 0., 0.
     acc1, acc5 = accuracy(full_logits, labels, top_k=(1, 5))
     top1 += acc1
     top5 += acc5
@@ -206,5 +175,4 @@ def main(generate_caption=True):
 
 
 if __name__ == '__main__':
-    print("Starting run")
     main()
