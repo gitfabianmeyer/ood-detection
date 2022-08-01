@@ -63,7 +63,10 @@ def zeroshot_classifier(classnames: list, templates: list, clip_model):
 
 
 def clean_caption(caption, classnames, truncate):
-    return [word for word in caption.split() if word not in classnames][:truncate]
+    result = [word for word in caption.split() if word not in classnames][:truncate]
+    while len(result) < truncate:
+        result.append("pad")
+        print(f"Padded {caption}")
 
 
 def generate_caption_with_generator(generator: CaptionGenerator, images_features, classnames, cut_off):
