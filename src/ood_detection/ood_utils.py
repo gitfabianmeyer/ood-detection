@@ -37,7 +37,7 @@ def ood_accuracy(output, target, num_id_labels=5, top_k=(1,)):
                 pred[i, j] = num_id_labels
 
     correct = pred.eq(target.view(1, -1).expand_as(pred))
-    return [float(correct[:k].reshape(-1).float().sum(0, keepdim=True).cpu().numpy()) for k in top_k]
+    return [float(correct[:k].any(dim=0).sum().cpu().numpy()) for k in top_k]
 
 
 def get_normed_embeddings(classname, clip_model, templates):
