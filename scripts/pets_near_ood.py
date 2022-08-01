@@ -14,7 +14,7 @@ from ood_detection.config import Config
 
 # init stuff
 from ood_detection.models.dummy_zoc import CaptionGenerator
-from ood_detection.ood_utils import zeroshot_classifier, accuracy, \
+from ood_detection.ood_utils import zeroshot_classifier, ood_accuracy, \
     clean_caption, save_features_labels_captions, \
     load_features_labels_captions, get_full_logits, \
     generate_caption_with_generator
@@ -105,20 +105,20 @@ def main():
     dataloader = torch.utils.data.DataLoader(dataset,
                                              batch_size=batch_size,
                                              num_workers=8)
-
+    ood_label = len(dataset.classes)
     features = []
     labels = []
     full_captions = []
     if not load_features:
         with torch.no_grad():
-            for images, targets in tqdm(dataloader):
+            for images, actual_targets in tqdm(dataloader):
                 images = images.to(Config.DEVICE)
-                targets = targets.to(Config.DEVICE)
+                targets = torch.tensor([ood_label for i in range(len(actual_targets))]).to(Config.DEVICE)
                 images_features = clip_model.encode_image(images).to(Config.DEVICE, dtype=torch.float32)
 
                 if generate_captions:
                     captions = generate_caption_with_generator(caption_generator, images_features, classnames,
-                                                           cut_off_labels)
+                                                               cut_off_labels)
                     full_captions.extend(captions)
                 images_features /= images_features.norm(dim=-1, keepdim=True)
                 features.append(images_features)
@@ -135,7 +135,7 @@ def main():
     full_logits = get_full_logits(features, zeroshot_weights, full_captions, clip_model, imagenet_templates)
 
     top1, top5, n = 0., 0., 0.
-    acc1, acc5 = accuracy(full_logits, labels, top_k=(1, 5))
+    acc1, acc5 = ood_accuracy(full_logits, labels, len(dataset.classes), top_k=(1, 5))
     top1 += acc1
     top5 += acc5
 

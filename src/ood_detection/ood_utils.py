@@ -29,6 +29,17 @@ def accuracy(output, target, top_k=(1,)):
     return [float(correct[:k].reshape(-1).float().sum(0, keepdim=True).cpu().numpy()) for k in top_k]
 
 
+def ood_accuracy(output, target, num_id_labels=5, top_k=(1,)):
+    pred = output.topk(max(top_k), 1, True, True)[1].t()
+    for i, tensor in enumerate(pred):
+        for j, value in enumerate(tensor):
+            if value > num_id_labels - 1:
+                pred[i, j] = num_id_labels
+
+    correct = pred.eq(target.view(1, -1).expand_as(pred))
+    return [float(correct[:k].reshape(-1).float().sum(0, keepdim=True).cpu().numpy()) for k in top_k]
+
+
 def get_normed_embeddings(classname, clip_model, templates):
     texts = [template.format(classname) for template in templates]
     texts = clip.tokenize(texts).to(Config.DEVICE)
