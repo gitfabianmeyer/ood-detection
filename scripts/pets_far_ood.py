@@ -2,7 +2,6 @@ import os
 
 from ood_detection.datasets.stanfordcars import StandardizedStanfordCars
 
-from src.ood_detection.ood_utils import ood_accuracy
 
 os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
 os.environ["CUDA_VISIBLE_DEVICES"] = "1"
@@ -19,7 +18,7 @@ from ood_detection.models.dummy_zoc import CaptionGenerator
 from ood_detection.ood_utils import zeroshot_classifier, \
     clean_caption, save_features_labels_captions, \
     load_features_labels_captions, get_full_logits, \
-    generate_caption_with_generator
+    generate_caption_with_generator, ood_accuracy
 
 from tqdm import tqdm
 from transformers import GPT2Tokenizer
