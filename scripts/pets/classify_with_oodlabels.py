@@ -103,7 +103,7 @@ def main(generate_caption=True):
             features = torch.cat(features)
             labels = torch.cat(labels)
 
-        save_features_labels_captions(features, features_path, labels, targets_path)
+        save_features_labels_captions(features, features_path, labels, targets_path, full_captions, captions_path)
 
     else:
         features, labels, full_captions = load_features_labels_captions(features_path, targets_path, captions_path)
