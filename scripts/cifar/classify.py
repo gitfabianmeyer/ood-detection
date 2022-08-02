@@ -56,7 +56,8 @@ def main():
 
     num_ood_classes = 10
     dataset = torchvision.datasets.CIFAR10(Config.DATAPATH,
-                                           transform=preprocess)
+                                           transform=preprocess,
+                                           download=True)
 
     # random sample 10 classes
     # ood_classes_idx = random.sample(range(len(dataset.classes)), num_ood_classes)
@@ -113,7 +114,8 @@ def main():
         with torch.no_grad():
             for images, actual_targets in tqdm(dataloader):
                 images = images.to(Config.DEVICE)
-                targets = torch.tensor([ood_label for i in range(len(actual_targets))]).to(Config.DEVICE)
+                # targets = torch.tensor([ood_label for i in range(len(actual_targets))]).to(Config.DEVICE)
+                targets = targets.to(Config.DEVICE)
                 images_features = clip_model.encode_image(images).to(Config.DEVICE, dtype=torch.float32)
 
                 if generate_captions:
