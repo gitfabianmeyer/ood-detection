@@ -102,7 +102,7 @@ def main():
             zeroshot_weights = torch.load(zeroshot_path, map_location=torch.device('cpu'))
         print("Loaded zeroshot weights")
 
-    print(f"Classifying {len(dataset.targets)} images with {len(classnames)} id classes")
+    print(f"Classifying {len(dataset._labels)} images with {len(classnames)} id classes")
     dataloader = torch.utils.data.DataLoader(dataset,
                                              batch_size=batch_size,
                                              num_workers=8)
