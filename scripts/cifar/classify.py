@@ -1,7 +1,5 @@
 import os
 
-from src.ood_detection.ood_utils import ood_accuracy
-
 os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
 os.environ["CUDA_VISIBLE_DEVICES"] = "1"
 
@@ -29,7 +27,7 @@ def main():
     print("Starting run")
     load_features = False
     load_zeroshot = False
-    batch_size = 8
+    batch_size = 256
     cut_off_labels = 5
     generate_captions = False
 
