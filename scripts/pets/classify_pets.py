@@ -112,7 +112,7 @@ def main():
     full_captions = []
     if not load_features:
         with torch.no_grad():
-            for images, actual_targets in tqdm(dataloader):
+            for images, targets in tqdm(dataloader):
                 images = images.to(Config.DEVICE)
                 # targets = torch.tensor([ood_label for i in range(len(actual_targets))]).to(Config.DEVICE)
                 targets = targets.to(Config.DEVICE)
