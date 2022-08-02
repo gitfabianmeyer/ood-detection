@@ -21,62 +21,15 @@ from tqdm import tqdm
 
 from ood_detection.ood_utils import get_individual_ood_weights, zeroshot_classifier, \
     accuracy, save_features_labels_captions, \
-    load_features_labels_captions, get_full_logits, generate_caption_with_generator
+    load_features_labels_captions, get_full_logits, generate_caption_with_generator, ood_accuracy
 
 device = Config.DEVICE
 print(f"Using {device}")
 stopwords = set(stopwords.words('english'))
 batch_size = 256
 cut_off_labels = 5
-load_zeroshot = True
-load_features = True
-
-
-def remove_stopwords(caption, stop_words=stopwords):
-    return [word for word in caption.split(" ") if word not in stop_words]
-
-
-def run_batch_ood(image: PIL.Image,
-                  target,
-                  caption_generator: CaptionGenerator,
-                  clip_model,
-                  preprocess,
-                  class_weights,
-                  stop_words=None):
-    # generate the pseudo labels aka the caption
-    image = preprocess(image).unsqueeze(0).to(device)
-    caption = caption_generator.generate_caption(image)
-    if stop_words:
-        ood_label = remove_stopwords(caption, stop_words)
-
-    else:
-        ood_label = [word for word in caption.split(" ")]
-
-    print(f"Label: {ood_label}")
-
-    # append individual labels to the zeroshot weights
-    ind_class_embeddings = get_individual_ood_weights(ood_label,
-                                                      clip_model,
-                                                      templates=imagenet_templates)
-
-    zeroshot_weights = torch.cat([class_weights, ind_class_embeddings], dim=1).to(device)
-
-    clip_model.eval()
-    image = image.to(device)
-    # target = target.to(device)
-    image_features = clip_model.encode_image(image)
-    image_features /= image_features.norm(dim=-1, keepdim=True)
-
-    logits = 100. * image_features @ zeroshot_weights
-
-    # acc
-    pred = logits.topk(max((1,)), 1, True, True)[1].t()
-    print(f"Predicted: {pred}")
-    print(f"True: {target}")
-
-    # classify(ood_features, zeroshot_weights, ood_labels, name)
-    # rewrite for 1 image, see if it works
-    return pred
+load_zeroshot = False
+load_features = False
 
 
 def main(generate_caption=True):
@@ -84,7 +37,7 @@ def main(generate_caption=True):
     # initialize everything
 
     in_distri_set = "pets"
-    run = in_distri_set
+    run = in_distri_set + "_id_with_extra_labels"
     # run = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     curr_datapath = os.path.join(Config.FEATURES, run)
     os.makedirs(curr_datapath, exist_ok=True)
@@ -140,7 +93,8 @@ def main(generate_caption=True):
                 images_features = clip_model.encode_image(images).to(device, dtype=torch.float32)
 
                 if generate_caption:
-                    captions = generate_caption_with_generator(caption_generator, images_features, classnames, cut_off_labels)
+                    captions = generate_caption_with_generator(caption_generator, images_features, classnames,
+                                                               cut_off_labels)
                     full_captions.extend(captions)
                 images_features /= images_features.norm(dim=-1, keepdim=True)
                 features.append(images_features)
@@ -162,7 +116,7 @@ def main(generate_caption=True):
 
     # TODO or fix it here to use labels each time. OR append 5 labels
     top1, top5, n = 0., 0., 0.
-    acc1, acc5 = accuracy(full_logits, labels, top_k=(1, 5))
+    acc1, acc5 = ood_accuracy(full_logits, labels, top_k=(1, 5))
     top1 += acc1
     top5 += acc5
 
