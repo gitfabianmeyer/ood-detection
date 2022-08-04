@@ -1,10 +1,9 @@
 from typing import Tuple
 
-import clip
 import torch.cuda
 from ood_detection.config import Config
 from torch import nn
-from transformers import GPT2LMHeadModel, GPT2Tokenizer
+from transformers import GPT2LMHeadModel
 
 from ood_detection.models.captioning_utils import generate_beam, generate2
 
