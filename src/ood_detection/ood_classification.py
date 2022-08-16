@@ -7,7 +7,7 @@ from datetime import datetime
 import clip
 import torch
 import torchvision
-from ood_detection.ood_classification import zeroshot_classifier, classify
+from ood_detection.ood_utils import zeroshot_classifier, classify
 from tqdm import tqdm
 
 from ood_detection.classnames import fgvcaircraft_classes, \
