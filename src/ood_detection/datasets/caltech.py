@@ -10,10 +10,10 @@ class StandardizedCaltech(torchvision.datasets.Caltech101):
                          transform=transform,
                          download=True)
         self._labels = self.y
-        self._image_files = self.transform_to_image_list()
+        self._images = self.transform_to_image_list()
 
     def __getitem__(self, idx):
-        img = Image.open(self._image_files[idx])
+        img = Image.open(self._images[idx])
         if self.transform is not None:
             img = self.transform(img)
         target = self._labels[idx]

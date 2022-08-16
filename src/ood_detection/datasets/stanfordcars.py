@@ -8,11 +8,11 @@ class StandardizedStanfordCars(torchvision.datasets.StanfordCars):
                          transform=transform,
                          download=True)
         self._labels = [tup[1] for tup in self._samples]
-        self._image_files = [tup[0] for tup in self._samples]
+        self._images = [tup[0] for tup in self._samples]
 
     def __getitem__(self, idx):
 
-        image_file, label = self._image_files[idx], self._labels[idx]
+        image_file, label = self._images[idx], self._labels[idx]
         image = PIL.Image.open(image_file).convert("RGB")
 
         if self.transform:
