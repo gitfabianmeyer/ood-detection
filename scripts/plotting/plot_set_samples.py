@@ -1,5 +1,6 @@
 import os
 
+
 os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
 os.environ["CUDA_VISIBLE_DEVICES"] = "1"
 
@@ -10,6 +11,7 @@ from ood_detection.config import Config
 from ood_detection.datasets.caltech import StandardizedCaltech
 from ood_detection.datasets.flowers102 import FlowersWithLabels
 from ood_detection.datasets.stanfordcars import StandardizedStanfordCars
+from ood_detection.datasets.dtd import StandardizedDTD
 from ood_detection.ood_classification import prep_subset_images
 from torch.utils.data import DataLoader
 from tqdm import tqdm
@@ -19,7 +21,7 @@ model, preprocess = clip.load(Config.VISION_MODEL, device=device)
 
 flowers = FlowersWithLabels(Config.DATAPATH, preprocess)
 cars = StandardizedStanfordCars(Config.DATAPATH, transform=preprocess)
-dtd = torchvision.datasets.DTD(Config.DATAPATH, transform=preprocess)
+dtd = StandardizedDTD(Config.DATAPATH, preprocess)
 caltech = StandardizedCaltech(Config.DATAPATH, preprocess)
 aircraft = torchvision.datasets.FGVCAircraft(Config.DATAPATH, transform=preprocess, download=True)
 pets = torchvision.datasets.OxfordIIITPet(Config.DATAPATH, transform=preprocess)
