@@ -37,6 +37,7 @@ sets = {
 
 def main():
     for name, dataset in sets.items():
+        path = os.path.join(Config.DATAPATH, 'samples')
         features_path = os.path.join(path, name + '_features.pt')
         labels_path = os.path.join(path, name + 'labels.pt')
 
@@ -57,7 +58,6 @@ def main():
             features = torch.cat(features)
             labels = torch.cat(labels)
 
-        path = os.path.join(Config.DATAPATH, 'samples')
         os.makedirs(path, exist_ok=True)
 
         torch.save(features, features_path)
