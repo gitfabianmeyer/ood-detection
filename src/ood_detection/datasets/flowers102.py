@@ -9,4 +9,4 @@ class FlowersWithLabels(torchvision.datasets.Flowers102):
                          transform=transform,
                          download=True)
         self.classes = flowers_classes
-        self._images = self.image_files
+        self._images = self._image_files
