@@ -40,13 +40,13 @@ def main():
         features = []
         labels = []
         with torch.no_grad():
-            for images, samples in tqdm(loader):
+            for images, targets in tqdm(loader):
                 images = images.to(device)
-                target = target.to(device)
+                targets = targets.to(device)
                 image_features = model.encode_image(images)
                 image_features /= image_features.norm(dim=-1, keepdim=True)
                 features.append(image_features)
-                labels.append(target)
+                labels.append(targets)
             features = torch.cat(features)
             labels = torch.cat(labels)
 
