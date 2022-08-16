@@ -36,6 +36,8 @@ def prep_subset_images(dataset: torchvision.datasets, n):
     targets = []
 
     for label, items in split_by_label_dict.items():
+        if n > len(items):
+            n = len(items)
         imgs = imgs + random.sample(items, n)
         targets = targets + [label for _ in range(n)]
 
