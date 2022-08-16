@@ -22,14 +22,14 @@ model, preprocess = clip.load(Config.VISION_MODEL, device=device)
 flowers = FlowersWithLabels(Config.DATAPATH, preprocess)
 cars = StandardizedStanfordCars(Config.DATAPATH, transform=preprocess)
 dtd = StandardizedDTD(Config.DATAPATH, preprocess)
-caltech = StandardizedCaltech(Config.DATAPATH, preprocess)
+# caltech = StandardizedCaltech(Config.DATAPATH, preprocess)
 aircraft = torchvision.datasets.FGVCAircraft(Config.DATAPATH, transform=preprocess, download=True)
 pets = torchvision.datasets.OxfordIIITPet(Config.DATAPATH, transform=preprocess)
 sets = {
     'flowers': flowers,
     'cars': cars,
     'dtd': dtd,
-    'caltech': caltech,
+    #'caltech': caltech,
     'aircraft': aircraft,
     'pets': pets
 }
