@@ -37,6 +37,11 @@ sets = {
 
 def main():
     for name, dataset in sets.items():
+        features_path = os.path.join(path, name + '_features.pt')
+        labels_path = os.path.join(path, name + 'labels.pt')
+
+        if os.path.isfile(features_path) and os.path.isfile(labels_path):
+            continue
         subset = prep_subset_images(dataset, n=1000)
         loader = DataLoader(subset, batch_size=256)
         features = []
@@ -55,8 +60,6 @@ def main():
         path = os.path.join(Config.DATAPATH, 'samples')
         os.makedirs(path, exist_ok=True)
 
-        features_path = os.path.join(path, name + '_features.pt')
-        labels_path = os.path.join(path, name + 'labels.pt')
         torch.save(features, features_path)
         torch.save(labels, labels_path)
         print(f"Saved {name} with len {len(features)}")
