@@ -16,13 +16,20 @@ from tqdm import tqdm
 
 device = Config.DEVICE
 model, preprocess = clip.load(Config.VISION_MODEL, device=device)
+
+flowers = FlowersWithLabels(Config.DATAPATH, preprocess)
+cars = StandardizedStanfordCars(Config.DATAPATH, transform=preprocess)
+dtd = torchvision.datasets.DTD(Config.DATAPATH, transform=preprocess)
+caltech = StandardizedCaltech(Config.DATAPATH, preprocess)
+aircraft = torchvision.datasets.FGVCAircraft(Config.DATAPATH, transform=preprocess, download=True)
+pets = torchvision.datasets.OxfordIIITPet(Config.DATAPATH, transform=preprocess)
 sets = {
-    'flowers': FlowersWithLabels(Config.DATAPATH, preprocess),
-    'cars': StandardizedStanfordCars(Config.DATAPATH, preprocess),
-    'dtd': torchvision.datasets.dtd(Config.DATAPATH, preprocess=preprocess),
-    'caltech': StandardizedCaltech(Config.DATAPATH, preprocess),
-    'aircraft': torchvision.datasets.fgvc_aircraft(Config.DATAPATH, preprocess=preprocess),
-    'pets': torchvision.datasets.oxford_iiit_pet(Config.DATAPATH, preprocess=preprocess)
+    'flowers': flowers,
+    'cars': cars,
+    'dtd': dtd,
+    'caltech': caltech,
+    'aircraft': aircraft,
+    'pets': pets
 }
 
 
