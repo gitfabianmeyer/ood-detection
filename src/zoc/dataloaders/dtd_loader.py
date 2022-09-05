@@ -26,7 +26,7 @@ class dtd_isolated_class(Dataset):
 
     def __getitem__(self, idx):
         image_file = self.data[idx]
-        image = PIL.Image.open(image_file)
+        image = PIL.Image.open(image_file).convert('RGB')
         return self.transform(image)
 
     def __len__(self):
