@@ -13,7 +13,7 @@ class dtd_isolated_class(Dataset):
         assert class_label, 'a semantic label should be specified'
         super(dtd_isolated_class, self).__init__()
         self.transform = Compose([
-            ToPILImage(),
+            # ToPILImage(),
             Resize(224, interpolation=Image.BICUBIC),
             CenterCrop(224),
             ToTensor(),
