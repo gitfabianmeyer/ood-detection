@@ -46,7 +46,10 @@ def image_decoder(clip_model,
                     clip_extended_embed = clip_out.repeat(1, 2).type(torch.FloatTensor)
 
                     # greedy generation
-                    target_list, topk_list = greedysearch_generation_topk(clip_extended_embed, berttokenizer)
+                    target_list, topk_list = greedysearch_generation_topk(clip_extended_embed,
+                                                                          berttokenizer,
+                                                                          bert_model,
+                                                                          device)
 
                     topk_tokens = [berttokenizer.decode(int(pred_idx.cpu().numpy())) for pred_idx in topk_list]
 

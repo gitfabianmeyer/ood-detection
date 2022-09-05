@@ -3,7 +3,7 @@ import random
 import torch
 
 
-def greedysearch_generation_topk(clip_embed, berttokenizer):
+def greedysearch_generation_topk(clip_embed, berttokenizer, bert_model, device):
     max_len = 77
     N = 1  # batch has single sample
     max_len = 77
