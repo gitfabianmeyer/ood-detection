@@ -14,7 +14,7 @@ from tqdm import tqdm
 from transformers import BertGenerationTokenizer, BertGenerationConfig, BertGenerationDecoder
 from zoc.utils import greedysearch_generation_topk, tokenize_for_clip, get_ablation_splits
 
-from src.zoc.dataloaders.dtd_loader import dtd_single_isolated_class_loader
+from zoc.dataloaders.dtd_loader import dtd_single_isolated_class_loader
 
 
 def image_decoder(clip_model,
@@ -97,4 +97,4 @@ if __name__ == '__main__':
     bert_model.load_state_dict(torch.load(args.saved_model_path + 'model_3.pt',  map_location=torch.device(device))['net'])
 
     dtd10_loaders = dtd_single_isolated_class_loader()
-    image_decoder(clip_model, berttokenizer, device, image_loaders=dtd10_loaders)
+    image_decoder(clip_model, cliptokenizer, berttokenizer, device, image_loaders=dtd10_loaders)
