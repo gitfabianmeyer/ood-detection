@@ -35,7 +35,7 @@ class oxford3_isolated_class(Dataset):
 
 def oxford3_single_isolated_class_loader():
     loaders_dict = {}
-    labels = classnames.dtd_classes
+    labels = classnames.oxfordpets_classes
     for label in labels:
         dataset = oxford3_isolated_class(label)
         loader = DataLoader(dataset=dataset, batch_size=1, num_workers=4)
@@ -45,7 +45,7 @@ def oxford3_single_isolated_class_loader():
 
 
 def get_oxfordiiipets_loader(transform):
-    dtd = OxfordIIITPet(root=Config.DATAPATH, transform=transform,
+    oxfordpets = OxfordIIITPet(root=Config.DATAPATH, transform=transform,
               split='test', download=True)
-    loader = DataLoader(dataset=dtd, batch_size=64)
+    loader = DataLoader(dataset=oxfordpets, batch_size=64)
     return loader
