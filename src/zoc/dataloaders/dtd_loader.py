@@ -42,3 +42,9 @@ def dtd_single_isolated_class_loader():
         loaders_dict[label] = loader
 
     return loaders_dict
+
+
+def get_dtd_loader():
+    dtd = DTD(root=Config.DATAPATH, split='val', download=True)
+    loader = DataLoader(dataset=dtd, batch_size=64)
+    return loader

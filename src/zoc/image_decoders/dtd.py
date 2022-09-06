@@ -2,6 +2,10 @@ import os
 os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
 os.environ["CUDA_VISIBLE_DEVICES"] = "1"
 
+
+
+
+
 import argparse
 
 from clip.simple_tokenizer import SimpleTokenizer as clip_tokenizer
@@ -12,9 +16,18 @@ from ood_detection import classnames
 from sklearn.metrics import roc_auc_score
 from tqdm import tqdm
 from transformers import BertGenerationTokenizer, BertGenerationConfig, BertGenerationDecoder
-from zoc.utils import greedysearch_generation_topk, tokenize_for_clip, get_ablation_splits
 
-from zoc.dataloaders.dtd_loader import dtd_single_isolated_class_loader
+from zoc.utils import greedysearch_generation_topk, tokenize_for_clip, get_ablation_splits
+from zoc.dataloaders.dtd_loader import dtd_single_isolated_class_loader, get_dtd_loader
+
+
+def classify_dtd(model):
+    loader = get_dtd_loader()
+
+    features, labels = get_dataset_features(loader, model, None, None)
+    zeroshot_weights = zeroshot_classifier(loader.dataset.classnames, templates=imagenet_templates, clip_model=model)
+    classify(features, zeroshot_weights, labels, "DTD")
+
 
 
 def image_decoder(clip_model,
@@ -30,6 +43,8 @@ def image_decoder(clip_model,
     auc_list_sum = []
     for split in ablation_splits:
         seen_labels = split[:id_classes]
+        print(f"Seen labels: {seen_labels}")
+        print(f"OOD Labels: {split[id_classes:]}")
         seen_descriptions = [f"This is a photo of a {label}" for label in seen_labels]
         # targets = torch.tensor(6000*[0] + 4000*[1])
 
@@ -100,4 +115,5 @@ if __name__ == '__main__':
     bert_model.load_state_dict(torch.load(args.saved_model_path + 'model_3.pt',  map_location=torch.device(device))['net'])
 
     dtd10_loaders = dtd_single_isolated_class_loader()
+    classify_dtd(clip_model)
     image_decoder(clip_model, cliptokenizer, berttokenizer, device, image_loaders=dtd10_loaders)

@@ -83,8 +83,9 @@ def get_dataset_features(loader: torch.utils.data.DataLoader, model, features_pa
 
         labels = torch.cat(labels)
 
-        torch.save(features, features_path)
-        torch.save(labels, targets_path)
+        if features_path and targets_path:
+            torch.save(features, features_path)
+            torch.save(labels, targets_path)
         return features, labels
 
 
