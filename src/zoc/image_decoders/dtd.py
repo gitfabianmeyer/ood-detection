@@ -24,7 +24,7 @@ from zoc.dataloaders.dtd_loader import dtd_single_isolated_class_loader, get_dtd
 
 
 def classify_dtd(model):
-    loader = get_dtd_loader()
+    loader = get_dtd_loader(preprocess)
 
     features, labels = get_dataset_features(loader, model, None, None)
     zeroshot_weights = zeroshot_classifier(loader.dataset.classnames, templates=imagenet_templates, clip_model=model)
@@ -106,7 +106,7 @@ if __name__ == '__main__':
     berttokenizer = BertGenerationTokenizer.from_pretrained('google/bert_for_seq_generation_L-24_bbc_encoder')
 
     # clip_model = torch.jit.load(os.path.join('./trained_models', "{}.pt".format('ViT-B/32'))).to(device).eval()
-    clip_model, _ = clip.load('ViT-B/32')
+    clip_model, preprocess = clip.load('ViT-B/32')
     cliptokenizer = clip_tokenizer()
 
     bert_config = BertGenerationConfig.from_pretrained("google/bert_for_seq_generation_L-24_bbc_encoder")
@@ -117,5 +117,5 @@ if __name__ == '__main__':
     bert_model.load_state_dict(torch.load(args.saved_model_path + 'model_3.pt',  map_location=torch.device(device))['net'])
 
     dtd10_loaders = dtd_single_isolated_class_loader()
-    classify_dtd(clip_model)
+    classify_dtd(clip_model, preprocess)
     image_decoder(clip_model, cliptokenizer, berttokenizer, device, image_loaders=dtd10_loaders)
