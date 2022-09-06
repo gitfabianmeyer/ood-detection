@@ -37,7 +37,7 @@ def image_decoder(clip_model,
                   id_classes=8,
                   ood_classes=2,
                   num_imgs_per_class=40):
-    ablation_splits = get_ablation_splits(classnames.dtd_classes, n=3, id_classes=id_classes, ood_classes=ood_classes)
+    ablation_splits = get_ablation_splits(classnames.oxfordpets_classes, n=3, id_classes=id_classes, ood_classes=ood_classes)
 
     auc_list_sum = []
     for split in ablation_splits:
