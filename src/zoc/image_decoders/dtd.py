@@ -1,8 +1,7 @@
 import os
+
 os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
 os.environ["CUDA_VISIBLE_DEVICES"] = "1"
-
-
 
 from ood_detection.classnames import imagenet_templates
 from ood_detection.ood_classification import get_dataset_features
@@ -20,16 +19,16 @@ from tqdm import tqdm
 from transformers import BertGenerationTokenizer, BertGenerationConfig, BertGenerationDecoder
 
 from zoc.utils import greedysearch_generation_topk, tokenize_for_clip, get_ablation_splits
+
 from zoc.dataloaders.dtd_loader import dtd_single_isolated_class_loader, get_dtd_loader
 
 
-def classify_dtd(model):
+def classify_dtd(model, preprocess):
     loader = get_dtd_loader(preprocess)
 
     features, labels = get_dataset_features(loader, model, None, None)
     zeroshot_weights = zeroshot_classifier(loader.dataset.classnames, templates=imagenet_templates, clip_model=model)
     classify(features, zeroshot_weights, labels, "DTD")
-
 
 
 def image_decoder(clip_model,
@@ -51,8 +50,8 @@ def image_decoder(clip_model,
         # targets = torch.tensor(6000*[0] + 4000*[1])
 
         # see if you can set this manually
-        targets = torch.tensor((num_imgs_per_class * id_classes) * [0] + (ood_classes*num_imgs_per_class) * [1])
-        max_num_entities = 0 # ?
+        targets = torch.tensor((num_imgs_per_class * id_classes) * [0] + (ood_classes * num_imgs_per_class) * [1])
+        max_num_entities = 0  # ?
         ood_probs_sum = []
         for i, semantic_label in enumerate(split):
             loader = image_loaders[semantic_label]
@@ -91,13 +90,14 @@ def image_decoder(clip_model,
     print('all auc scores:', auc_list_sum)
     print('auc sum', np.mean(auc_list_sum), np.std(auc_list_sum))
 
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--trained_path', type=str, default='/home/fmeyer/ZOC/trained_models/COCO/')
+    parser.add_argument('--trained_path', type=str, default='/mnt/c/Users/fmeyer/Git/ZOC/trained_models/COCO/')
     args = parser.parse_args()
 
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    args.saved_model_path = args.trained_path + '/ViT-B32/'
+    args.saved_model_path = os.path.join(args.trained_path,'ViT-B32/')
 
     if not os.path.exists(args.saved_model_path):
         os.makedirs(args.saved_model_path)
@@ -114,7 +114,8 @@ if __name__ == '__main__':
     bert_config.add_cross_attention = True
     bert_model = BertGenerationDecoder.from_pretrained('google/bert_for_seq_generation_L-24_bbc_encoder',
                                                        config=bert_config).to(device).train()
-    bert_model.load_state_dict(torch.load(args.saved_model_path + 'model_3.pt',  map_location=torch.device(device))['net'])
+    bert_model.load_state_dict(
+        torch.load(args.saved_model_path + 'model_3.pt', map_location=torch.device(device))['net'])
 
     dtd10_loaders = dtd_single_isolated_class_loader()
     classify_dtd(clip_model, preprocess)
