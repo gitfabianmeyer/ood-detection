@@ -1,11 +1,5 @@
 import os
 
-from ood_detection.classnames import imagenet_templates
-from ood_detection.ood_classification import get_dataset_features
-from ood_detection.ood_utils import zeroshot_classifier, classify
-
-from src.zoc.dataloaders.cifar10 import cifar10_single_isolated_class_loader
-
 os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
 os.environ["CUDA_VISIBLE_DEVICES"] = "1"
 
@@ -15,9 +9,13 @@ import clip
 from tqdm import tqdm
 import numpy as np
 from transformers import BertGenerationTokenizer, BertGenerationDecoder, BertGenerationConfig
-from zoc.dataloaders.cifar10 import get_cifar10_loader
 from clip.simple_tokenizer import SimpleTokenizer as clip_tokenizer
 from sklearn.metrics import roc_auc_score
+
+from ood_detection.classnames import imagenet_templates
+from ood_detection.ood_classification import get_dataset_features
+from ood_detection.ood_utils import zeroshot_classifier, classify
+from zoc.dataloaders.cifar10 import cifar10_single_isolated_class_loader, get_cifar10_loader
 
 
 def classify_cifar10(model, preprocess):
