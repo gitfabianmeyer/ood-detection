@@ -119,4 +119,4 @@ if __name__ == '__main__':
 
     classify_cifar10(clip_model, preprocess)
     cifar10_loaders = cifar10_single_isolated_class_loader()
-    image_decoder(clip_model, berttokenizer, device, image_loaders=cifar10_loaders)
+    image_decoder(clip_model, cliptokenizer, berttokenizer, device, image_loaders=cifar10_loaders)
