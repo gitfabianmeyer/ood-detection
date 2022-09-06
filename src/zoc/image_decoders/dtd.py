@@ -3,9 +3,6 @@ import os
 os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
 os.environ["CUDA_VISIBLE_DEVICES"] = "1"
 
-from ood_detection.classnames import imagenet_templates
-from ood_detection.ood_classification import get_dataset_features
-from ood_detection.ood_utils import classify, zeroshot_classifier
 
 import argparse
 
@@ -19,8 +16,10 @@ from tqdm import tqdm
 from transformers import BertGenerationTokenizer, BertGenerationConfig, BertGenerationDecoder
 
 from zoc.utils import greedysearch_generation_topk, tokenize_for_clip, get_ablation_splits
-
 from zoc.dataloaders.dtd_loader import dtd_single_isolated_class_loader, get_dtd_loader
+from ood_detection.classnames import imagenet_templates
+from ood_detection.ood_classification import get_dataset_features
+from ood_detection.ood_utils import classify, zeroshot_classifier
 
 
 def classify_dtd(model, preprocess):

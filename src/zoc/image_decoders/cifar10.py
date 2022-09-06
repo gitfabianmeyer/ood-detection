@@ -16,6 +16,7 @@ from ood_detection.classnames import imagenet_templates
 from ood_detection.ood_classification import get_dataset_features
 from ood_detection.ood_utils import zeroshot_classifier, classify
 from zoc.dataloaders.cifar10 import cifar10_single_isolated_class_loader, get_cifar10_loader
+from zoc.utils import greedysearch_generation_topk, tokenize_for_clip, get_ablation_splits
 
 
 def classify_cifar10(model, preprocess):
