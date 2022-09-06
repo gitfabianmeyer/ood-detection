@@ -21,7 +21,7 @@ class oxford3_isolated_class(Dataset):
         ])
         oxford3pets = OxfordIIITPet(root=Config.DATAPATH, split='test', download=True)
         class_mask = np.array(oxford3pets._labels) == oxford3pets.class_to_idx[class_label]
-        self.data = [oxford3pets._image_files[i] for i in range(len(oxford3pets._image_files)) if class_mask[i]]
+        self.data = [oxford3pets._images[i] for i in range(len(oxford3pets._images)) if class_mask[i]]
         self.targets = np.array(oxford3pets._labels)[class_mask]
 
     def __getitem__(self, idx):
@@ -46,6 +46,6 @@ def oxford3_single_isolated_class_loader():
 
 def get_oxfordiiipets_loader(transform):
     oxfordpets = OxfordIIITPet(root=Config.DATAPATH, transform=transform,
-              split='test', download=True)
+                               split='test', download=True)
     loader = DataLoader(dataset=oxfordpets, batch_size=64)
     return loader
