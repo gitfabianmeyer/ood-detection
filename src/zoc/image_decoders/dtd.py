@@ -4,7 +4,9 @@ os.environ["CUDA_VISIBLE_DEVICES"] = "1"
 
 
 
-
+from ood_detection.classnames import imagenet_templates
+from ood_detection.ood_classification import get_dataset_features
+from ood_detection.ood_utils import classify, zeroshot_classifier
 
 import argparse
 
