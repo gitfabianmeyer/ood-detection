@@ -9,7 +9,7 @@ from ood_detection.models.dummy_zoc import CaptionGenerator
 
 def classify(features, zeroshot_weights, labels, dataset):
     top1, top5, n = 0., 0., 0.
-    logits = 100. * features @ zeroshot_weights
+    logits = 100. * features.half() @ zeroshot_weights.half()
     acc1, acc5 = accuracy(logits, labels, top_k=(1, 5))
     top1 += acc1
     top5 += acc5

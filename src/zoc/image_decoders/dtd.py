@@ -77,7 +77,7 @@ def image_decoder(clip_model,
 
                     image_feature = clip_out
                     image_feature /= image_feature.norm(dim=-1, keepdim=True)
-                    text_features = clip_model.encode_text(all_desc_ids.cuda()).float()
+                    text_features = clip_model.encode_text(all_desc_ids.to(device)).float()
                     text_features /= text_features.norm(dim=-1, keepdim=True)
                     zeroshot_probs = (100.0 * image_feature @ text_features.T).softmax(dim=-1).squeeze()
 
