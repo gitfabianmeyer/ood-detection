@@ -35,21 +35,21 @@ def image_decoder(clip_model,
                   device,
                   image_loaders=None,
                   id_classes=8,
-                  ood_classes=2,
-                  num_imgs_per_class=40):
-    ablation_splits = get_ablation_splits(classnames.oxfordpets_classes, n=3, id_classes=id_classes, ood_classes=ood_classes)
+                  ood_classes=4):
+    ablation_splits = get_ablation_splits(classnames.oxfordpets_classes, n=10, id_classes=id_classes,
+                                          ood_classes=ood_classes)
 
     auc_list_sum = []
     for split in ablation_splits:
         seen_labels = split[:id_classes]
+        unseen_labels = split[id_classes:]
         print(f"Seen labels: {seen_labels}")
         print(f"OOD Labels: {split[id_classes:]}")
         seen_descriptions = [f"This is a photo of a {label}" for label in seen_labels]
-        # targets = torch.tensor(6000*[0] + 4000*[1])
 
-        # see if you can set this manually
-        targets = torch.tensor((num_imgs_per_class * id_classes) * [0] + (ood_classes * num_imgs_per_class) * [1])
-        max_num_entities = 0  # ?
+        len_id_targets = sum([len(image_loaders[lab].dataset) for lab in seen_labels])
+        len_od_targets = sum([len(image_loaders[lab].dataset) for lab in unseen_labels])
+
         ood_probs_sum = []
         for i, semantic_label in enumerate(split):
             loader = image_loaders[semantic_label]
@@ -82,11 +82,17 @@ def image_decoder(clip_model,
                 # detection score is accumulative sum of probs of generated entities
                 ood_prob_sum = np.sum(zeroshot_probs[id_classes:].detach().cpu().numpy())
                 ood_probs_sum.append(ood_prob_sum)
+
+        targets = torch.tensor(len_id_targets * [0] + (ood_classes * len_od_targets) * [1])
+
         auc_sum = roc_auc_score(np.array(targets), np.squeeze(ood_probs_sum))
         print('sum_ood AUROC={}'.format(auc_sum))
         auc_list_sum.append(auc_sum)
     print('all auc scores:', auc_list_sum)
-    print('auc sum', np.mean(auc_list_sum), np.std(auc_list_sum))
+    mean_auc = np.mean(auc_list_sum)
+    std_auc = np.std(auc_list_sum)
+    print('auc sum', mean_auc, std_auc)
+    return mean_auc, std_auc
 
 
 if __name__ == '__main__':
@@ -117,4 +123,12 @@ if __name__ == '__main__':
 
     oxford_loaders = oxford3_single_isolated_class_loader()
     classify_dtd(clip_model, preprocess)
-    image_decoder(clip_model, cliptokenizer, berttokenizer, device, image_loaders=oxford_loaders)
+
+    runs = 5
+    mean_list = []
+
+    for i in range(runs):
+        mean, _ = image_decoder(clip_model, cliptokenizer, berttokenizer, device, image_loaders=oxford_loaders)
+        mean_list.append(mean)
+
+    print(f"Scores for {runs} runs of 10 ablation splits: Mean: {np.mean(mean_list)}. Std: {np.std(mean_list)}")
