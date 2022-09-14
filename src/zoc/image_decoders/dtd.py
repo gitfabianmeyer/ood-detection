@@ -67,7 +67,7 @@ if __name__ == '__main__':
                                 bert_tokenizer,
                                 bert_model,
                                 device,
-                                classnames.dtd,
+                                classnames.dtd_classes,
                                 image_loaders=dtd10_loaders)
         mean_list.append(mean)
 
