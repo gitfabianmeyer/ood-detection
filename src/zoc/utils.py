@@ -82,7 +82,7 @@ def image_decoder(clip_model,
         seen_descriptions = [f"This is a photo of a {label}" for label in seen_labels]
 
         len_id_targets = sum([len(image_loaders[lab].dataset) for lab in seen_labels])
-        len_od_targets = sum([len(image_loaders[lab].dataset) for lab in unseen_labels])
+        len_ood_targets = sum([len(image_loaders[lab].dataset) for lab in unseen_labels])
 
         max_num_entities = 0
         ood_probs_sum = []
@@ -118,7 +118,7 @@ def image_decoder(clip_model,
                 ood_prob_sum = np.sum(zeroshot_probs[id_classes:].detach().cpu().numpy())
                 ood_probs_sum.append(ood_prob_sum)
 
-        targets = torch.tensor(len_id_targets * [0] + (ood_classes * len_od_targets) * [1])
+        targets = torch.tensor(len_id_targets * [0] + len_ood_targets * [1])
 
         auc_sum = roc_auc_score(np.array(targets), np.squeeze(ood_probs_sum))
         print('sum_ood AUROC={}'.format(auc_sum))
