@@ -84,6 +84,7 @@ def image_decoder(clip_model,
         len_id_targets = sum([len(image_loaders[lab].dataset) for lab in seen_labels])
         len_od_targets = sum([len(image_loaders[lab].dataset) for lab in unseen_labels])
 
+        max_num_entities = 0
         ood_probs_sum = []
         for i, semantic_label in enumerate(split):
             loader = image_loaders[semantic_label]
