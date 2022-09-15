@@ -1,3 +1,4 @@
+import PIL
 import numpy as np
 import torchvision.datasets.vision
 from PIL import Image
@@ -35,7 +36,7 @@ class cars_isolated_class(Dataset):
     def __len__(self):
         return len(self.data)
 
-    def __getitem__(self, index):
+    def __getitem__(self, idx):
         image_file = self.data[idx]
         image = PIL.Image.open(image_file).convert('RGB')
         return self.transform(image)
