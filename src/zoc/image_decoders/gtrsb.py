@@ -1,7 +1,5 @@
 import os
 
-from src.zoc.dataloaders.gtsrb_loader import get_gtrsb_loader, gtrsb_single_isolated_class_loader
-
 os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
 os.environ["CUDA_VISIBLE_DEVICES"] = "1"
 
@@ -18,6 +16,7 @@ from zoc.utils import image_decoder
 from ood_detection.classnames import imagenet_templates
 from ood_detection.ood_classification import get_dataset_features
 from ood_detection.ood_utils import classify, zeroshot_classifier
+from zoc.dataloaders.gtsrb_loader import get_gtrsb_loader, gtrsb_single_isolated_class_loader
 
 
 def classify_gtrsb(model, preprocess):
