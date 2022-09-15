@@ -3,9 +3,7 @@ import torchvision.datasets.vision
 from PIL import Image
 from ood_detection import classnames
 from ood_detection.config import Config
-from ood_detection.datasets.stanfordcars import StandardizedStanfordCars
 from torch.utils.data import Dataset, DataLoader
-from torchvision.datasets import CIFAR10
 from torchvision.transforms import Compose, ToPILImage, Resize, CenterCrop, ToTensor, Normalize
 
 
@@ -21,28 +19,31 @@ class cars_isolated_class(Dataset):
         assert class_label, 'a semantic label should be specified'
         super(cars_isolated_class, self).__init__()
         self.transform = Compose([
-            ToPILImage(),
+            # ToPILImage(),
             Resize(224, interpolation=Image.BICUBIC),
             CenterCrop(224),
             ToTensor(),
             Normalize((0.4913, 0.4821, 0.4465), (0.2470, 0.2434, 0.2615))
         ])
         cars = torchvision.datasets.StanfordCars(root='./data', split='test', download=True)
-
-        class_mask = np.array(cars.targets) == cars.class_to_idx[class_label]
-        self.data = cars.data[class_mask]
-        self.targets = np.array(cars.targets)[class_mask]
+        labels = [sample[1] for sample in cars._samples]
+        class_label_id = cars.class_to_idx[class_label]
+        class_mask = np.array(labels) == class_label_id
+        tuples = [cars._samples[i] for i in range(len(cars._samples)) if class_mask[i]]
+        self.data, self.targets = zip(*tuples)
 
     def __len__(self):
         return len(self.data)
 
     def __getitem__(self, index):
-        return self.transform(self.data[index])
+        image_file = self.data[idx]
+        image = PIL.Image.open(image_file).convert('RGB')
+        return self.transform(image)
 
 
 def cars_single_isolated_class_loader():
     loaders_dict = {}
-    cars_labels = classnames.stanfordcars_classes
+    cars_labels = torchvision.datasets.StanfordCars(root='./data', split='test', download=True).class_to_idx.keys()
     for label in cars_labels:
         dataset = cars_isolated_class(label)
         loader = DataLoader(dataset=dataset, batch_size=1, num_workers=4)
