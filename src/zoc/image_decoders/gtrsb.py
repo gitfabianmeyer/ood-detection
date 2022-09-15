@@ -54,7 +54,7 @@ if __name__ == '__main__':
         torch.load(args.saved_model_path + 'model_3.pt', map_location=torch.device(device))['net'])
 
     gtrsb_loaders = gtrsb_single_isolated_class_loader()
-    classify_gtrsb(clip_model, preprocess)
+    # classify_gtrsb(clip_model, preprocess) # fix
 
     runs = 5
     mean_list = []
