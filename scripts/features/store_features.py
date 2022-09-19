@@ -37,7 +37,7 @@ for name, isolate_loader in datasets.items():
         os.makedirs(label_path, exist_ok=True)
         with torch.no_grad():
             features = []
-            for images, _ in tqdm(loader):
+            for images in tqdm(loader):
                 images = images.to(device)
                 batch_features = clip_model.encode_image(images)
                 batch_features /= batch_features.norm(dim=1, keepdim=True)
