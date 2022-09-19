@@ -26,7 +26,7 @@ class cars_isolated_class(Dataset):
             ToTensor(),
             Normalize((0.4913, 0.4821, 0.4465), (0.2470, 0.2434, 0.2615))
         ])
-        cars = torchvision.datasets.StanfordCars(root='./data', split='test', download=True)
+        cars = torchvision.datasets.StanfordCars(root=Config.DATAPATH, split='test', download=True)
         labels = [sample[1] for sample in cars._samples]
         class_label_id = cars.class_to_idx[class_label]
         class_mask = np.array(labels) == class_label_id
@@ -44,7 +44,7 @@ class cars_isolated_class(Dataset):
 
 def cars_single_isolated_class_loader(batch_size=1):
     loaders_dict = {}
-    cars_labels = torchvision.datasets.StanfordCars(root='./data', split='test', download=True).class_to_idx.keys()
+    cars_labels = torchvision.datasets.StanfordCars(root=Config.DATAPATH, split='test', download=True).class_to_idx.keys()
     for label in cars_labels:
         dataset = cars_isolated_class(label)
         loader = DataLoader(dataset=dataset, batch_size=batch_size, num_workers=4)

@@ -24,7 +24,7 @@ class cifar10_isolated_class(Dataset):
             ToTensor(),
             Normalize((0.4913, 0.4821, 0.4465), (0.2470, 0.2434, 0.2615))
         ])
-        cifar10 = CIFAR10(root='./data', train=False, download=True)
+        cifar10 = CIFAR10(root=Config.DATAPATH, train=False, download=True)
 
         class_mask = np.array(cifar10.targets) == cifar10.class_to_idx[class_label]
         self.data = cifar10.data[class_mask]
