@@ -35,7 +35,7 @@ for name, isolate_loader in datasets.items():
     for label in dataset_label:
         loader = isolate_loader[label]
         if "/" in label:
-            label.replace("/", '+')
+            label = label.replace("/", '+')
         label_path = os.path.join(data_path, label + '.pt')
         with torch.no_grad():
             features = []
