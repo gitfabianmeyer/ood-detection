@@ -31,10 +31,10 @@ for name, isolate_loader in datasets.items():
     dataset_label = list(isolate_loader.keys())
     base_path = os.path.join(Config.DATAPATH, 'features')
     data_path = os.path.join(base_path, name)
+    os.makedirs(data_path, exist_ok=True)
     for label in dataset_label:
         loader = isolate_loader[label]
         label_path = os.path.join(data_path, label + '.pt')
-        os.makedirs(label_path, exist_ok=True)
         with torch.no_grad():
             features = []
             for images in tqdm(loader):
