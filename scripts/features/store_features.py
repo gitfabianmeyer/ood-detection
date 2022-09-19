@@ -46,7 +46,7 @@ for name, isolate_loader in datasets.items():
             features = torch.cat(features)
 
         torch.save(features, label_path)
-        print(f"Stored: {name} / {label} ({len(loader.dataset)} images) to {label_path}")
+        print(f"Stored: {name} / {label} ({features.shape} images x features) to {label_path}")
 
     # encode and store labels
 
