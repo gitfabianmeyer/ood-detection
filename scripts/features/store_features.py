@@ -25,7 +25,7 @@ datasets = {'aircraft': aircraft_single_isolated_class_loader(batch_size),
             }
 dataset_labels = []
 
-clip_model, preprocess = clip.load('Vit-B/32')
+clip_model, preprocess = clip.load('ViT-B/32')
 for name, isolate_loader in datasets.items():
 
     dataset_label = list(isolate_loader.keys())
