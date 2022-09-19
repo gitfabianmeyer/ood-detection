@@ -34,12 +34,12 @@ class gtrsb_isolated_class(Dataset):
         return len(self.data)
 
 
-def gtrsb_single_isolated_class_loader():
+def gtrsb_single_isolated_class_loader(batch_size=1):
     loaders_dict = {}
     labels = classnames.gtrsb_classes
     for label in labels:
         dataset = gtrsb_isolated_class(label)
-        loader = DataLoader(dataset=dataset, batch_size=1, num_workers=4)
+        loader = DataLoader(dataset=dataset, batch_size=batch_size, num_workers=4)
         loaders_dict[label] = loader
 
     return loaders_dict

@@ -42,11 +42,11 @@ class cars_isolated_class(Dataset):
         return self.transform(image)
 
 
-def cars_single_isolated_class_loader():
+def cars_single_isolated_class_loader(batch_size=1):
     loaders_dict = {}
     cars_labels = torchvision.datasets.StanfordCars(root='./data', split='test', download=True).class_to_idx.keys()
     for label in cars_labels:
         dataset = cars_isolated_class(label)
-        loader = DataLoader(dataset=dataset, batch_size=1, num_workers=4)
+        loader = DataLoader(dataset=dataset, batch_size=batch_size, num_workers=4)
         loaders_dict[label] = loader
     return loaders_dict
