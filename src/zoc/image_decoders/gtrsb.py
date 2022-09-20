@@ -16,11 +16,11 @@ from zoc.utils import image_decoder
 from ood_detection.classnames import imagenet_templates
 from ood_detection.ood_classification import get_dataset_features
 from ood_detection.ood_utils import classify, zeroshot_classifier
-from zoc.dataloaders.gtsrb_loader import get_gtrsb_loader, gtrsb_single_isolated_class_loader
+from zoc.dataloaders.gtsrb_loader import get_gtsrb_loader, gtsrb_single_isolated_class_loader
 
 
-def classify_gtrsb(model, preprocess):
-    loader = get_gtrsb_loader(preprocess)
+def classify_gtsrb(model, preprocess):
+    loader = get_gtsrb_loader(preprocess)
 
     features, labels = get_dataset_features(loader, model, None, None)
     zeroshot_weights = zeroshot_classifier(loader.dataset.classes, templates=imagenet_templates, clip_model=model)
@@ -41,7 +41,6 @@ if __name__ == '__main__':
     # initialize tokenizers for clip and bert, these two use different tokenizers
     bert_tokenizer = BertGenerationTokenizer.from_pretrained('google/bert_for_seq_generation_L-24_bbc_encoder')
 
-    # clip_model = torch.jit.load(os.path.join('./trained_models', "{}.pt".format('ViT-B/32'))).to(device).eval()
     clip_model, preprocess = clip.load('ViT-B/32')
     cliptokenizer = clip_tokenizer()
 
@@ -53,8 +52,8 @@ if __name__ == '__main__':
     bert_model.load_state_dict(
         torch.load(args.saved_model_path + 'model_3.pt', map_location=torch.device(device))['net'])
 
-    gtrsb_loaders = gtrsb_single_isolated_class_loader()
-    # classify_gtrsb(clip_model, preprocess) # fix
+    gtsrb_loaders = gtsrb_single_isolated_class_loader()
+    # classify_gtsrb(clip_model, preprocess) # fix
 
     runs = 5
     mean_list = []
@@ -65,8 +64,8 @@ if __name__ == '__main__':
                                 bert_tokenizer,
                                 bert_model,
                                 device,
-                                classnames.gtrsb_classes,
-                                image_loaders=gtrsb_loaders)
+                                classnames.gtsrb_classes,
+                                image_loaders=gtsrb_loaders)
         mean_list.append(mean)
 
     print(f"Scores for {runs} runs of 10 ablation splits: Mean: {np.mean(mean_list)}. Std: {np.std(mean_list)}")

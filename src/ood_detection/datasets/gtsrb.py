@@ -3,7 +3,7 @@ from PIL import Image
 from torchvision.transforms import Compose, Resize, CenterCrop, ToTensor, Normalize
 
 
-class StandardizedGTSRB(torchvision.datasets.GRTSB):
+class StandardizedGTSRB(torchvision.datasets.GTSRB):
     def __init__(self, root, split):
         super.__init__(root,
                        split=split,

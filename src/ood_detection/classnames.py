@@ -336,7 +336,7 @@ dtd_classes = ['banded',
                'wrinkled',
                'zigzagged']
 
-gtrsb_classes = [
+gtsrb_classes = [
             'red and white circle 20 kph speed limit',
             'red and white circle 30 kph speed limit',
             'red and white circle 50 kph speed limit',

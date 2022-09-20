@@ -11,16 +11,16 @@ from zoc.dataloaders.aircrat_loader import aircraft_single_isolated_class_loader
 from zoc.dataloaders.cars_loader import cars_single_isolated_class_loader
 from zoc.dataloaders.cifar10 import cifar10_single_isolated_class_loader
 from zoc.dataloaders.dtd_loader import dtd_single_isolated_class_loader
-from zoc.dataloaders.gtsrb_loader import gtrsb_single_isolated_class_loader
+from zoc.dataloaders.gtsrb_loader import gtsrb_single_isolated_class_loader
 from zoc.dataloaders.oxford3pets_loader import oxford3_single_isolated_class_loader
 
 device = Config.DEVICE
 batch_size = 128
-datasets = {'aircraft': aircraft_single_isolated_class_loader(batch_size),
+datasets = {'gtsrb': gtsrb_single_isolated_class_loader(batch_size),
+            'aircraft': aircraft_single_isolated_class_loader(batch_size),
             'cars': cars_single_isolated_class_loader(batch_size),
             'cifar10': cifar10_single_isolated_class_loader(batch_size),
             'dtd': dtd_single_isolated_class_loader(batch_size),
-            'gtrsb': gtrsb_single_isolated_class_loader(batch_size),
             'pets': oxford3_single_isolated_class_loader(batch_size)
             }
 dataset_labels = []
@@ -51,7 +51,6 @@ for name, isolate_loader in datasets.items():
         print(f"Stored: {name} / {label} ({features.shape} images x features) to {label_path}")
 
     # encode and store labels
-
     with torch.no_grad():
         label_tokens = clip.tokenize(dataset_label).to(device)
         label_features = clip_model.encode_text(label_tokens)
@@ -60,9 +59,3 @@ for name, isolate_loader in datasets.items():
     labels_path = os.path.join(data_path, 'labels.pt')
     torch.save(label_features, labels_path)
     print(f"Stored label features for {name} ({len(dataset_label)} labels ) in {labels_path}")
-
-
-
-
-
-
