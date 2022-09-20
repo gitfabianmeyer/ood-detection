@@ -34,9 +34,9 @@ for name, isolate_loader in datasets.items():
     os.makedirs(data_path, exist_ok=True)
     for label in dataset_label:
         loader = isolate_loader[label]
-        if "/" in label:
+        if type(label) is str and "/" in label:
             label = label.replace("/", '+')
-        label_path = os.path.join(data_path, label + '.pt')
+        label_path = os.path.join(data_path, str(label) + '.pt')
         with torch.no_grad():
             features = []
             for images in tqdm(loader):
