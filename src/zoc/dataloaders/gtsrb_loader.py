@@ -7,7 +7,7 @@ from ood_detection.config import Config
 from torch.utils.data import DataLoader, Dataset
 from torchvision.transforms import Compose, ToPILImage, Resize, CenterCrop, ToTensor, Normalize
 
-from src.ood_detection.datasets.gtrsb import StandardizedGTSRB
+from ood_detection.datasets.gtrsb import StandardizedGTSRB
 
 
 class gtrsb_isolated_class(Dataset):
