@@ -5,7 +5,7 @@ from torchvision.transforms import Compose, Resize, CenterCrop, ToTensor, Normal
 
 class StandardizedGTSRB(torchvision.datasets.GTSRB):
     def __init__(self, root, split):
-        super.__init__(root,
+        super().__init__(root,
                        split=split,
                        download=True,
                        transformer=Compose([
