@@ -8,7 +8,7 @@ class StandardizedGTSRB(torchvision.datasets.GTSRB):
         super().__init__(root,
                        split=split,
                        download=True,
-                       transformer=Compose([
+                       transform=Compose([
                            # ToPILImage(),
                            Resize(224, interpolation=Image.BICUBIC),
                            CenterCrop(224),

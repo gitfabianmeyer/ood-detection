@@ -24,7 +24,6 @@ class gtsrb_isolated_class(Dataset):
         gtsrb = StandardizedGTSRB(root=Config.DATAPATH, split='test')
         labels = [sample[1] for sample in gtsrb._samples]
         class_mask = np.array(labels) == class_label
-        self.data = [self.data[i] for i in class_mask if i]
         tuples = [gtsrb._samples[i] for i in range(len(gtsrb._samples)) if class_mask[i]]
         self.data, self.targets = zip(*tuples)
 
