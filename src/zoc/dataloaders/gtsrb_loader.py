@@ -21,7 +21,7 @@ class gtsrb_isolated_class(Dataset):
             ToTensor(),
             Normalize((0.4913, 0.4821, 0.4465), (0.2470, 0.2434, 0.2615))
         ])
-        gtsrb = StandardizedGTSRB(root=Config.DATAPATH, split='test', download=True)
+        gtsrb = StandardizedGTSRB(root=Config.DATAPATH, split='test')
         labels = [sample[1] for sample in gtsrb._samples]
         class_mask = np.array(labels) == class_label
         self.data = [self.data[i] for i in class_mask if i]
@@ -49,7 +49,7 @@ def gtsrb_single_isolated_class_loader(batch_size=1):
 
 
 def get_gtsrb_loader(transform):
-    gtsrb = torchvision.datasets.GTSRB(root=Config.DATAPATH, transform=transform,
-                                       split='test', download=True)
+    gtsrb = StandardizedGTSRB(root=Config.DATAPATH, transform=transform,
+                              split='test')
     loader = DataLoader(dataset=gtsrb, batch_size=128)
     return loader
