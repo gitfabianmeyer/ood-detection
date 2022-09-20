@@ -7,10 +7,12 @@ from ood_detection.config import Config
 from torch.utils.data import DataLoader, Dataset
 from torchvision.transforms import Compose, ToPILImage, Resize, CenterCrop, ToTensor, Normalize
 
+from src.ood_detection.datasets.gtrsb import StandardizedGTSRB
+
 
 class gtrsb_isolated_class(Dataset):
     def __init__(self, class_label=None):
-        assert class_label or class_label == 0, 'a semantic label should be specified'
+        assert class_label, 'a semantic label should be specified'
         super(gtrsb_isolated_class, self).__init__()
         self.transform = Compose([
             # ToPILImage(),
@@ -19,9 +21,10 @@ class gtrsb_isolated_class(Dataset):
             ToTensor(),
             Normalize((0.4913, 0.4821, 0.4465), (0.2470, 0.2434, 0.2615))
         ])
-        gtrsb = torchvision.datasets.GTSRB(root=Config.DATAPATH, split='test', download=True)
+        gtrsb = StandardizedGTSRB(root=Config.DATAPATH, split='test', download=True)
         labels = [sample[1] for sample in gtrsb._samples]
         class_mask = np.array(labels) == class_label
+        self.data = [self.data[i] for i in class_mask if i]
         tuples = [gtrsb._samples[i] for i in range(len(gtrsb._samples)) if class_mask[i]]
         self.data, self.targets = zip(*tuples)
 
@@ -39,7 +42,7 @@ def gtrsb_single_isolated_class_loader(batch_size=1):
     labels = classnames.gtrsb_classes
     for label in labels:
         dataset = gtrsb_isolated_class(label)
-        loader = DataLoader(dataset=dataset, batch_size=batch_size, num_workers=4)
+        loader = DataLoader(dataset=dataset, batch_size=batch_size, num_workers=1)
         loaders_dict[label] = loader
 
     return loaders_dict
