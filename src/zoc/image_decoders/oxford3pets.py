@@ -1,5 +1,7 @@
 import os
 
+from tqdm import tqdm
+
 os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
 os.environ["CUDA_VISIBLE_DEVICES"] = "1"
 
@@ -59,7 +61,7 @@ if __name__ == '__main__':
     runs = 5
     mean_list = []
 
-    for i in range(runs):
+    for i in tqdm(range(runs)):
         mean, _ = image_decoder(clip_model,
                                 cliptokenizer,
                                 bert_tokenizer,
