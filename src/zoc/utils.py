@@ -7,7 +7,7 @@ from tqdm import tqdm
 
 
 def greedysearch_generation_topk(clip_embed, berttokenizer, bert_model, device):
-    max_len = 77
+
     N = 1  # batch has single sample
     max_len = 77
     target_list = [torch.tensor(berttokenizer.bos_token_id)]

@@ -38,16 +38,11 @@ class cifar10_isolated_class(Dataset):
 
 
 def cifar10_single_isolated_class_loader(batch_size=1):
-    splits = [[0, 1, 9, 7, 3, 2],
-              [0, 2, 4, 3, 7, 5],
-              [5, 1, 9, 8, 7, 0],
-              [5, 7, 1, 8, 4, 6],
-              [8, 1, 5, 3, 4, 6]]
     loaders_dict = {}
     cifar10_labels = ['airplane', 'automobile', 'bird', 'cat', 'deer', 'dog', 'frog', 'horse', 'ship', 'truck']
-    # cifar10_labels = ['automobile', 'ship']
     for label in cifar10_labels:
         dataset = cifar10_isolated_class(label)
         loader = DataLoader(dataset=dataset, batch_size=batch_size, num_workers=4)
         loaders_dict[label] = loader
     return loaders_dict
+
