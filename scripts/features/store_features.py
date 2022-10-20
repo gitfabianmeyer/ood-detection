@@ -5,8 +5,12 @@ os.environ["CUDA_VISIBLE_DEVICES"] = "1"
 
 import clip
 import torch
-from ood_detection.config import Config
 from tqdm import tqdm
+
+from ood_detection.config import Config
+from ood_detection.classnames import imagenet_templates
+from ood_detection.ood_utils import zeroshot_classifier
+
 from zoc.dataloaders.aircrat_loader import aircraft_single_isolated_class_loader
 from zoc.dataloaders.cars_loader import cars_single_isolated_class_loader
 from zoc.dataloaders.cifar10 import cifar10_single_isolated_class_loader
@@ -51,10 +55,7 @@ for name, isolate_loader in datasets.items():
         print(f"Stored: {name} / {label} ({features.shape} images x features) to {label_path}")
 
     # encode and store labels
-    with torch.no_grad():
-        label_tokens = clip.tokenize(dataset_label).to(device)
-        label_features = clip_model.encode_text(label_tokens)
-        label_features /= label_features.norm(dim=1, keepdim=True)
+    label_features = zeroshot_classifier(dataset_label, imagenet_templates, clip)
 
     labels_path = os.path.join(data_path, 'labels.pt')
     torch.save(label_features, labels_path)
