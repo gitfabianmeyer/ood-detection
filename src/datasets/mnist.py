@@ -1,7 +1,7 @@
 import clip
 import torchvision.datasets
 
-from ood_detection.datasets.zoc_loader import single_isolated_class_loader
+from datasets.zoc_loader import single_isolated_class_loader
 from ood_detection.config import Config
 
 

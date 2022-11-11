@@ -10,7 +10,7 @@ from torch.utils.data import Dataset
 
 from tqdm.autonotebook import tqdm
 
-from ood_detection.datasets.zoc_loader import single_isolated_class_loader
+from datasets.zoc_loader import single_isolated_class_loader
 from ood_detection.config import Config
 
 dir_structure_help = r"""
