@@ -17,3 +17,5 @@ dependencies:
       - git+https://github.com/openai/CLIP.git
       - sklearn
       - nltk
+      - imageio
+      - lmdb

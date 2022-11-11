@@ -4,10 +4,11 @@ import torchvision.datasets
 from PIL import Image
 
 
-class StandardizedCaltech(torchvision.datasets.Caltech101):
-    def __init__(self, datapath, transform):
+class OodCaltech101(torchvision.datasets.Caltech101):
+    def __init__(self, datapath, transform, train):
         super().__init__(datapath,
                          transform=transform,
+                         train=train,
                          download=True)
         self._labels = self.y
         self._images = self.transform_to_image_list()

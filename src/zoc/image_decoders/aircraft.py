@@ -21,7 +21,6 @@ from ood_detection.ood_utils import classify, zeroshot_classifier
 from zoc.dataloaders.aircrat_loader import aircraft_single_isolated_class_loader, get_aircraft_loader
 
 
-
 def classify_aircraft(model, preprocess):
     loader = get_aircraft_loader(preprocess)
 

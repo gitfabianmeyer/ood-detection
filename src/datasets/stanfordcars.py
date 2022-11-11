@@ -2,7 +2,7 @@ import PIL
 import torchvision
 
 
-class StandardizedStanfordCars(torchvision.datasets.StanfordCars):
+class OodStanfordCars(torchvision.datasets.StanfordCars):
     def __init__(self, datapath, transform):
         super().__init__(datapath,
                          transform=transform,
