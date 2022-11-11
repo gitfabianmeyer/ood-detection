@@ -3,8 +3,8 @@ import os
 import clip
 import torchvision
 
-from src.datasets.zoc_loader import single_isolated_class_loader
-from src.ood_detection.config import Config
+from datasets.zoc_loader import single_isolated_class_loader
+from ood_detection.config import Config
 
 import subprocess
 from urllib.request import Request, urlopen

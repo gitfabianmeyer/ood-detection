@@ -10,8 +10,8 @@ from torch.utils.data import Dataset
 
 from tqdm.autonotebook import tqdm
 
-from src.datasets.zoc_loader import single_isolated_class_loader
-from src.ood_detection.config import Config
+from ood_detection.datasets.zoc_loader import single_isolated_class_loader
+from ood_detection.config import Config
 
 dir_structure_help = r"""
 TinyImageNetPath

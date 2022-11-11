@@ -3,7 +3,7 @@ import numpy as np
 import torchvision.datasets
 from ood_detection.config import Config
 
-from src.datasets.zoc_loader import single_isolated_class_loader
+from ood_detection.datasets.zoc_loader import single_isolated_class_loader
 
 
 class OodCifar10(torchvision.datasets.CIFAR10):

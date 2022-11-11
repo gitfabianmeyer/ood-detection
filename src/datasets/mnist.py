@@ -1,8 +1,8 @@
 import clip
 import torchvision.datasets
 
-from src.datasets.zoc_loader import single_isolated_class_loader
-from src.ood_detection.config import Config
+from ood_detection.datasets.zoc_loader import single_isolated_class_loader
+from ood_detection.config import Config
 
 
 class OodMNIST(torchvision.datasets.MNIST):
