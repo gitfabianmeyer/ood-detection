@@ -7,6 +7,7 @@ import os
 import subprocess
 from collections import defaultdict
 from torch.utils.data import Dataset
+from torchvision.datasets import ImageFolder
 
 from tqdm.autonotebook import tqdm
 
@@ -48,7 +49,7 @@ TinyImageNetPath
 """
 
 
-def download_and_unzip(URL, root_dir):
+def download_and_unzip(root_dir):
     shell_dir = os.path.dirname(os.path.dirname(os.path.normpath(root_dir)))
     shell_path = os.path.join(shell_dir, 'shell')
     shell_path = os.path.join(shell_path, 'tinyimagenet.sh')
@@ -81,8 +82,7 @@ class TinyImageNetPaths:
             if os.path.exists(root_dir):
                 print("TinyImagenet Folder already exists")
             else:
-                download_and_unzip('http://cs231n.stanford.edu/tiny-imagenet-200.zip',
-                                   os.path.dirname(root_dir))
+                download_and_unzip(os.path.dirname(root_dir))
         train_path = os.path.join(root_dir, 'train')
         val_path = os.path.join(root_dir, 'val')
         test_path = os.path.join(root_dir, 'test')
@@ -100,12 +100,20 @@ class TinyImageNetPaths:
             for nid in idf:
                 nid = nid.strip()
                 self.ids.append(nid)
-        self.nid_to_words = defaultdict(list)
+        self.nid_to_words = {}
         with open(words_path, 'r') as wf:
             for line in wf:
                 nid, labels = line.split('\t')
-                labels = list(map(lambda x: x.strip(), labels.split(',')))
-                self.nid_to_words[nid].extend(labels)
+                label = list(map(lambda x: x.strip(), labels.split(',')))[0]
+                if nid in self.ids:
+                    self.nid_to_words[nid] = label
+
+        # num labels
+        self.ids_to_num = {}
+        self.num_to_ids = {}
+        for i, idx in enumerate(self.ids):
+            self.ids_to_num[idx] = i
+            self.num_to_ids[i] = idx
 
         self.paths = {'train': [], 'val': [], 'test': list(map(lambda x: os.path.join(test_path, x),
                                                                os.listdir(test_path)))}
@@ -114,24 +122,26 @@ class TinyImageNetPaths:
         # Get the validation paths and labels
         with open(os.path.join(val_path, 'val_annotations.txt')) as valf:
             for line in valf:
-                fname, nid, x0, y0, x1, y1 = line.split()
-                fname = os.path.join(val_path, 'images', fname)
-                bbox = int(x0), int(y0), int(x1), int(y1)
-                label_id = self.ids.index(nid)
-                self.paths['val'].append((fname, label_id, nid, bbox))
+                fname, nid, _, _, _, _ = line.split()
+                fname = os.path.join(val_path, nid, fname)
+                self.paths['val'].append((fname, self.ids_to_num[nid]))
 
         # Get the training paths
         train_nids = os.listdir(train_path)
         for nid in train_nids:
-            anno_path = os.path.join(train_path, nid, nid + '_boxes.txt')
-            imgs_path = os.path.join(train_path, nid, 'images')
-            label_id = self.ids.index(nid)
-            with open(anno_path, 'r') as annof:
-                for line in annof:
-                    fname, x0, y0, x1, y1 = line.split()
-                    fname = os.path.join(imgs_path, fname)
-                    bbox = int(x0), int(y0), int(x1), int(y1)
-                    self.paths['train'].append((fname, label_id, nid, bbox))
+            # anno_path = os.path.join(train_path, nid, nid + '_boxes.txt')
+            imgs_path = os.path.join(train_path, nid)
+            label_id = self.ids_to_num[nid]
+            for img_path in os.listdir(imgs_path):
+                fname = os.path.join(imgs_path, img_path)
+                self.paths['train'].append((fname, label_id))
+
+            # with open(anno_path, 'r') as annof:
+            #    for line in annof:
+            #        fname, x0, y0, x1, y1 = line.split()
+            #        fname = os.path.join(imgs_path, fname)
+            #        bbox = int(x0), int(y0), int(x1), int(y1)
+            #        self.paths['train'].append((fname, label_id, nid, bbox))
 
 
 """Datastructure for the tiny image dataset.
@@ -150,7 +160,7 @@ Members:
 
 
 class TinyImageNetDataset(Dataset):
-    def __init__(self, root_dir, mode='train', preload=True, load_transform=None,
+    def __init__(self, root_dir, mode='train', preload=False, load_transform=None,
                  transform=None, download=False, max_samples=None):
         tinp = TinyImageNetPaths(root_dir, download)
         self.mode = mode
@@ -163,7 +173,8 @@ class TinyImageNetDataset(Dataset):
 
         self.data = []
         self.targets = []
-
+        self.classes = list(tinp.nid_to_words.values())
+        self.class_to_idx = {value: key for key, value in tinp.nid_to_words.items()}
         self.max_samples = max_samples
         self.samples = tinp.paths[mode]
         self.samples_num = len(self.samples)
@@ -211,11 +222,45 @@ class TinyImageNetDataset(Dataset):
         return sample
 
 
-class OodTinyImageNet(TinyImageNetDataset):
+class TinyImageNetImageFolder(ImageFolder):
+    def __init__(self, root, transform, train, download=True):
+
+        self.words_to_nid = {}
+        self.nid_to_words = {}
+        self.dataset_root = root
+        if download:
+            if os.path.exists(self.dataset_root):
+                print("TinyImagenet Folder already exists")
+            else:
+                download_and_unzip(os.path.dirname(self.dataset_root))
+
+        if train:
+            super(TinyImageNetImageFolder, self).__init__(os.path.join(self.dataset_root, 'train'), transform)
+        else:
+            super(TinyImageNetImageFolder, self).__init__(os.path.join(self.dataset_root, 'val'))
+
+        self.data, _ = zip(*self.samples)
+        self.targets = np.array(self.targets)
+        self.init_semantic_labels()
+
+    def init_semantic_labels(self):
+        with open(os.path.join(self.dataset_root, 'words.txt'), 'r') as wf:
+            for line in wf:
+                nid, labels = line.split('\t')
+                label = list(map(lambda x: x.strip(), labels.split(',')))[0]
+                if nid in self.classes:
+                    self.nid_to_words[nid] = label
+
+        self.words_to_nid = {value: key for (key, value) in self.nid_to_words.items()}
+        self.classes = list(self.words_to_nid.keys())
+        self.class_to_idx = {self.nid_to_words[key]: value for (key, value) in self.class_to_idx.items()}
+
+
+class OodTinyImageNet(TinyImageNetImageFolder):
     def __init__(self, datapath, transform, train):
-        super(OodTinyImageNet, self).__init__(root_dir=os.path.join(datapath, 'tinyimagenet/tiny-imagenet-200'),
+        super(OodTinyImageNet, self).__init__(root=os.path.join(datapath, 'tinyimagenet/tiny-imagenet-200'),
                                               transform=transform,
-                                              mode='train' if train else 'val',
+                                              train=train,
                                               download=True
                                               )
 
@@ -224,14 +269,12 @@ def main():
     datapath = Config.DATAPATH
     train = False
     _, transform = clip.load(Config.VISION_MODEL)
-    cifar = OodTinyImageNet(datapath, transform, train)
-    loaders = single_isolated_class_loader(cifar)
+    dataset = OodTinyImageNet(datapath, transform, train)
+    loaders = single_isolated_class_loader(dataset)
 
     for loader in loaders.keys():
+        d = loaders[loader]
         print(loader)
-        for item in loaders[loader]:
-            print(10)
-
 
 if __name__ == '__main__':
     main()
