@@ -1,14 +1,16 @@
+http://www.cs.columbia.edu/CAVE/databases/SLAM_coil-20_coil-100/coil-100/coil-100.zip
+
 #!/bin/bash
 
-echo "Downloading TinyImagenet"
+echo "Downloading COIL-100"
 # download and unzip dataset
 
 current="$1"
 mkdir $current
 
 cd $current
-wget http://cs231n.stanford.edu/tiny-imagenet-200.zip
-unzip tiny-imagenet-200.zip
+wget http://www.cs.columbia.edu/CAVE/databases/SLAM_coil-20_coil-100/coil-100/coil-100.zip
+unzip coil-100.zip
 
 current="$1/tiny-imagenet-200"
 

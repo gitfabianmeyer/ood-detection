@@ -6,13 +6,9 @@ from torchvision.transforms import Compose, Resize, CenterCrop, ToTensor, Normal
 
 
 class IsolatedClass(Dataset):
-    def __init__(self, dataset, class_label=None, transform=None):
+    def __init__(self, dataset, class_label=None):
         assert class_label, 'a semantic label must be specified'
-        self.transform = transform if transform else Compose([
-            Resize(224, interpolation=Image.BICUBIC),
-            CenterCrop(224),
-            ToTensor(),
-            Normalize((0.4913, 0.4821, 0.4465), (0.2470, 0.2434, 0.2615))])
+        self.transform = dataset.transform
 
         class_mask = np.array(dataset.targets) == dataset.class_to_idx[class_label]
         self.data = [dataset.data[i] for i in range(len(dataset.data)) if class_mask[i]]

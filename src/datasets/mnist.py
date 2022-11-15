@@ -25,13 +25,14 @@ def main():
     datapath = Config.DATAPATH
     train = False
     _, transform = clip.load(Config.VISION_MODEL)
-    cifar = OodMNIST(datapath, transform, train)
-    loaders = single_isolated_class_loader(cifar)
+    dataset = OodMNIST(datapath, transform, train)
+    loaders = single_isolated_class_loader(dataset)
 
     for loader in loaders.keys():
+        curr = loaders[loader]
         print(loader)
-        for item in loaders[loader]:
-            print(10)
+        for item in curr:
+            print(item)
             pass
 
 
