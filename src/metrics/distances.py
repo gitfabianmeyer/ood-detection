@@ -96,4 +96,5 @@ class MaximumMeanDiscrepancy(Distance):
     def get_kernel_size(self):
         print(f"Start calculating RBF kernel size")
         X = torch.cat(list(self.feature_dict.values()))
+        print(f"Kernel X shape: {X.shape}")
         return torch.mean(torch.cdist(X, X)).cpu().numpy()
