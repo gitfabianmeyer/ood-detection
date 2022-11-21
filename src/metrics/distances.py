@@ -4,7 +4,7 @@ from abc import ABC, abstractmethod
 import numpy as np
 import torch
 from ood_detection.config import Config
-from sklearn import metrics
+from sklearn.metrics.pairwise import rbf_kernel
 from tqdm import tqdm
 
 
@@ -78,9 +78,9 @@ class MaximumMeanDiscrepancy(Distance):
         beta = (1. / (batch_size * (batch_size - 1)))
         gamma = (2. / (batch_size * batch_size))
 
-        XX = metrics.pairwaise.rbf_kernel(x_matrix, x_matrix, kernel_size)
-        YY = metrics.pairwise.rbf_kernel(y_matrix, y_matrix, kernel_size)
-        XY = metrics.pairwise.rbf_kernel(x_matrix, y_matrix, kernel_size)
+        XX = rbf_kernel(x_matrix, x_matrix, kernel_size)
+        YY = rbf_kernel(y_matrix, y_matrix, kernel_size)
+        XY = rbf_kernel(x_matrix, y_matrix, kernel_size)
         return beta * (XX.mean() + YY.mean()) - gamma * np.mean(XY)
 
     def get_kernel_size(self):
