@@ -3,8 +3,8 @@ import os.path
 import clip
 import torchvision.datasets
 
-from src.datasets.zoc_loader import single_isolated_class_loader
-from src.ood_detection.config import Config
+from datasets.zoc_loader import single_isolated_class_loader
+from ood_detection.config import Config
 
 
 class OodSVHN(torchvision.datasets.SVHN):
@@ -33,9 +33,8 @@ def main():
 
     for loader in loaders.keys():
         print(loader)
-        for item in loaders[loader]:
+        for _ in loaders[loader]:
             print(10)
-            pass
 
 
 if __name__ == '__main__':

@@ -2,14 +2,12 @@ import os
 
 import clip
 import numpy as np
-import pandas as pd
 from PIL import Image
-from torchvision.datasets.folder import default_loader
 from torchvision.datasets.utils import download_url
 from torch.utils.data import Dataset, DataLoader
 
-from src.datasets.zoc_loader import single_isolated_class_loader
-from src.ood_detection.config import Config
+from datasets.zoc_loader import single_isolated_class_loader
+from ood_detection.config import Config
 
 
 class OodCub2011(Dataset):

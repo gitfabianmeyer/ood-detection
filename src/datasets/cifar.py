@@ -5,7 +5,7 @@ from ood_detection.config import Config
 
 from datasets.zoc_loader import single_isolated_class_loader
 
-from src.metrics.distances import MaximumMeanDiscrepancy
+from metrics.distances import MaximumMeanDiscrepancy
 
 
 class OodCifar10(torchvision.datasets.CIFAR10):
@@ -17,6 +17,7 @@ class OodCifar10(torchvision.datasets.CIFAR10):
                                          )
         self.targets = np.array(self.targets)
 
+
 class OodCifar100(torchvision.datasets.CIFAR100):
     def __init__(self, datapath, transform, train):
         super(OodCifar100, self).__init__(root=datapath,
@@ -27,13 +28,14 @@ class OodCifar100(torchvision.datasets.CIFAR100):
 
 
 def main():
-    datapath = Config.DATAPATH
+    data_path = Config.DATAPATH
     train = False
     clip_model, transform = clip.load(Config.VISION_MODEL)
-    cifar = OodCifar10(datapath, transform, train)
+    cifar = OodCifar10(data_path, transform, train)
     loaders = single_isolated_class_loader(cifar, batch_size=256)
-    distancer = MaximumMeanDiscrepancy(loaders, cifar.classes, clip_model,)
+    distancer = MaximumMeanDiscrepancy(loaders, cifar.classes, clip_model, )
     print(distancer.get_distance())
+
 
 if __name__ == '__main__':
     main()

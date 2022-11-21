@@ -2,7 +2,6 @@ import numpy
 import numpy as np
 from PIL import Image
 from torch.utils.data import Dataset, DataLoader
-from torchvision.transforms import Compose, Resize, CenterCrop, ToTensor, Normalize
 
 
 class IsolatedClass(Dataset):
