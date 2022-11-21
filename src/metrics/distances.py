@@ -87,6 +87,9 @@ class MaximumMeanDiscrepancy(Distance):
         YY = rbf_kernel(y_matrix, y_matrix, self.kernel_size)
         XY = rbf_kernel(x_matrix, y_matrix, self.kernel_size)
 
+        print(f"XX Shape: {XX.shape}")
+        print(f"YY Shape: {YY.shape}")
+        print(f"XY Shape: {XY.shape}")
         print(f"Means: {XX.mean(), YY.mean(), XY.mean(())}")
         return beta * (XX.mean() + YY.mean()) - gamma * XY.mean()
 
