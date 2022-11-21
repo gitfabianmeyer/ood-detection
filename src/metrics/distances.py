@@ -74,7 +74,6 @@ class MaximumMeanDiscrepancy(Distance):
         return "Maximum Mean Discrepancy"
 
     def get_mmd(self, x_matrix, y_matrix, kernel_size):
-        assert x_matrix.shape == y_matrix.shape, f"X1: {x_matrix.shape} does not match X2: {y_matrix.shape}"
         batch_size = x_matrix.shape[0]
         beta = (1. / (batch_size * (batch_size - 1)))
         gamma = (2. / (batch_size * batch_size))
