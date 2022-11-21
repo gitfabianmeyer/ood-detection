@@ -64,8 +64,8 @@ class MaximumMeanDiscrepancy(Distance):
     def get_distance(self):
         # for near OOD
         id_classes, ood_classes = self.get_id_ood_split()
-        id_features = self.get_distribution_features(id_classes).cpu()
-        ood_features = self.get_distribution_features(ood_classes).cpu()
+        id_features = self.get_distribution_features(id_classes).cpu().numpy()
+        ood_features = self.get_distribution_features(ood_classes).cpu().numpy()
         return self.get_mmd(x_matrix=id_features,
                             y_matrix=ood_features,
                             kernel_size=self.kernel_size)
@@ -86,4 +86,4 @@ class MaximumMeanDiscrepancy(Distance):
     def get_kernel_size(self):
         print(f"Start calculating RBF kernel size")
         X = torch.cat(list(self.feature_dict.values()))
-        return torch.mean(torch.cdist(X, X)).cpu()
+        return torch.mean(torch.cdist(X, X)).cpu().numpy()
