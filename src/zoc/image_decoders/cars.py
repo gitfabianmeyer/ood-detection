@@ -25,7 +25,7 @@ def classify_cars(model, preprocess):
     loader = get_cars_loader(preprocess)
 
     features, labels = get_dataset_features(loader, model, None, None)
-    zeroshot_weights = zeroshot_classifier(loader.dataset.classes, templates=imagenet_templates, clip_model=model)
+    zeroshot_weights = zeroshot_classifier(loader.dataset.dataloaders, templates=imagenet_templates, clip_model=model)
     classify(features, zeroshot_weights, labels, "StandfordCars")
 
 

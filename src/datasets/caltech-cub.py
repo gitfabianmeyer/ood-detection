@@ -3,9 +3,10 @@ import os
 import clip
 import numpy as np
 import pandas as pd
+from PIL import Image
 from torchvision.datasets.folder import default_loader
 from torchvision.datasets.utils import download_url
-from torch.utils.data import Dataset
+from torch.utils.data import Dataset, DataLoader
 
 from src.datasets.zoc_loader import single_isolated_class_loader
 from src.ood_detection.config import Config
@@ -17,10 +18,9 @@ class OodCub2011(Dataset):
     filename = 'CUB_200_2011.tgz'
     tgz_md5 = '97eceeb196236b17998738112f37df78'
 
-    def __init__(self, root, train=True, transform=None, loader=default_loader, download=True):
+    def __init__(self, root, transform=None, train=True, download=True):
         self.root = os.path.expanduser(root)
         self.transform = transform
-        self.loader = loader
         self.train = train
 
         if download:
@@ -34,11 +34,11 @@ class OodCub2011(Dataset):
         images = []
         labels = []
         is_training = []
-
+        path = os.path.join(self.root, self.base_folder)
         with open(os.path.join(self.root, 'CUB_200_2011', 'images.txt')) as f:
             for line in f:
                 curr_img = line.rstrip("\n").split(" ")
-                images.append(curr_img[1])
+                images.append(os.path.join(path,curr_img[1]))
         with open(os.path.join(self.root, 'CUB_200_2011', 'image_class_labels.txt')) as f:
             for line in f:
                 curr_lab = line.rstrip("\n").split(" ")
@@ -46,7 +46,7 @@ class OodCub2011(Dataset):
         with open(os.path.join(self.root, 'CUB_200_2011', 'train_test_split.txt')) as f:
             for line in f:
                 curr_split = line.rstrip("\n").split(" ")
-                is_training.append(curr_split[1])
+                is_training.append(int(curr_split[1]))
 
         assert len(images) == len(labels), f'Something went wrong: {len(images)} to {len(labels)}'
 
@@ -58,14 +58,17 @@ class OodCub2011(Dataset):
         self.class_to_idx = {cls: i + 1 for (i, cls) in enumerate(self.classes)}
         self.idx_to_classes = {value: key for (key, value) in self.class_to_idx.items()}
 
-        if self.train:
-            self.data = [(images[i], labels[i]) for i in range(len(images)) if is_training[i]]
-        else:
-            self.data = [(images[i], labels[i]) for i in range(len(images)) if not is_training[i]]
+        self.data = np.array(images)
+        self.targets = np.array(labels)
+        is_training = np.array(is_training, dtype=bool)
 
-        self.data, self.targets = zip(*self.data)
-        self.data = list(self.data)
-        self.targets = np.array(self.targets)
+        if self.train:
+            self.data = self.data[is_training]
+            self.targets = self.targets[is_training]
+        else:
+            is_val = np.invert(is_training)
+            self.data = self.data[is_val]
+            self.targets = self.targets[is_val]
 
     def _check_integrity(self):
         try:
@@ -96,10 +99,9 @@ class OodCub2011(Dataset):
         return len(self.data)
 
     def __getitem__(self, idx):
-        sample = self.data.iloc[idx]
-        path = os.path.join(self.root, self.base_folder, sample.filepath)
-        target = sample.target - 1  # Targets start at 1 by default, so shift to 0
-        img = self.loader(path)
+        img = self.data[idx]
+        target = self.targets[idx]
+        img = Image.open(img).convert('RGB')
 
         if self.transform is not None:
             img = self.transform(img)
@@ -112,13 +114,21 @@ def main():
     train = False
     _, transform = clip.load(Config.VISION_MODEL)
     dataset = OodCub2011(datapath, transform, train)
+
+    dataloader = DataLoader(dataset)
+    for i, (img, lab) in enumerate(dataloader):
+        print(lab)
+        if i % 10 == 0 and i != 0:
+            break
     loaders = single_isolated_class_loader(dataset)
 
     for loader in loaders.keys():
         print(loader)
-        for item in loaders[loader]:
-            print(10)
-            pass
+        dataloader = loaders[loader]
+        for i, item in enumerate(dataloader):
+            if i % 100 and i != 0:
+                print(item)
+                break
 
 
 if __name__ == '__main__':

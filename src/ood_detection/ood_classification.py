@@ -90,7 +90,7 @@ def get_dataset_features(loader: torch.utils.data.DataLoader, model, features_pa
 
 
 def get_classnames_from_vision_set(vision_set: torchvision.datasets):
-    return vision_set.classes
+    return vision_set.dataloaders
 
 
 def main(dataset_dictionary):
@@ -120,8 +120,8 @@ def main(dataset_dictionary):
                                             num_workers=8,
                                             shuffle=False)
     # add OOD label to the data
-    id_images.class_to_idx["OOD"] = len(id_images.classes)
-    id_images.classes.append("OOD")
+    id_images.class_to_idx["OOD"] = len(id_images.dataloaders)
+    id_images.dataloaders.append("OOD")
 
     os.makedirs(curr_datapath, exist_ok=True)
 

@@ -69,6 +69,7 @@ def clean_caption(caption, classnames, truncate):
         print(f"Padded {caption}")
     return result
 
+
 def generate_caption_with_generator(generator: CaptionGenerator, images_features, classnames, cut_off):
     captions = [generator.generate_caption(img_feat, True) for img_feat in images_features]
     return [clean_caption(caption, classnames, cut_off) for caption in captions]
