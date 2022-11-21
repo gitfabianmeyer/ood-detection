@@ -66,21 +66,23 @@ class MaximumMeanDiscrepancy(Distance):
         id_classes, ood_classes = self.get_id_ood_split()
         id_features = self.get_distribution_features(id_classes)
         ood_features = self.get_distribution_features(ood_classes)
-        return self.get_mmd(X=id_features,
-                            Y=ood_features)
+        kernel_size = self.kernel_size()
+        return self.get_mmd(x_matrix=id_features,
+                            y_matrix=ood_features,
+                            kernel_size=kernel_size)
 
     def name(self):
         return "Maximum Mean Discrepancy"
 
-    def get_mmd(self, X, Y, kernel_size):
-        assert X.shape == Y.shape, f"X1: {X.shape} does not match X2: {Y.shape}"
-        batch_size = X.shape[0]
+    def get_mmd(self, x_matrix, y_matrix, kernel_size):
+        assert x_matrix.shape == y_matrix.shape, f"X1: {x_matrix.shape} does not match X2: {y_matrix.shape}"
+        batch_size = x_matrix.shape[0]
         beta = (1. / (batch_size * (batch_size - 1)))
         gamma = (2. / (batch_size * batch_size))
 
-        XX = metrics.pairwaise.rbf_kernel(X,X, kernel_size)
-        YY = metrics.pairwise.rbf_kernel(Y, Y, kernel_size)
-        XY = metrics.pairwise.rbf_kernel(X,Y, kernel_size)
+        XX = metrics.pairwaise.rbf_kernel(x_matrix, x_matrix, kernel_size)
+        YY = metrics.pairwise.rbf_kernel(y_matrix, y_matrix, kernel_size)
+        XY = metrics.pairwise.rbf_kernel(x_matrix, y_matrix, kernel_size)
         return beta * (XX.mean() + YY.mean()) - gamma * np.mean(XY)
 
     def get_kernel_size(self):
