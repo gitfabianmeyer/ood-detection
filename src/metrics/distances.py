@@ -90,8 +90,8 @@ class MaximumMeanDiscrepancy(Distance):
         print(f"XX Shape: {XX.shape}")
         print(f"YY Shape: {YY.shape}")
         print(f"XY Shape: {XY.shape}")
-        print(f"Means: {XX.mean(), YY.mean(), XY.mean(())}")
-        return beta * (XX.mean() + YY.mean()) - gamma * XY.mean()
+        print(f"Sums: {XX.sum(), YY.sum(), XY.sum(())}")
+        return beta * (XX.sum() + YY.sum()) - gamma * XY.sum()
 
     def get_kernel_size(self):
         print(f"Start calculating RBF kernel size")
