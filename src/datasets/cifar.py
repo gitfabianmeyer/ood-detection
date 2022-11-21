@@ -32,10 +32,10 @@ def main():
     train = False
     clip_model, transform = clip.load(Config.VISION_MODEL)
     cifar = OodCifar10(data_path, transform, train)
-    loaders = single_isolated_class_loader(cifar, batch_size=256)
+    loaders = single_isolated_class_loader(cifar, batch_size=12)
     distancer = MaximumMeanDiscrepancy(loaders, cifar.classes, clip_model, )
-    print(distancer.get_distance())
-
+    mean, std = distancer.get_distance_for_n_splits()
+    print(f"Mean: {mean}, std: {std}")
 
 if __name__ == '__main__':
     main()

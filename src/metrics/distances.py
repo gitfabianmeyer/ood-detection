@@ -18,7 +18,8 @@ class Distance(ABC):
         self.get_feature_dict()
 
     def get_distance_for_n_splits(self, splits=5):
-        return np.mean([self.get_distance() for _ in range(splits)])
+        distances = [self.get_distance() for _ in range(splits)]
+        return np.mean(distances), np.std(distances)
 
     def get_distribution_features(self, classes):
         return torch.cat([self.feature_dict[cla] for cla in classes])
@@ -79,22 +80,13 @@ class MaximumMeanDiscrepancy(Distance):
 
         gamma = (2. / (batch_size * batch_size))
 
-        print(f"Kernel size: {self.kernel_size}")
-        print(f"matrix shape: {x_matrix.shape}")
-        print(f"Beta: {beta}")
-        print(f"Gamma: {gamma}")
         XX = rbf_kernel(x_matrix, x_matrix, self.kernel_size)
         YY = rbf_kernel(y_matrix, y_matrix, self.kernel_size)
         XY = rbf_kernel(x_matrix, y_matrix, self.kernel_size)
 
-        print(f"XX Shape: {XX.shape}")
-        print(f"YY Shape: {YY.shape}")
-        print(f"XY Shape: {XY.shape}")
-        print(f"Sums: {XX.sum(), YY.sum(), XY.sum(())}")
         return beta * (XX.sum() + YY.sum()) - gamma * XY.sum()
 
     def get_kernel_size(self):
         print(f"Start calculating RBF kernel size")
         X = torch.cat(list(self.feature_dict.values()))
-        print(f"Kernel X shape: {X.shape}")
         return torch.mean(torch.cdist(X, X)).cpu().numpy()
