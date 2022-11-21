@@ -64,6 +64,7 @@ class MaximumMeanDiscrepancy(Distance):
     def get_distance(self):
         # for near OOD
         id_classes, ood_classes = self.get_id_ood_split()
+        print(f"id Classes: {id_classes}\n\n OOD classes: {ood_classes}")
         id_features = self.get_distribution_features(id_classes).cpu().numpy()
         ood_features = self.get_distribution_features(ood_classes).cpu().numpy()
         return self.get_mmd(x_matrix=id_features,
@@ -76,12 +77,18 @@ class MaximumMeanDiscrepancy(Distance):
     def get_mmd(self, x_matrix, y_matrix, kernel_size):
         batch_size = x_matrix.shape[0]
         beta = (1. / (batch_size * (batch_size - 1)))
+
         gamma = (2. / (batch_size * batch_size))
 
+        print(f"matrix shape: {x_matrix.shape}")
+        print(f"Beta: {beta}")
+        print(f"Gamma: {gamma}")
         XX = rbf_kernel(x_matrix, x_matrix, kernel_size)
         YY = rbf_kernel(y_matrix, y_matrix, kernel_size)
         XY = rbf_kernel(x_matrix, y_matrix, kernel_size)
-        return beta * (XX.mean() + YY.mean()) - gamma * np.mean(XY)
+
+        print(f"Means: {XX.mean(), YY.mean(), XY.mean(())}")
+        return beta * (XX.mean() + YY.mean()) - gamma * XY.mean()
 
     def get_kernel_size(self):
         print(f"Start calculating RBF kernel size")
