@@ -5,7 +5,7 @@ import numpy as np
 import torch
 from datasets.classnames import imagenet_templates
 from ood_detection.config import Config
-from ood_detection.ood_utils import zeroshot_classifier
+from ood_detection.classification_utils import zeroshot_classifier
 from sklearn.metrics.pairwise import rbf_kernel
 import torch.nn.functional as F
 from tqdm import tqdm
