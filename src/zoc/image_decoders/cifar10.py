@@ -67,3 +67,4 @@ if __name__ == '__main__':
                                 image_loaders=cifar10_loaders)
         mean_list.append(mean)
     print(f"Scores for {runs} runs of 10 ablation splits: Mean: {np.mean(mean_list)}. Std: {np.std(mean_list)}")
+

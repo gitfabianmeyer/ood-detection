@@ -5,7 +5,7 @@ from ood_detection.config import Config
 
 from datasets.zoc_loader import single_isolated_class_loader
 
-from metrics.distances import MaximumMeanDiscrepancy
+from metrics.distances import MaximumMeanDiscrepancy, ConfusionLogProbability
 
 
 class OodCifar10(torchvision.datasets.CIFAR10):
@@ -33,9 +33,13 @@ def main():
     clip_model, transform = clip.load(Config.VISION_MODEL)
     cifar = OodCifar10(data_path, transform, train)
     loaders = single_isolated_class_loader(cifar, batch_size=12)
-    distancer = MaximumMeanDiscrepancy(loaders, cifar.classes, clip_model, )
+    distancer = MaximumMeanDiscrepancy(loaders, clip_model)
     mean, std = distancer.get_distance_for_n_splits()
-    print(f"Mean: {mean}, std: {std}")
+    print(f"Distance: {distancer.name}, Mean: {mean}, std: {std}")
+
+    distancer = ConfusionLogProbability(loaders, clip_model)
+    print(f"Distance: {distancer.name}, Mean: {mean}, std: {std}")
+
 
 if __name__ == '__main__':
     main()

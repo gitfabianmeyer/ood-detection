@@ -3,15 +3,20 @@ from abc import ABC, abstractmethod
 
 import numpy as np
 import torch
+from datasets.classnames import imagenet_templates
 from ood_detection.config import Config
+from ood_detection.ood_utils import zeroshot_classifier
 from sklearn.metrics.pairwise import rbf_kernel
+import torch.nn.functional as F
 from tqdm import tqdm
+
+from metrics.distances_utils import id_ood_printer, shape_printer
 
 
 class Distance(ABC):
-    def __init__(self, dataloaders, classes, clip_model):
+    def __init__(self, dataloaders, clip_model):
         self.dataloaders = dataloaders
-        self.classes = classes
+        self.classes = list(self.dataloaders.keys())
         self.clip_model = clip_model.eval()
         self.device = Config.DEVICE
         self.feature_dict = {}
@@ -56,9 +61,8 @@ class Distance(ABC):
 
 
 class MaximumMeanDiscrepancy(Distance):
-    def __init__(self, dataloaders, classes, clip_model, ):
+    def __init__(self, dataloaders, clip_model, ):
         super(MaximumMeanDiscrepancy, self).__init__(dataloaders,
-                                                     classes,
                                                      clip_model)
         self.kernel_size = self.get_kernel_size()
 
@@ -90,3 +94,28 @@ class MaximumMeanDiscrepancy(Distance):
         print(f"Start calculating RBF kernel size")
         X = torch.cat(list(self.feature_dict.values()))
         return torch.mean(torch.cdist(X, X)).cpu().numpy()
+
+
+class ConfusionLogProbability(Distance):
+    @property
+    def name(self):
+        return "Confusion Log Probability"
+
+    def __init__(self, dataloaders, clip_model):
+        super(ConfusionLogProbability, self).__init__(dataloaders, clip_model)
+        self.labels = zeroshot_classifier(self.classes, imagenet_templates, self.clip_model)
+
+    def get_distance(self):
+        id_classes, ood_classes = self.get_id_ood_split()
+        id_ood_printer(id_classes, ood_classes)
+        ood_features = torch.cat([self.feature_dict[ood_class] for ood_class in ood_classes])
+        shape_printer("ood features", ood_features)
+        shape_printer("labels features", self.labels)
+
+        logits = ood_features.half() @ self.labels.half()
+        shape_printer("logits", logits)
+        softmax_scores = F.softmax(logits, dim=1)
+        shape_printer("Softmax Scores", softmax_scores)
+        id_scores = softmax_scores[:, len(id_classes)]  # use only id labels proba
+        confusion_log_proba = torch.log(id_scores.sum(dim=1).mean())
+        return confusion_log_proba
