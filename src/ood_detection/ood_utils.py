@@ -1,6 +1,6 @@
 import torch
 
-from ood_detection.classnames import fgvcaircraft_classes, caltech101_classes, oxfordpets_classes, flowers_classes, \
+from datasets.classnames import fgvcaircraft_classes, caltech101_classes, oxfordpets_classes, flowers_classes, \
     dtd_classes, stanfordcars_classes
 from ood_detection.config import Config
 from ood_detection.models.dummy_zoc import CaptionGenerator
