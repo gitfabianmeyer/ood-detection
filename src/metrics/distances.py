@@ -122,7 +122,7 @@ class ConfusionLogProbability(Distance):
         shape_printer("logits", logits)
         softmax_scores = F.softmax(logits, dim=1)
         shape_printer("Softmax Scores", softmax_scores)
-        id_scores = softmax_scores[:, len(id_classes)]  # use only id labels proba
+        id_scores = softmax_scores[:, :len(id_classes)]  # use only id labels proba
         confusion_log_proba = torch.log(id_scores.sum(dim=1).mean())
         return confusion_log_proba
 
