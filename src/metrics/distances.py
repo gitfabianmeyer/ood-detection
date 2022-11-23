@@ -11,32 +11,18 @@ from sklearn.metrics.pairwise import rbf_kernel
 import torch.nn.functional as F
 from tqdm import tqdm
 
-from metrics.distances_utils import id_ood_printer, shape_printer, name_printer
+from metrics.distances_utils import id_ood_printer, shape_printer, name_printer, mean_std_printer
 
 
-class Distance(ABC):
-    def __init__(self, dataloaders, clip_model):
+class Distancer:
+    def __init__(self, dataloaders, clip_model, splits=5):
+        self.splits = splits
         self.dataloaders = dataloaders
         self.classes = list(self.dataloaders.keys())
         self.clip_model = clip_model.eval()
         self.device = Config.DEVICE
         self.feature_dict = {}
         self.get_feature_dict()
-
-    def get_distance_for_n_splits(self, splits=5):
-        distances = [self.get_distance() for _ in range(splits)]
-        return np.mean(distances), np.std(distances)
-
-    def get_distribution_features(self, classes):
-        return torch.cat([self.feature_dict[cla] for cla in classes])
-
-    @abstractmethod
-    def name(self):
-        pass
-
-    @abstractmethod
-    def get_distance(self):
-        pass
 
     def get_image_batch_features(self, loader, stop_at=None):
         with torch.no_grad():
@@ -52,28 +38,63 @@ class Distance(ABC):
 
             return torch.cat(features)
 
+    def get_feature_dict(self, max_len=20000):
+        print("Start creating image features...")
+        max_per_class = max_len // len(self.classes)
+        for cls in tqdm(self.classes):
+            self.feature_dict[cls] = self.get_image_batch_features(self.dataloaders[cls], max_per_class)
+
+    def get_mmd(self):
+        mmd = MaximumMeanDiscrepancy(self.feature_dict)
+        return mmd.get_distance_for_n_splits(splits=self.splits)
+
+    def get_clp(self):
+        clp = ConfusionLogProbability(self.feature_dict, self.clip_model)
+        return clp.get_distance_for_n_splits(self.splits)
+
+    def get_all_distances(self):
+        mmd_mean, mmd_std = self.get_mmd()
+        mean_std_printer(mmd_mean, mmd_std, self.splits)
+
+        clp_mean, clp_std = self.get_clp()
+        mean_std_printer(clp_mean, clp_std, self.splits)
+
+
+class Distance(ABC):
+    def __init__(self, feature_dict):
+        self.feature_dict = feature_dict
+        self.classes = list(self.feature_dict.keys())
+
+    def get_distance_for_n_splits(self, splits=5):
+        distances = [self.get_distance() for _ in range(splits)]
+        return np.mean(distances), np.std(distances)
+
+    def get_distribution_features(self, classes):
+        return torch.cat([self.feature_dict[cla] for cla in classes])
+
     def get_id_ood_split(self, in_distri_percentage=.4):
         random.shuffle(self.classes)
         id_split = int(len(self.classes) * in_distri_percentage)
         return self.classes[:id_split], self.classes[id_split:]
 
-    def get_feature_dict(self, max_len=20000):
-        print("Start obtaining features)")
-        max_per_class = max_len // len(self.classes)
-        for cls in tqdm(self.classes):
-            self.feature_dict[cls] = self.get_image_batch_features(self.dataloaders[cls], max_per_class)
+    @abstractmethod
+    def name(self):
+        pass
+
+    @abstractmethod
+    def get_distance(self):
+        pass
 
 
 class MaximumMeanDiscrepancy(Distance):
-    def __init__(self, dataloaders, clip_model, ):
-        super(MaximumMeanDiscrepancy, self).__init__(dataloaders,
-                                                     clip_model)
+    def __init__(self, feature_dict):
+        super(MaximumMeanDiscrepancy, self).__init__(feature_dict)
         self.kernel_size = self.get_kernel_size()
 
     def get_distance(self):
         # for near OOD
         id_classes, ood_classes = self.get_id_ood_split()
-        print(f"id Classes: {id_classes}\n\n OOD classes: {ood_classes}")
+        print(f"id Classes: {id_classes[:2]}... \n\n OOD classes: {ood_classes[:2]}...")
         id_features = self.get_distribution_features(id_classes).cpu().numpy()
         ood_features = self.get_distribution_features(ood_classes).cpu().numpy()
         return self.get_mmd(x_matrix=id_features,
@@ -96,7 +117,6 @@ class MaximumMeanDiscrepancy(Distance):
         return beta * (XX.sum() + YY.sum()) - gamma * XY.sum()
 
     def get_kernel_size(self):
-        print(f"Start calculating RBF kernel size")
         X = torch.cat(list(self.feature_dict.values()))
         return torch.mean(torch.cdist(X, X)).cpu().numpy()
 
@@ -107,8 +127,9 @@ class ConfusionLogProbability(Distance):
     def name(self):
         return "Confusion Log Probability"
 
-    def __init__(self, dataloaders, clip_model):
-        super(ConfusionLogProbability, self).__init__(dataloaders, clip_model)
+    def __init__(self, feature_dict, clip_model):
+        super(ConfusionLogProbability, self).__init__(feature_dict)
+        self.clip_model = clip_model
         self.labels = zeroshot_classifier(self.classes, imagenet_templates, self.clip_model)
 
     def get_distance(self):
@@ -130,9 +151,7 @@ class ConfusionLogProbability(Distance):
 def get_distances_for_dataset(dataset, clip_model, name):
     name_printer(name)
     loaders = single_isolated_class_loader(dataset, batch_size=256)
-    distancer = MaximumMeanDiscrepancy(loaders, clip_model)
-    mean, std = distancer.get_distance_for_n_splits()
-    print(f"Distance: {distancer.name}, Mean: {mean}, std: {std}")
-    distancer = ConfusionLogProbability(loaders, clip_model)
-    mean, std = distancer.get_distance_for_n_splits()
-    print(f"Distance: {distancer.name}, Mean: {mean}, std: {std}")
+    distancer = Distancer(dataloaders=loaders,
+                          clip_model=clip_model,
+                          splits=10)
+    distancer.get_all_distances()
