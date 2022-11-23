@@ -30,7 +30,6 @@ class Distance(ABC):
     def get_distribution_features(self, classes):
         return torch.cat([self.feature_dict[cla] for cla in classes])
 
-    @property
     @abstractmethod
     def name(self):
         pass
@@ -119,7 +118,7 @@ class ConfusionLogProbability(Distance):
         shape_printer("ood features", ood_features)
         shape_printer("labels features", self.labels)
 
-        logits = ood_features.half() @ self.labels.half()
+        logits = ood_features.half() @ self.labels.t().half()
         shape_printer("logits", logits)
         softmax_scores = F.softmax(logits, dim=1)
         shape_printer("Softmax Scores", softmax_scores)

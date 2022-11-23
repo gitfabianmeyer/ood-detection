@@ -10,8 +10,7 @@ def zeroshot_classifier(classnames: list, templates: list, clip_model):
             class_embeddings = get_normed_embeddings(classname, clip_model, templates)
             weights.append(class_embeddings)
 
-        weights = torch.cat(weights)
-        return weights
+        return torch.stack(weights)
 
 
 def classify(features, zeroshot_weights, labels, dataset):
