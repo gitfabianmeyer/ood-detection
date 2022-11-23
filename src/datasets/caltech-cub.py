@@ -36,11 +36,11 @@ class OodCub2011(Dataset):
         with open(os.path.join(self.root, 'CUB_200_2011', 'images.txt')) as f:
             for line in f:
                 curr_img = line.rstrip("\n").split(" ")
-                images.append(os.path.join(path,curr_img[1]))
+                images.append(os.path.join(path, curr_img[1]))
         with open(os.path.join(self.root, 'CUB_200_2011', 'image_class_labels.txt')) as f:
             for line in f:
-                curr_lab = line.rstrip("\n").split(" ")
-                labels.append(int(curr_lab[1]))
+                curr_class = line.rstrip("\n").split(" ")
+                labels.append(int(curr_class[1]))
         with open(os.path.join(self.root, 'CUB_200_2011', 'train_test_split.txt')) as f:
             for line in f:
                 curr_split = line.rstrip("\n").split(" ")
@@ -51,8 +51,10 @@ class OodCub2011(Dataset):
         self.classes = []
         with open(os.path.join(self.root, 'CUB_200_2011', 'classes.txt')) as f:
             for line in f:
-                curr_lab = line.rstrip("\n").split(" ")[1]
-                self.classes.append(curr_lab)
+                curr_class = line.rstrip("\n").split(" ")[1]
+                curr_class = curr_class.split(".")[1]
+                curr_class = " ".join(curr_class.split("_"))
+                self.classes.append(curr_class)
         self.class_to_idx = {cls: i + 1 for (i, cls) in enumerate(self.classes)}
         self.idx_to_classes = {value: key for (key, value) in self.class_to_idx.items()}
 
