@@ -11,7 +11,7 @@ def dataset_name_printer(name):
 
 
 def distance_name_printer(name):
-    print(f"\n\tStarting {name.uppper()}...")
+    print(f"\n\tStarting {name.upper()}...")
 
 
 def mean_std_printer(mean, std, runs):
