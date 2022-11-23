@@ -11,7 +11,8 @@ from sklearn.metrics.pairwise import rbf_kernel
 import torch.nn.functional as F
 from tqdm import tqdm
 
-from metrics.distances_utils import id_ood_printer, shape_printer, name_printer, mean_std_printer
+from metrics.distances_utils import id_ood_printer, \
+    shape_printer, dataset_name_printer, mean_std_printer, distance_name_printer
 
 
 class Distancer:
@@ -45,10 +46,12 @@ class Distancer:
             self.feature_dict[cls] = self.get_image_batch_features(self.dataloaders[cls], max_per_class)
 
     def get_mmd(self):
+        distance_name_printer("MMD")
         mmd = MaximumMeanDiscrepancy(self.feature_dict)
         return mmd.get_distance_for_n_splits(splits=self.splits)
 
     def get_clp(self):
+        distance_name_printer(CLP)
         clp = ConfusionLogProbability(self.feature_dict, self.clip_model)
         return clp.get_distance_for_n_splits(self.splits)
 
@@ -136,21 +139,21 @@ class ConfusionLogProbability(Distance):
         id_classes, ood_classes = self.get_id_ood_split()
         id_ood_printer(id_classes, ood_classes)
         ood_features = torch.cat([self.feature_dict[ood_class] for ood_class in ood_classes])
-        shape_printer("ood features", ood_features)
-        shape_printer("labels features", self.labels)
+        # shape_printer("ood features", ood_features)
+        # shape_printer("labels features", self.labels)
 
         logits = ood_features.half() @ self.labels.t().half()
-        shape_printer("logits", logits)
+        # shape_printer("logits", logits)
         softmax_scores = F.softmax(logits, dim=1)
-        shape_printer("Softmax Scores", softmax_scores)
+        # shape_printer("Softmax Scores", softmax_scores)
         id_scores = softmax_scores[:, :len(id_classes)]  # use only id labels proba
         confusion_log_proba = torch.log(id_scores.sum(dim=1).mean())
         return confusion_log_proba.cpu().numpy()
 
 
 def get_distances_for_dataset(dataset, clip_model, name):
-    name_printer(name)
-    loaders = single_isolated_class_loader(dataset, batch_size=256)
+    dataset_name_printer(name)
+    loaders = single_isolated_class_loader(dataset, batch_size=512)
     distancer = Distancer(dataloaders=loaders,
                           clip_model=clip_model,
                           splits=10)

@@ -6,8 +6,12 @@ def id_ood_printer(id_classes, ood_classes):
     print(f"\nid Classes: {id_classes[:2]}... \n\n OOD classes: {ood_classes[:2]}...")
 
 
-def name_printer(name):
+def dataset_name_printer(name):
     print("\n" * 2, "-" * 30, name, "-" * 30, "\n")
+
+
+def distance_name_printer(name):
+    print(f"\n\tStarting {name.uppper()}...")
 
 
 def mean_std_printer(mean, std, runs):
