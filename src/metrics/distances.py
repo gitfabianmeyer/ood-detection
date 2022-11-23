@@ -114,8 +114,7 @@ class MaximumMeanDiscrepancy(Distance):
         YY = rbf_kernel(y_matrix, y_matrix, self.kernel_size)
         XY = rbf_kernel(x_matrix, y_matrix, self.kernel_size)
 
-        mmd = beta * (XX.sum() + YY.sum()) - gamma * XY.sum()
-        return mmd.cpu().numpy()
+        return beta * (XX.sum() + YY.sum()) - gamma * XY.sum()
 
     def get_kernel_size(self):
         X = torch.cat(list(self.feature_dict.values()))
