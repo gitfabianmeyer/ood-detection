@@ -3,7 +3,7 @@ def shape_printer(name, tensor):
 
 
 def id_ood_printer(id_classes, ood_classes):
-    print(f"\nid Classes: {id_classes[:2]}... \n\n OOD classes: {ood_classes[:2]}...")
+    print(f"id Classes: {id_classes[:2]}... OOD classes: {ood_classes[:2]}...")
 
 
 def dataset_name_printer(name):
