@@ -1,7 +1,7 @@
 import clip
 import torchvision.datasets
 
-from datasets.zoc_loader import single_isolated_class_loader
+from metrics.distances import get_distances_for_dataset
 from ood_detection.config import Config
 
 
@@ -22,18 +22,15 @@ class OodFashionMNIST(torchvision.datasets.FashionMNIST):
 
 
 def main():
-    datapath = Config.DATAPATH
+    data_path = Config.DATAPATH
     train = False
-    _, transform = clip.load(Config.VISION_MODEL)
-    dataset = OodMNIST(datapath, transform, train)
-    loaders = single_isolated_class_loader(dataset)
+    clip_model, transform = clip.load(Config.VISION_MODEL)
 
-    for loader in loaders.keys():
-        curr = loaders[loader]
-        print(loader)
-        for item in curr:
-            print(item)
-            pass
+    dataset = OodMNIST(data_path, transform, train)
+    get_distances_for_dataset(dataset, clip_model, "MNIST")
+
+    dataset = OodFashionMNIST(data_path, transform, train)
+    get_distances_for_dataset(dataset, clip_model, "Fashion MNIST")
 
 
 if __name__ == '__main__':

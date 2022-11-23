@@ -3,7 +3,7 @@ import os.path
 import clip
 import torchvision.datasets
 
-from datasets.zoc_loader import single_isolated_class_loader
+from metrics.distances import get_distances_for_dataset
 from ood_detection.config import Config
 
 
@@ -25,16 +25,12 @@ class OodSVHN(torchvision.datasets.SVHN):
 
 
 def main():
-    datapath = Config.DATAPATH
+    data_path = Config.DATAPATH
     train = False
-    _, transform = clip.load(Config.VISION_MODEL)
-    dataset = OodSVHN(datapath, transform, train)
-    loaders = single_isolated_class_loader(dataset)
+    clip_model, transform = clip.load(Config.VISION_MODEL)
 
-    for loader in loaders.keys():
-        print(loader)
-        for _ in loaders[loader]:
-            print(10)
+    dataset = OodSVHN(data_path, transform, train)
+    get_distances_for_dataset(dataset, clip_model, "MNIST")
 
 
 if __name__ == '__main__':

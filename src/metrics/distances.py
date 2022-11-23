@@ -4,13 +4,14 @@ from abc import ABC, abstractmethod
 import numpy as np
 import torch
 from datasets.classnames import imagenet_templates
+from datasets.zoc_loader import single_isolated_class_loader
 from ood_detection.config import Config
 from ood_detection.classification_utils import zeroshot_classifier
 from sklearn.metrics.pairwise import rbf_kernel
 import torch.nn.functional as F
 from tqdm import tqdm
 
-from metrics.distances_utils import id_ood_printer, shape_printer
+from metrics.distances_utils import id_ood_printer, shape_printer, name_printer
 
 
 class Distance(ABC):
@@ -79,6 +80,7 @@ class MaximumMeanDiscrepancy(Distance):
         return self.get_mmd(x_matrix=id_features,
                             y_matrix=ood_features)
 
+    @property
     def name(self):
         return "Maximum Mean Discrepancy"
 
@@ -101,6 +103,7 @@ class MaximumMeanDiscrepancy(Distance):
 
 
 class ConfusionLogProbability(Distance):
+
     @property
     def name(self):
         return "Confusion Log Probability"
@@ -123,3 +126,14 @@ class ConfusionLogProbability(Distance):
         id_scores = softmax_scores[:, len(id_classes)]  # use only id labels proba
         confusion_log_proba = torch.log(id_scores.sum(dim=1).mean())
         return confusion_log_proba
+
+
+def get_distances_for_dataset(dataset, clip_model, name):
+    name_printer(name)
+    loaders = single_isolated_class_loader(dataset, batch_size=256)
+    distancer = MaximumMeanDiscrepancy(loaders, clip_model)
+    mean, std = distancer.get_distance_for_n_splits()
+    print(f"Distance: {distancer.name}, Mean: {mean}, std: {std}")
+    distancer = ConfusionLogProbability(loaders, clip_model)
+    mean, std = distancer.get_distance_for_n_splits()
+    print(f"Distance: {distancer.name}, Mean: {mean}, std: {std}")

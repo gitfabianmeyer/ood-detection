@@ -13,6 +13,8 @@ from tqdm.autonotebook import tqdm
 
 from datasets.zoc_loader import single_isolated_class_loader
 from ood_detection.config import Config
+from metrics.distances import get_distances_for_dataset
+
 
 dir_structure_help = r"""
 TinyImageNetPath
@@ -266,15 +268,14 @@ class OodTinyImageNet(TinyImageNetImageFolder):
 
 
 def main():
-    datapath = Config.DATAPATH
+    data_path = Config.DATAPATH
     train = False
-    _, transform = clip.load(Config.VISION_MODEL)
-    dataset = OodTinyImageNet(datapath, transform, train)
-    loaders = single_isolated_class_loader(dataset)
+    clip_model, transform = clip.load(Config.VISION_MODEL)
 
-    for loader in loaders.keys():
-        d = loaders[loader]
-        print(loader)
+    dataset = OodTinyImageNet(data_path, transform, train)
+    get_distances_for_dataset(dataset, clip_model, "TinyImagenet")
+
 
 if __name__ == '__main__':
     main()
+

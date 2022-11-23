@@ -4,10 +4,10 @@ import clip
 import numpy as np
 from PIL import Image
 from torchvision.datasets.utils import download_url
-from torch.utils.data import Dataset, DataLoader
+from torch.utils.data import Dataset
 
-from datasets.zoc_loader import single_isolated_class_loader
 from ood_detection.config import Config
+from metrics.distances import get_distances_for_dataset
 
 
 class OodCub2011(Dataset):
@@ -108,25 +108,12 @@ class OodCub2011(Dataset):
 
 
 def main():
-    datapath = Config.DATAPATH
+    data_path = Config.DATAPATH
     train = False
-    _, transform = clip.load(Config.VISION_MODEL)
-    dataset = OodCub2011(datapath, transform, train)
+    clip_model, transform = clip.load(Config.VISION_MODEL)
 
-    dataloader = DataLoader(dataset)
-    for i, (img, lab) in enumerate(dataloader):
-        print(lab)
-        if i % 10 == 0 and i != 0:
-            break
-    loaders = single_isolated_class_loader(dataset)
-
-    for loader in loaders.keys():
-        print(loader)
-        dataloader = loaders[loader]
-        for i, item in enumerate(dataloader):
-            if i % 100 and i != 0:
-                print(item)
-                break
+    dataset = OodCub2011(data_path, transform, train)
+    get_distances_for_dataset(dataset, clip_model, "CUB2011")
 
 
 if __name__ == '__main__':

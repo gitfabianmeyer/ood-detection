@@ -1,20 +1,24 @@
+import clip
 import torchvision
 from PIL import Image
+from ood_detection.config import Config
 from torchvision.transforms import Compose, Resize, CenterCrop, ToTensor, Normalize
+
+from metrics.distances import get_distances_for_dataset
 
 
 class OodGTSRB(torchvision.datasets.GTSRB):
     def __init__(self, root, split):
         super().__init__(root,
-                       split=split,
-                       download=True,
-                       transform=Compose([
-                           # ToPILImage(),
-                           Resize(224, interpolation=Image.BICUBIC),
-                           CenterCrop(224),
-                           ToTensor(),
-                           Normalize((0.4913, 0.4821, 0.4465), (0.2470, 0.2434, 0.2615))
-                       ]))
+                         split=split,
+                         download=True,
+                         transform=Compose([
+                             # ToPILImage(),
+                             Resize(224, interpolation=Image.BICUBIC),
+                             CenterCrop(224),
+                             ToTensor(),
+                             Normalize((0.4913, 0.4821, 0.4465), (0.2470, 0.2434, 0.2615))
+                         ]))
 
         self.classes = [
             'red and white circle 20 kph speed limit',
@@ -64,3 +68,16 @@ class OodGTSRB(torchvision.datasets.GTSRB):
         self.classes_to_idx = dict(zip(self.classes, list(range(len(self.classes)))))
         self.idx_to_classes = dict(zip(list(range(len(self.classes))), self.classes))
         self._samples = [(image, self.idx_to_classes[target]) for image, target in self._samples]
+
+
+def main():
+    data_path = Config.DATAPATH
+    train = False
+    clip_model, transform = clip.load(Config.VISION_MODEL)
+
+    dataset = OodGTSRB(data_path, transform, train)
+    get_distances_for_dataset(dataset, clip_model, "GTRSB")
+
+
+if __name__ == '__main__':
+    main()

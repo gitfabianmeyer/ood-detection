@@ -2,12 +2,12 @@ import os
 
 import clip
 import torchvision
-
-from datasets.zoc_loader import single_isolated_class_loader
-from ood_detection.config import Config
-
 import subprocess
 from urllib.request import Request, urlopen
+
+from metrics.distances import get_distances_for_dataset
+from ood_detection.config import Config
+
 
 __author__ = 'Fisher Yu'
 __email__ = 'fy@cs.princeton.edu'
@@ -66,17 +66,12 @@ class OodLSUN(torchvision.datasets.LSUN):
 
 
 def main():
-    datapath = Config.DATAPATH
+    data_path = Config.DATAPATH
     train = False
-    _, transform = clip.load(Config.VISION_MODEL)
-    cifar = OodLSUN(datapath, transform, train)
-    loaders = single_isolated_class_loader(cifar)
+    clip_model, transform = clip.load(Config.VISION_MODEL)
 
-    for loader in loaders.keys():
-        print(loader)
-        for item in loaders[loader]:
-            print(10)
-            pass
+    dataset = OodLSUN(data_path, transform, train)
+    get_distances_for_dataset(dataset, clip_model, "LSUN")
 
 
 if __name__ == '__main__':
