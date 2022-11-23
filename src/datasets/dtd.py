@@ -6,8 +6,11 @@ from ood_detection.config import Config
 
 
 class OodDTD(torchvision.datasets.DTD):
-    def __init__(self, datapath, preprocess):
-        super().__init__(datapath, transform=preprocess, download=True)
+    def __init__(self, datapath, preprocess, train):
+        super().__init__(datapath,
+                         transform=preprocess,
+                         download=True,
+                         split='train' if train else 'val')
         self._images = self._image_files
 
 
