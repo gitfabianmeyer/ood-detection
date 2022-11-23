@@ -94,7 +94,7 @@ class MaximumMeanDiscrepancy(Distance):
     def get_distance(self):
         # for near OOD
         id_classes, ood_classes = self.get_id_ood_split()
-        print(f"id Classes: {id_classes[:2]}... \n\n OOD classes: {ood_classes[:2]}...")
+        id_ood_printer(id_classes, ood_classes)
         id_features = self.get_distribution_features(id_classes).cpu().numpy()
         ood_features = self.get_distribution_features(ood_classes).cpu().numpy()
         return self.get_mmd(x_matrix=id_features,
@@ -114,7 +114,8 @@ class MaximumMeanDiscrepancy(Distance):
         YY = rbf_kernel(y_matrix, y_matrix, self.kernel_size)
         XY = rbf_kernel(x_matrix, y_matrix, self.kernel_size)
 
-        return beta * (XX.sum() + YY.sum()) - gamma * XY.sum()
+        mmd = beta * (XX.sum() + YY.sum()) - gamma * XY.sum()
+        return mmd.cpu().numpy()
 
     def get_kernel_size(self):
         X = torch.cat(list(self.feature_dict.values()))
@@ -145,7 +146,7 @@ class ConfusionLogProbability(Distance):
         shape_printer("Softmax Scores", softmax_scores)
         id_scores = softmax_scores[:, :len(id_classes)]  # use only id labels proba
         confusion_log_proba = torch.log(id_scores.sum(dim=1).mean())
-        return confusion_log_proba
+        return confusion_log_proba.cpu().numpy()
 
 
 def get_distances_for_dataset(dataset, clip_model, name):
