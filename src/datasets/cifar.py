@@ -3,11 +3,7 @@ import numpy as np
 import torchvision.datasets
 from ood_detection.config import Config
 
-from datasets.zoc_loader import single_isolated_class_loader
-
-from metrics.distances import MaximumMeanDiscrepancy, ConfusionLogProbability
-
-from src.metrics.distances import get_distances_for_dataset
+from metrics.distances import get_distances_for_dataset
 
 
 class OodCifar10(torchvision.datasets.CIFAR10):
