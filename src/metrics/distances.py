@@ -38,7 +38,7 @@ class Distance(ABC):
     def get_distance(self):
         pass
 
-    def get_image_batch_features(self, loader):
+    def get_image_batch_features(self, loader, stop_at=None):
         with torch.no_grad():
             features = []
             for images in loader:
@@ -46,6 +46,9 @@ class Distance(ABC):
                 batch_features = self.clip_model.encode_image(images)
                 batch_features /= batch_features.norm(dim=1, keepdim=True)
                 features.append(batch_features)
+                if len(features) >= stop_at:
+                    print(f"Reached max {stop_at} for class {loader.name}")
+                    break
 
             return torch.cat(features)
 
@@ -54,10 +57,11 @@ class Distance(ABC):
         id_split = int(len(self.classes) * in_distri_percentage)
         return self.classes[:id_split], self.classes[id_split:]
 
-    def get_feature_dict(self):
+    def get_feature_dict(self, max_len=20000):
         print("Start obtaining features)")
+        max_per_class = max_len // len(self.classes)
         for cls in tqdm(self.classes):
-            self.feature_dict[cls] = self.get_image_batch_features(self.dataloaders[cls])
+            self.feature_dict[cls] = self.get_image_batch_features(self.dataloaders[cls], max_per_class)
 
 
 class MaximumMeanDiscrepancy(Distance):

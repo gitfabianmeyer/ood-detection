@@ -8,7 +8,7 @@ class IsolatedClass(Dataset):
     def __init__(self, dataset, class_label=None):
         assert class_label, 'a semantic label must be specified'
         self.transform = dataset.transform
-
+        self.class_label = class_label
         class_mask = np.array(dataset.targets) == dataset.class_to_idx[class_label]
         self.data = [dataset.data[i] for i in range(len(dataset.data)) if class_mask[i]]
         self.targets = np.array(dataset.targets[class_mask])
@@ -28,6 +28,10 @@ class IsolatedClass(Dataset):
 
     def __len__(self):
         return len(self.data)
+
+    @property
+    def name(self):
+        return self.class_label
 
 
 def single_isolated_class_loader(full_dataset, batch_size=1):
