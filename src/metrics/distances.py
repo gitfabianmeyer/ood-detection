@@ -51,7 +51,7 @@ class Distancer:
         return mmd.get_distance_for_n_splits(splits=self.splits)
 
     def get_clp(self):
-        distance_name_printer(CLP)
+        distance_name_printer("CLP")
         clp = ConfusionLogProbability(self.feature_dict, self.clip_model)
         return clp.get_distance_for_n_splits(self.splits)
 
