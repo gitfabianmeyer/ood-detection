@@ -76,7 +76,7 @@ class Distancer:
 
     def get_dataset_targets(self):
         targets = []
-        for dataloader in self.dataloaders:
+        for dataloader in self.dataloaders.keys():
             targets.append(dataloader.targets)
         return np.concatenate(targets)
 
