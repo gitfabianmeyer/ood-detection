@@ -19,14 +19,15 @@ class IsolatedClass(Dataset):
         try:
             # works for most datasets
             img = Image.open(image_file)
-        except AttributeError as ae:
-            print(self.data[idx])
-            print(idx)
-            raise ae
-            if type(image_file) == numpy.ndarray:
-                img = Image.fromarray(image_file)
-            else:
-                img = Image.fromarray(image_file.numpy(), mode="L")
+        except AttributeError:
+            try:
+                if type(image_file) == numpy.ndarray:
+                    img = Image.fromarray(image_file)
+                else:
+                    img = Image.fromarray(image_file.numpy(), mode="L")
+            except TypeError:  # for svhn b/w images
+                img = Image.fromarray(np.transpose(image_file, (1, 2, 0)))
+
         return self.transform(img.convert('RGB'))
 
     def __len__(self):
