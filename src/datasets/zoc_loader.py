@@ -12,6 +12,7 @@ class IsolatedClass(Dataset):
         class_mask = np.array(dataset.targets) == dataset.class_to_idx[class_label]
         self.data = [dataset.data[i] for i in range(len(dataset.data)) if class_mask[i]]
         self.targets = np.array(dataset.targets[class_mask])
+        self.class_to_idx = dataset.class_to_idx
 
     def __getitem__(self, idx):
         image_file = self.data[idx]
@@ -28,9 +29,7 @@ class IsolatedClass(Dataset):
             except TypeError:  # for svhn b/w images
                 img = Image.fromarray(np.transpose(image_file, (1, 2, 0)))
 
-        img = img.convert('RGB')
-        return self.transform(img)
-        # return self.transform(img.convert('RGB'))
+        return self.transform(img.convert('RGB'))
 
     def __len__(self):
         return len(self.data)

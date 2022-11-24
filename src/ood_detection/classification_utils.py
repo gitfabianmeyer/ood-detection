@@ -13,19 +13,20 @@ def zeroshot_classifier(classnames: list, templates: list, clip_model):
         return torch.stack(weights)
 
 
-def classify(features, zeroshot_weights, labels, dataset):
+def classify(features, zeroshot_weights, targets, dataset=None, print_results=False):
     top1, top5, n = 0., 0., 0.
     logits = 100. * features.half() @ zeroshot_weights.half()
-    acc1, acc5 = accuracy(logits, labels, top_k=(1, 5))
+    acc1, acc5 = accuracy(logits, targets, top_k=(1, 5))
     top1 += acc1
     top5 += acc5
     n = features.size(0)
     top1 = (top1 / n) * 100
     top5 = (top5 / n) * 100
-    print(f"\nClip Top1 Acc: {top1:.2f} with zeroshot on {dataset} ({features.size(0)} images)")
-    print(f"\nClip Top5 Acc: {top5:.2f} with zeroshot on {dataset}")
+    if print_results:
+        print(f"\nClip Top1 Acc: {top1:.2f} with zeroshot on {dataset} ({features.size(0)} images)")
+        print(f"\nClip Top5 Acc: {top5:.2f} with zeroshot on {dataset}")
 
-    return top1
+    return top1, top5
 
 
 def accuracy(output, target, top_k=(1,)):

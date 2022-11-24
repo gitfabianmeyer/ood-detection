@@ -6,13 +6,14 @@ import torch
 from datasets.classnames import imagenet_templates
 from datasets.zoc_loader import single_isolated_class_loader
 from ood_detection.config import Config
-from ood_detection.classification_utils import zeroshot_classifier
+from ood_detection.classification_utils import zeroshot_classifier, classify
 from sklearn.metrics.pairwise import rbf_kernel
 import torch.nn.functional as F
 from tqdm import tqdm
 
 from metrics.distances_utils import id_ood_printer, \
-    shape_printer, dataset_name_printer, mean_std_printer, distance_name_printer
+    shape_printer, dataset_name_printer, mean_std_printer,\
+    distance_name_printer, accuracy_printer
 
 
 class Distancer:
@@ -24,6 +25,7 @@ class Distancer:
         self.device = Config.DEVICE
         self.feature_dict = {}
         self.get_feature_dict()
+        self.targets = self.get_dataset_targets()
 
     def get_image_batch_features(self, loader, stop_at=None):
         with torch.no_grad():
@@ -55,12 +57,28 @@ class Distancer:
         clp = ConfusionLogProbability(self.feature_dict, self.clip_model)
         return clp.get_distance_for_n_splits(self.splits)
 
+    def get_zeroshot_accuracy(self):
+        distance_name_printer("Zero Shot Accuracy")
+        zsa = ZeroShotAccuracy(self.feature_dict,
+                               self.clip_model,
+                               self.targets)
+        return zsa.get_distance()
+
     def get_all_distances(self):
         mmd_mean, mmd_std = self.get_mmd()
         mean_std_printer(mmd_mean, mmd_std, self.splits)
 
         clp_mean, clp_std = self.get_clp()
         mean_std_printer(clp_mean, clp_std, self.splits)
+
+        accuracy = self.get_zeroshot_accuracy()
+        accuracy_printer(accuracy)
+
+    def get_dataset_targets(self):
+        targets = []
+        for dataloader in self.dataloaders:
+            targets.append(dataloader.targets)
+        return np.concatenate(targets)
 
 
 class Distance(ABC):
@@ -87,6 +105,25 @@ class Distance(ABC):
     @abstractmethod
     def get_distance(self):
         pass
+
+
+class ZeroShotAccuracy(Distance):
+    def __init__(self, feature_dict, clip_model, dataset_targets):
+        super(ZeroShotAccuracy, self).__init__(feature_dict)
+        self.clip_model = clip_model
+        self.labels = zeroshot_classifier(self.classes, imagenet_templates, self.clip_model)
+        self.dataset_targets = dataset_targets
+
+    @property
+    def name(self):
+        return 'Zero Shot Accuracy'
+
+    def get_distance(self):
+        # do for the whole set
+        top1, top5 = classify(features=torch.stack(self.feature_dict.values),
+                              zeroshot_weights=self.labels,
+                              targets=self.dataset_targets)
+        return top1
 
 
 class MaximumMeanDiscrepancy(Distance):

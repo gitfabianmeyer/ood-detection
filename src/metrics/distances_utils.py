@@ -16,3 +16,6 @@ def distance_name_printer(name):
 
 def mean_std_printer(mean, std, runs):
     print(f"Runs: {runs}\t\tMEAN: {mean}\t\t STD: {std}")
+
+def accuracy_printer(accuracy):
+    print(f"Zero Shot Accuracy: {accuracy}")
