@@ -2,16 +2,16 @@ import PIL
 import clip
 import numpy as np
 import torchvision
-from datasets.svhn import OodSVHN
 from metrics.distances import get_distances_for_dataset
 from ood_detection.config import Config
 
 
 class OodStanfordCars(torchvision.datasets.StanfordCars):
-    def __init__(self, datapath, transform):
+    def __init__(self, datapath, transform, train):
         super().__init__(datapath,
                          transform=transform,
-                         download=True)
+                         download=True,
+                         split='train' if train else 'test')
         self.data, self.targets = zip(*self._samples)
         self.targets = np.array(self.targets)
 
@@ -37,7 +37,7 @@ def main():
     train = False
     clip_model, transform = clip.load(Config.VISION_MODEL)
 
-    dataset = OodSVHN(data_path, transform, train)
+    dataset = OodStanfordCars(data_path, transform, train)
     get_distances_for_dataset(dataset, clip_model, "StanfordCars")
 
 

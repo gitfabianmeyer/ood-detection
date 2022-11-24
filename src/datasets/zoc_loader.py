@@ -19,7 +19,10 @@ class IsolatedClass(Dataset):
         try:
             # works for most datasets
             img = Image.open(image_file)
-        except AttributeError:
+        except AttributeError as ae:
+            print(self.data[idx])
+            print(idx)
+            raise ae
             if type(image_file) == numpy.ndarray:
                 img = Image.fromarray(image_file)
             else:
