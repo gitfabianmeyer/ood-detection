@@ -1,4 +1,6 @@
+import PIL
 import clip
+import numpy as np
 import torchvision.datasets
 
 from metrics.distances import get_distances_for_dataset
@@ -11,7 +13,20 @@ class OodDTD(torchvision.datasets.DTD):
                          transform=preprocess,
                          download=True,
                          split='train' if train else 'val')
-        self._images = self._image_files
+        self.data = self._image_files
+        self.targets = np.array(self._labels)
+
+    def __getitem__(self, idx):
+        image, label = self.data[idx], self.targets[idx]
+        image = PIL.Image.open(image).convert("RGB")
+
+        if self.transform:
+            image = self.transform(image)
+
+        if self.target_transform:
+            label = self.target_transform(label)
+
+        return image, label
 
 
 def main():

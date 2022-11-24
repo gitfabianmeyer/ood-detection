@@ -1,4 +1,5 @@
 import clip
+import numpy as np
 import torchvision
 from PIL import Image
 from ood_detection.config import Config
@@ -8,18 +9,11 @@ from metrics.distances import get_distances_for_dataset
 
 
 class OodGTSRB(torchvision.datasets.GTSRB):
-    def __init__(self, root, split):
+    def __init__(self, root, transform, train):
         super().__init__(root,
-                         split=split,
+                         split="train" if train else "test",
                          download=True,
-                         transform=Compose([
-                             # ToPILImage(),
-                             Resize(224, interpolation=Image.BICUBIC),
-                             CenterCrop(224),
-                             ToTensor(),
-                             Normalize((0.4913, 0.4821, 0.4465), (0.2470, 0.2434, 0.2615))
-                         ]))
-
+                         transform=transform)
         self.classes = [
             'red and white circle 20 kph speed limit',
             'red and white circle 30 kph speed limit',
@@ -65,9 +59,10 @@ class OodGTSRB(torchvision.datasets.GTSRB):
             'white circle with gray strike bar indicating no passing for cars has ended',
             'white circle with gray strike bar indicating no passing for trucks has ended',
         ]
-        self.classes_to_idx = dict(zip(self.classes, list(range(len(self.classes)))))
-        self.idx_to_classes = dict(zip(list(range(len(self.classes))), self.classes))
-        self._samples = [(image, self.idx_to_classes[target]) for image, target in self._samples]
+        self.class_to_idx = dict(zip(self.classes, list(range(len(self.classes)))))
+        self.idx_to_class = dict(zip(list(range(len(self.classes))), self.classes))
+        self.data, self.targets = zip(*self._samples)
+        self.targets = np.array(self.targets)
 
 
 def main():
