@@ -5,13 +5,11 @@ import imageio
 import numpy as np
 import os
 import subprocess
-from collections import defaultdict
 from torch.utils.data import Dataset
 from torchvision.datasets import ImageFolder
 
 from tqdm.autonotebook import tqdm
 
-from datasets.zoc_loader import single_isolated_class_loader
 from ood_detection.config import Config
 from metrics.distances import get_distances_for_dataset
 
@@ -259,12 +257,13 @@ class TinyImageNetImageFolder(ImageFolder):
 
 
 class OodTinyImageNet(TinyImageNetImageFolder):
-    def __init__(self, datapath, transform, train):
-        super(OodTinyImageNet, self).__init__(root=os.path.join(datapath, 'tinyimagenet/tiny-imagenet-200'),
+    def __init__(self, data_path, transform, train):
+        super(OodTinyImageNet, self).__init__(root=os.path.join(data_path, 'tinyimagenet/tiny-imagenet-200'),
                                               transform=transform,
                                               train=train,
                                               download=True
                                               )
+        self.transform = transform
 
 
 def main():

@@ -15,7 +15,7 @@ class IsolatedClass(Dataset):
 
     def __getitem__(self, idx):
         image_file = self.data[idx]
-
+        print()
         try:
             # works for most datasets
             img = Image.open(image_file)
@@ -28,7 +28,9 @@ class IsolatedClass(Dataset):
             except TypeError:  # for svhn b/w images
                 img = Image.fromarray(np.transpose(image_file, (1, 2, 0)))
 
-        return self.transform(img.convert('RGB'))
+        img = img.convert('RGB')
+        return self.transform(img)
+        # return self.transform(img.convert('RGB'))
 
     def __len__(self):
         return len(self.data)
