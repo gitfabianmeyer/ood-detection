@@ -1,5 +1,6 @@
 import PIL
 import clip
+import numpy as np
 import torchvision
 from datasets.svhn import OodSVHN
 from metrics.distances import get_distances_for_dataset
@@ -11,13 +12,13 @@ class OodStanfordCars(torchvision.datasets.StanfordCars):
         super().__init__(datapath,
                          transform=transform,
                          download=True)
-        self._labels = [tup[1] for tup in self._samples]
-        self._images = [tup[0] for tup in self._samples]
+        self.data, self.targets = zip(*self._samples)
+        self.targets = np.array(self.targets)
 
     def __getitem__(self, idx):
 
-        image_file, label = self._images[idx], self._labels[idx]
-        image = PIL.Image.open(image_file).convert("RGB")
+        image, label = self.data[idx], self.targets[idx]
+        image = PIL.Image.open(image).convert("RGB")
 
         if self.transform:
             image = self.transform(image)
@@ -28,7 +29,7 @@ class OodStanfordCars(torchvision.datasets.StanfordCars):
         return image, label
 
     def __len__(self):
-        return len(self._labels)
+        return len(self.data)
 
 
 def main():
@@ -37,7 +38,7 @@ def main():
     clip_model, transform = clip.load(Config.VISION_MODEL)
 
     dataset = OodSVHN(data_path, transform, train)
-    get_distances_for_dataset(dataset, clip_model, "MNIST")
+    get_distances_for_dataset(dataset, clip_model, "StanfordCars")
 
 
 if __name__ == '__main__':
