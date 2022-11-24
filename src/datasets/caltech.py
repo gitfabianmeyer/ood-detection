@@ -1,9 +1,11 @@
 import os.path
 
 import clip
+import numpy as np
 import torchvision.datasets
 from PIL import Image
 from ood_detection.config import Config
+
 from metrics.distances import get_distances_for_dataset
 
 
@@ -11,16 +13,19 @@ class OodCaltech101(torchvision.datasets.Caltech101):
     def __init__(self, datapath, transform, train):
         super().__init__(datapath,
                          transform=transform,
-                         train=train,
+                         # train=train,
                          download=True)
-        self._labels = self.y
-        self._images = self.transform_to_image_list()
+        self.targets = np.array(self.y)
+        self.data = self.transform_to_image_list()
+        self.classes = self.categories
+        self.idx_to_class = {i: cls for (i, cls) in enumerate(self.classes)}
+        self.class_to_idx = {value: key for (key, value) in self.idx_to_class.items()}
 
     def __getitem__(self, idx):
-        img = Image.open(self._images[idx])
+        img = Image.open(self.data[idx])
         if self.transform is not None:
             img = self.transform(img)
-        target = self._labels[idx]
+        target = self.targets[idx]
         if self.target_transform is not None:
             target = self.target_transform(target)
 
@@ -32,7 +37,7 @@ class OodCaltech101(torchvision.datasets.Caltech101):
         for i in self.index:
             path = os.path.join(self.root,
                                 "101_ObjectCategories",
-                                self.categories[self._labels[i]],
+                                self.categories[self.targets[i]],
                                 f"image_{self.index[i]:04d}.jpg")
             file_list.append(path)
         return file_list

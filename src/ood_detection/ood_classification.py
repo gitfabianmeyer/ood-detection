@@ -29,8 +29,8 @@ def prep_subset_images(dataset: torchvision.datasets, n):
     split_by_label_dict = defaultdict(list)
 
     # just use some imgs for each label
-    for i in range(len(dataset._images)):
-        split_by_label_dict[dataset._labels[i]].append(dataset._images[i])
+    for i in range(len(dataset.data)):
+        split_by_label_dict[dataset.targets[i]].append(dataset.data[i])
 
     imgs = []
     targets = []
@@ -41,8 +41,8 @@ def prep_subset_images(dataset: torchvision.datasets, n):
         imgs = imgs + random.sample(items, n)
         targets = targets + [label for _ in range(n)]
 
-    dataset._images = imgs
-    dataset._labels = targets
+    dataset.data = imgs
+    dataset.targets = targets
 
     return dataset
 
@@ -52,7 +52,7 @@ def prep_subset_image_files(dataset: torchvision.datasets, n):
 
     # just use some imgs for each label
     for i in range(len(dataset._image_files)):
-        split_by_label_dict[dataset._labels[i]].append(dataset._image_files[i])
+        split_by_label_dict[dataset.targets[i]].append(dataset._image_files[i])
     imgs = []
     targets = []
 
@@ -63,7 +63,7 @@ def prep_subset_image_files(dataset: torchvision.datasets, n):
         targets = targets + [label for _ in range(n)]
 
     dataset._image_files = imgs
-    dataset._labels = targets
+    dataset.targets = targets
 
     return dataset
 
@@ -156,7 +156,7 @@ def main(dataset_dictionary):
         ood_images = prep_subset_image_files(dataset, args.num_samples)
 
         # set label to OOD label from the train set
-        ood_images._labels = [id_images.class_to_idx["OOD"] for _ in range(len(ood_images._labels))]
+        ood_images.targets = [id_images.class_to_idx["OOD"] for _ in range(len(ood_images.targets))]
         ood_loader = torch.utils.data.DataLoader(ood_images,
                                                  batch_size=args.batch_size,
                                                  num_workers=8,
