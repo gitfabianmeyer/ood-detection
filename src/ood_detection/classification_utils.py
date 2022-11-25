@@ -30,9 +30,9 @@ def classify(features, zeroshot_weights, targets, dataset=None, print_results=Fa
 
 
 def accuracy(output, target, top_k=(1,)):
-    print(type(output), output.shape)
 
-    print(type(target), target.shape)
+    output = output.cpu()
+    target = target.cpu()
     pred = output.topk(max(top_k), 1, True, True)[1].t()
 
     correct = pred.eq(target.view(1, -1).expand_as(pred))
