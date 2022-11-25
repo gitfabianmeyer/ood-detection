@@ -1,3 +1,7 @@
+import logging
+
+logging.basicConfig(level=logging.INFO)
+
 import clip
 import numpy as np
 import torchvision.datasets
