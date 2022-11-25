@@ -1,4 +1,5 @@
 import os
+import logging
 
 import clip
 import torchvision
@@ -8,10 +9,11 @@ from urllib.request import Request, urlopen
 from metrics.distances import get_distances_for_dataset
 from ood_detection.config import Config
 
-
 __author__ = 'Fisher Yu'
 __email__ = 'fy@cs.princeton.edu'
 __license__ = 'MIT'
+
+_logger = logging.getLogger()
 
 
 def list_categories():
@@ -30,7 +32,7 @@ def download(out_dir, category, set_name):
         out_name = '{category}_{set_name}_lmdb.zip'.format(**locals())
     out_path = os.path.join(out_dir, out_name)
     cmd = ['curl', url, '-o', out_path]
-    print('Downloading', category, set_name, 'set')
+    _logger.info('Downloading', category, set_name, 'set')
     subprocess.call(cmd)
 
 
@@ -43,14 +45,15 @@ class OodLSUN(torchvision.datasets.LSUN):
             if not os.listdir(self.root):
                 self._download()
             else:
-                print("LSUN already downloaded")
+                _logger.info("LSUN already downloaded")
         super(OodLSUN, self).__init__(root=os.path.join(datapath, 'lsun'),
                                       classes='train' if train else 'val',
                                       transform=transform)
+
     def _download(self, category=None):
         categories = list_categories()
         if category is None:
-            print('Downloading', len(categories), 'categories')
+            _logger.info('Downloading', len(categories), 'categories')
             for category in categories:
                 download(self.root, category, 'train')
                 download(self.root, category, 'val')
@@ -59,7 +62,7 @@ class OodLSUN(torchvision.datasets.LSUN):
             if category == 'test':
                 download(self.root, '', 'test')
             elif category not in categories:
-                print('Error:', category, "doesn't exist in", 'LSUN release')
+                _logger.error(f'{category}, doesn\'t exist in LSUN release')
             else:
                 download(self.root, category, 'train')
                 download(self.root, category, 'val')

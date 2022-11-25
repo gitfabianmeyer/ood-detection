@@ -1,21 +1,27 @@
+import logging
+
+_logger = logging.getLogger()
+
+
 def shape_printer(name, tensor):
-    print(f"Shape of {name}: {tensor.shape}")
+    _logger.info(f"Shape of {name}: {tensor.shape}")
 
 
 def id_ood_printer(id_classes, ood_classes):
-    print(f"id Classes: {id_classes[:2]}... OOD classes: {ood_classes[:2]}...")
+    _logger.debug(f"id Classes: {id_classes[:2]}... OOD classes: {ood_classes[:2]}...")
 
 
 def dataset_name_printer(name):
-    print("\n" * 2, "-" * 30, name, "-" * 30, "\n")
+    _logger.info("\n" * 2, "-" * 30, name, "-" * 30, "\n")
 
 
 def distance_name_printer(name):
-    print(f"\n\tStarting {name.upper()}...")
+    _logger.info(f"\n\tStarting {name.upper()}...")
 
 
 def mean_std_printer(mean, std, runs):
-    print(f"Runs: {runs}\t\tMEAN: {mean}\t\t STD: {std}")
+    _logger.info(f"Runs: {runs}\t\tMEAN: {mean}\t\t STD: {std}")
+
 
 def accuracy_printer(accuracy):
-    print(f"Zero Shot Accuracy: {accuracy}")
+    _logger.info(f"Zero Shot Accuracy: {accuracy}")

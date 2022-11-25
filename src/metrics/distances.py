@@ -78,7 +78,7 @@ class Distancer:
         targets = []
         for dataloader in self.dataloaders.values():
             targets.append(dataloader.dataset.targets)
-        return np.concatenate(targets)
+        return torch.cat(targets)
 
 
 class Distance(ABC):
@@ -179,7 +179,7 @@ class ConfusionLogProbability(Distance):
         # shape_printer("ood features", ood_features)
         # shape_printer("labels features", self.labels)
 
-        logits = ood_features.half() @ self.labels.t().half()
+        logits = ood_features.to(torch.float32) @ self.labels.to(torch.float32).t()
         # shape_printer("logits", logits)
         softmax_scores = F.softmax(logits, dim=1)
         # shape_printer("Softmax Scores", softmax_scores)

@@ -1,5 +1,6 @@
 import numpy
 import numpy as np
+import torch
 from PIL import Image
 from torch.utils.data import Dataset, DataLoader
 
@@ -10,8 +11,8 @@ class IsolatedClass(Dataset):
         self.transform = dataset.transform
         self.class_label = class_label
         class_mask = np.array(dataset.targets) == dataset.class_to_idx[class_label]
-        self.data = [dataset.data[i] for i in range(len(dataset.data)) if class_mask[i]][:3]
-        self.targets = np.array(dataset.targets[class_mask][:3])
+        self.data = [dataset.data[i] for i in range(len(dataset.data)) if class_mask[i]]
+        self.targets = torch.tensor(dataset.targets[class_mask])
         self.class_to_idx = dataset.class_to_idx
 
     def __getitem__(self, idx):
