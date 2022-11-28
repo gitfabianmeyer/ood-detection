@@ -17,6 +17,7 @@ from metrics.distances_utils import id_ood_printer, \
     distance_name_printer, accuracy_printer, value_printer
 from metrics.logging import wandb_log
 
+logging.basicConfig(level=logging.INFO)
 _logger = logging.getLogger()
 
 

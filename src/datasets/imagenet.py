@@ -13,7 +13,7 @@ from tqdm.autonotebook import tqdm
 
 from ood_detection.config import Config
 from metrics.distances import get_distances_for_dataset
-
+logging.basicConfig(level=logging.INFO)
 _logger = logging.getLogger()
 dir_structure_help = r"""
 TinyImageNetPath

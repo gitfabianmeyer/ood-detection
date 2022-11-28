@@ -9,10 +9,7 @@ from urllib.request import Request, urlopen
 from metrics.distances import get_distances_for_dataset
 from ood_detection.config import Config
 
-__author__ = 'Fisher Yu'
-__email__ = 'fy@cs.princeton.edu'
-__license__ = 'MIT'
-
+logging.basicConfig(level=logging.INFO)
 _logger = logging.getLogger()
 
 
