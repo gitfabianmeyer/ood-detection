@@ -203,7 +203,7 @@ class ConfusionLogProbability(Distance):
         id_scores = id_scores.mean()
         shape_printer("id scores after mean", id_scores)
         value_printer("mean", id_scores)
-        return id_scores
+        return id_scores.cpu().numpy()
         # confusion_log_proba = torch.log(id_scores.sum(dim=1).mean())
         # shape_printer("confusion_log_proba", confusion_log_proba)
         # return confusion_log_proba.cpu().numpy()
