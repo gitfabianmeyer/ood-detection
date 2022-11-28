@@ -44,7 +44,7 @@ def single_isolated_class_loader(full_dataset, batch_size=1):
     labels = full_dataset.classes
     for label in labels:
         dataset = IsolatedClass(full_dataset, label)
-        loader = DataLoader(dataset=dataset, batch_size=batch_size, num_workers=4)
+        loader = DataLoader(dataset=dataset, batch_size=batch_size, num_workers=1,)
         loaders_dict[label] = loader
 
     return loaders_dict

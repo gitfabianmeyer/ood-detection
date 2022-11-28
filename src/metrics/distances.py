@@ -73,8 +73,8 @@ class Distancer:
         # mmd_mean, mmd_std = self.get_mmd()
         # mean_std_printer(mmd_mean, mmd_std, self.splits)
 
-        clp_mean, clp_std = self.get_clp()
-        mean_std_printer(clp_mean, clp_std, self.splits)
+        #clp_mean, clp_std = self.get_clp()
+        #mean_std_printer(clp_mean, clp_std, self.splits)
 
         accuracy = self.get_zeroshot_accuracy()
         accuracy_printer(accuracy)
@@ -124,6 +124,8 @@ class ZeroShotAccuracy(Distance):
         self.clip_model = clip_model
         self.labels = zeroshot_classifier(self.classes, imagenet_templates, self.clip_model)
         self.dataset_targets = dataset_targets
+        print(self.dataset_targets)
+        print(self.labels.shape)
 
     @property
     def name(self):
@@ -131,9 +133,9 @@ class ZeroShotAccuracy(Distance):
 
     def get_distance(self):
         # do for the whole set
-        top1, top5 = classify(features=torch.cat(list(self.feature_dict.values())),
-                              zeroshot_weights=self.labels,
-                              targets=self.dataset_targets)
+        top1, _ = classify(features=torch.cat(list(self.feature_dict.values())),
+                           zeroshot_weights=self.labels,
+                           targets=self.dataset_targets)
         return top1
 
 
