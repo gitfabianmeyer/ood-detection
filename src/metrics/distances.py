@@ -14,7 +14,7 @@ from tqdm import tqdm
 
 from metrics.distances_utils import id_ood_printer, \
     shape_printer, dataset_name_printer, mean_std_printer, \
-    distance_name_printer, accuracy_printer
+    distance_name_printer, accuracy_printer, value_printer
 from metrics.logging import wandb_log
 
 _logger = logging.getLogger()
@@ -69,8 +69,8 @@ class Distancer:
         return zsa.get_distance()
 
     def get_all_distances(self):
-        mmd_mean, mmd_std = self.get_mmd()
-        mean_std_printer(mmd_mean, mmd_std, self.splits)
+        #mmd_mean, mmd_std = self.get_mmd()
+        #mean_std_printer(mmd_mean, mmd_std, self.splits)
 
         clp_mean, clp_std = self.get_clp()
         mean_std_printer(clp_mean, clp_std, self.splits)
@@ -78,11 +78,12 @@ class Distancer:
         accuracy = self.get_zeroshot_accuracy()
         accuracy_printer(accuracy)
 
-        return {"mmd_mean": mmd_mean,
-                "mmd_std": mmd_std,
-                "clp_mean": clp_mean,
-                "clp_std": clp_std,
-                "accuracy": accuracy}
+
+        #return {"mmd_mean": mmd_mean,
+        #        "mmd_std": mmd_std,
+        #        "clp_mean": clp_mean,
+        #        "clp_std": clp_std,
+        #        "accuracy": accuracy}
 
     def get_dataset_targets(self):
         targets = []
@@ -194,11 +195,16 @@ class ConfusionLogProbability(Distance):
         logits = ood_features.to(torch.float32) @ labels.to(torch.float32).t()
         shape_printer("logits", logits)
         softmax_scores = F.softmax(logits, dim=1)
-        shape_printer("Softmax Scores", softmax_scores)
+        #shape_printer("Softmax Scores", softmax_scores)
         id_scores = softmax_scores[:, :len(id_classes)]  # use only id labels proba
         shape_printer("id scores", id_scores)
+
+        id_scores = id_scores.sum(dim=1)
+        shape_printer("id scores", id_scores)
+        id_scores = id_scores.mean()
+        value_printer("mean", id_scores)
         confusion_log_proba = torch.log(id_scores.sum(dim=1).mean())
-        shape_printer("confusion_log_proba", confusion_log_proba)
+        #shape_printer("confusion_log_proba", confusion_log_proba)
         return confusion_log_proba.cpu().numpy()
 
 
@@ -207,7 +213,8 @@ def get_distances_for_dataset(dataset, clip_model, name):
     loaders = single_isolated_class_loader(dataset, batch_size=512)
     distancer = Distancer(dataloaders=loaders,
                           clip_model=clip_model,
-                          splits=10)
+                          splits=4)
     logging_dict = distancer.get_all_distances()
     logging_dict['dataset'] = name
-    wandb_log(distancer.get_all_distances())
+    distancer.get_all_distances()
+    # wandb_log(distancer.get_all_distances())

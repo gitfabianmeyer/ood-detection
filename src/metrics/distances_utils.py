@@ -26,3 +26,7 @@ def mean_std_printer(mean, std, runs):
 
 def accuracy_printer(accuracy):
     _logger.info(f"Zero Shot Accuracy: {accuracy}")
+
+
+def value_printer(name, value):
+    _logger.info(f"Value of {name}: {value}")
