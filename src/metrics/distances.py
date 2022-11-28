@@ -180,21 +180,25 @@ class ConfusionLogProbability(Distance):
     def __init__(self, feature_dict, clip_model):
         super(ConfusionLogProbability, self).__init__(feature_dict)
         self.clip_model = clip_model
-        self.labels = zeroshot_classifier(self.classes, imagenet_templates, self.clip_model)
 
     def get_distance(self):
         id_classes, ood_classes = self.get_id_ood_split()
+
+        # get labels AFTER shuffling self.classes in get_id_ood_split()
+        labels = zeroshot_classifier(self.classes, imagenet_templates, self.clip_model)
         id_ood_printer(id_classes, ood_classes)
         ood_features = torch.cat([self.feature_dict[ood_class] for ood_class in ood_classes])
-        # shape_printer("ood features", ood_features)
-        # shape_printer("labels features", self.labels)
+        shape_printer("ood features", ood_features)
+        shape_printer("labels features", labels)
 
-        logits = ood_features.to(torch.float32) @ self.labels.to(torch.float32).t()
-        # shape_printer("logits", logits)
+        logits = ood_features.to(torch.float32) @ labels.to(torch.float32).t()
+        shape_printer("logits", logits)
         softmax_scores = F.softmax(logits, dim=1)
-        # shape_printer("Softmax Scores", softmax_scores)
+        shape_printer("Softmax Scores", softmax_scores)
         id_scores = softmax_scores[:, :len(id_classes)]  # use only id labels proba
+        shape_printer("id scores", id_scores)
         confusion_log_proba = torch.log(id_scores.sum(dim=1).mean())
+        shape_printer("confusion_log_proba", confusion_log_proba)
         return confusion_log_proba.cpu().numpy()
 
 
@@ -204,6 +208,6 @@ def get_distances_for_dataset(dataset, clip_model, name):
     distancer = Distancer(dataloaders=loaders,
                           clip_model=clip_model,
                           splits=10)
-    logging_dict =distancer.get_all_distances()
+    logging_dict = distancer.get_all_distances()
     logging_dict['dataset'] = name
     wandb_log(distancer.get_all_distances())
