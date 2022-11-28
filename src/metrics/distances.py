@@ -15,6 +15,7 @@ from tqdm import tqdm
 from metrics.distances_utils import id_ood_printer, \
     shape_printer, dataset_name_printer, mean_std_printer, \
     distance_name_printer, accuracy_printer
+from metrics.logging import wandb_log
 
 _logger = logging.getLogger()
 
@@ -76,6 +77,12 @@ class Distancer:
 
         accuracy = self.get_zeroshot_accuracy()
         accuracy_printer(accuracy)
+
+        return {"mmd_mean": mmd_mean,
+                "mmd_std": mmd_std,
+                "clp_mean": clp_mean,
+                "clp_std": clp_std,
+                "accuracy": accuracy}
 
     def get_dataset_targets(self):
         targets = []
@@ -197,4 +204,4 @@ def get_distances_for_dataset(dataset, clip_model, name):
     distancer = Distancer(dataloaders=loaders,
                           clip_model=clip_model,
                           splits=10)
-    distancer.get_all_distances()
+    wandb_log(distancer.get_all_distances())
