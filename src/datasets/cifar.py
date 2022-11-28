@@ -1,13 +1,12 @@
 import logging
-
-logging.basicConfig(level=logging.INFO)
-
 import clip
 import numpy as np
 import torchvision.datasets
 from ood_detection.config import Config
 
 from metrics.distances import get_distances_for_dataset
+
+logging.basicConfig(level=logging.INFO)
 
 
 class OodCifar10(torchvision.datasets.CIFAR10):

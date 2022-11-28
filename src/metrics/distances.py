@@ -1,3 +1,4 @@
+import logging
 import random
 from abc import ABC, abstractmethod
 
@@ -12,8 +13,10 @@ import torch.nn.functional as F
 from tqdm import tqdm
 
 from metrics.distances_utils import id_ood_printer, \
-    shape_printer, dataset_name_printer, mean_std_printer,\
+    shape_printer, dataset_name_printer, mean_std_printer, \
     distance_name_printer, accuracy_printer
+
+_logger = logging.getLogger()
 
 
 class Distancer:
@@ -42,7 +45,7 @@ class Distancer:
             return torch.cat(features)
 
     def get_feature_dict(self, max_len=20000):
-        print("Start creating image features...")
+        _logger.info("Start creating image features...")
         max_per_class = max_len // len(self.classes)
         for cls in tqdm(self.classes):
             self.feature_dict[cls] = self.get_image_batch_features(self.dataloaders[cls], max_per_class)
