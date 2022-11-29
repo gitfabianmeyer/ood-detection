@@ -13,8 +13,8 @@ logging.basicConfig(level=logging.DEBUG)
 
 
 class OodCaltech101(torchvision.datasets.Caltech101):
-    def __init__(self, datapath, transform, train):
-        super().__init__(datapath,
+    def __init__(self, data_path, transform, train):
+        super().__init__(data_path,
                          transform=transform,
                          # train=train,
                          download=True)

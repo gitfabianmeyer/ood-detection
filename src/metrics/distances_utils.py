@@ -19,12 +19,12 @@ def dataset_name_printer(name):
 
 
 def distance_name_printer(name):
-    _logger.info(f"\n\tStarting {name.upper()}...")
+    _logger.info(f"\nStarting {name.upper()}...")
 
 
 def mean_std_printer(mean, std, runs):
-    _logger.info(f"Runs: {runs}\t\tMEAN: {mean}\t\t STD: {std}")
+    _logger.info(f"Runs: {runs}\t\tMean: {mean: .3f}\t\t std: {std: .3f}")
 
 
 def accuracy_printer(accuracy):
-    _logger.info(f"Zero Shot Accuracy: {accuracy}")
+    _logger.info(f"Zero Shot Accuracy: {accuracy: .3f}")
