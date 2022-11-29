@@ -13,7 +13,8 @@ __author__ = 'Fisher Yu'
 __email__ = 'fy@cs.princeton.edu'
 __license__ = 'MIT'
 
-_logger = logging.getLogger()
+_logger = logging.getLogger(__name__)
+_logger.setLevel(logging.info())
 
 
 def list_categories():

@@ -17,8 +17,8 @@ from metrics.distances_utils import id_ood_printer, \
     distance_name_printer, accuracy_printer
 from metrics.logging import wandb_log
 
-_logger = logging.getLogger()
-
+_logger = logging.getLogger(__name__)
+_logger.setLevel(logging.info())
 
 class Distancer:
     def __init__(self, dataloaders, clip_model, splits=5):
@@ -210,4 +210,5 @@ def get_distances_for_dataset(dataset, clip_model, name):
                           splits=10)
     logging_dict = distancer.get_all_distances()
     logging_dict['dataset'] = name
-    wandb_log(distancer.get_all_distances())
+    distancer.get_all_distances()
+    # wandb_log(distancer.get_all_distances())
