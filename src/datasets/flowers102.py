@@ -11,12 +11,12 @@ from ood_detection.classification_utils import full_classification
 
 
 class OodFlowers102(torchvision.datasets.Flowers102):
-    def __init__(self, datapath, transform, train):
+    def __init__(self, datapath, transform, train, prompt):
         super().__init__(datapath,
                          transform=transform,
                          split='train' if train else 'val',
                          download=True)
-        self.classes = [flower + ' flower' for flower in flowers_classes]
+        self.classes = [flower + prompt for flower in flowers_classes]
         self.data = self._image_files
         self.targets = np.array(self._labels)
         self.class_to_idx = {cls: i for (i, cls) in enumerate(self.classes)}
@@ -28,11 +28,23 @@ def main():
     train = False
     clip_model, transform = clip.load(Config.VISION_MODEL)
 
-    dataset = OodFlowers102(data_path, transform, train)
-    # get_distances_for_dataset(dataset, clip_model, "caltech101")
-    full_classification(dataset, clip_model, "ood")
-    dataset2 = torchvision.datasets.Flowers102(data_path, transform=transform, split='val')
-    full_classification(dataset, clip_model, "og")
+    def prompi(pr):
+        prompter = pr
+        dataset = OodFlowers102(data_path, transform, train, prompter)
+        print(dataset.classes[:2])
+        # get_distances_for_dataset(dataset, clip_model, "caltech101")
+        full_classification(dataset, clip_model, pr)
+
+
+    prompi(", a type of flower")
+    prompi(", a type of animal")
+    prompi(" texture")
+    prompi(" flower")
+    prompi("")
+
+
+    #dataset2 = torchvision.datasets.Flowers102(data_path, transform=transform, split='val')
+    #full_classification(dataset, clip_model, "og")
     #
     # dataloader1 = torch.utils.data.DataLoader(dataset, batch_size=256)
     #
