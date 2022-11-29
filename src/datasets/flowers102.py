@@ -16,7 +16,7 @@ class OodFlowers102(torchvision.datasets.Flowers102):
                          transform=transform,
                          split='train' if train else 'val',
                          download=True)
-        self.classes = flowers_classes
+        self.classes = [flower + ' flower' for flower in flowers_classes]
         self.data = self._image_files
         self.targets = np.array(self._labels)
         self.class_to_idx = {cls: i for (i, cls) in enumerate(self.classes)}
