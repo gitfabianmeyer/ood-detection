@@ -37,11 +37,11 @@ class OodCaltech101(torchvision.datasets.Caltech101):
     def transform_to_image_list(self):
         # basically use the original __getitem__
         file_list = []
-        for i in self.index:
+        for idx in range(len(self.targets)):
             path = os.path.join(self.root,
                                 "101_ObjectCategories",
-                                self.categories[self.targets[i]],
-                                f"image_{self.index[i]:04d}.jpg")
+                                self.categories[self.targets[idx]],
+                                f"image_{self.index[idx]:04d}.jpg")
             file_list.append(path)
         return file_list
 
