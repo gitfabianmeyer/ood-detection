@@ -15,7 +15,7 @@ from ood_detection.config import Config
 from metrics.distances import get_distances_for_dataset
 
 _logger = logging.getLogger(__name__)
-_logger.setLevel(logging.info())
+_logger.setLevel(logging.INFO)
 
 
 dir_structure_help = r"""

@@ -1,7 +1,7 @@
 import logging
 
 _logger = logging.getLogger(__name__)
-_logger.setLevel(logging.info())
+_logger.setLevel(logging.INFO)
 
 
 def shape_printer(name, tensor):

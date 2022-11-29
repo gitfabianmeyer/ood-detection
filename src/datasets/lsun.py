@@ -14,7 +14,7 @@ __email__ = 'fy@cs.princeton.edu'
 __license__ = 'MIT'
 
 _logger = logging.getLogger(__name__)
-_logger.setLevel(logging.info())
+_logger.setLevel(logging.INFO)
 
 
 def list_categories():

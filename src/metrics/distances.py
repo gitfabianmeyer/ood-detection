@@ -18,7 +18,7 @@ from metrics.distances_utils import id_ood_printer, \
 from metrics.logging import wandb_log
 
 _logger = logging.getLogger(__name__)
-_logger.setLevel(logging.info())
+_logger.setLevel(logging.INFO)
 
 class Distancer:
     def __init__(self, dataloaders, clip_model, splits=5):
