@@ -68,25 +68,7 @@ def prep_subset_image_files(dataset: torchvision.datasets, n):
     return dataset
 
 
-def get_dataset_features(loader: torch.utils.data.DataLoader, model, features_path, targets_path):
-    features = []
-    labels = []
-    with torch.no_grad():
-        for i, (images, target) in enumerate(tqdm(loader)):
-            images = images.to(device)
-            target = target.to(device)
-            image_features = model.encode_image(images)
-            image_features /= image_features.norm(dim=-1, keepdim=True)
-            features.append(image_features)
-            labels.append(target)
-        features = torch.cat(features)
 
-        labels = torch.cat(labels)
-
-        if features_path and targets_path:
-            torch.save(features, features_path)
-            torch.save(labels, targets_path)
-        return features, labels
 
 
 def get_classnames_from_vision_set(vision_set: torchvision.datasets):
