@@ -26,7 +26,7 @@ def main():
     dataset = OodCifar10(data_path, transform, train)
     # get_distances_for_dataset(dataset, clip_model, "caltech101")
     full_classification(dataset, clip_model, "ood")
-    dataset2 = torchvision.datasets.CIFAR10(data_path, transform=transform, split='val')
+    dataset2 = torchvision.datasets.CIFAR10(data_path, transform=transform, train=train)
     full_classification(dataset, clip_model, "og")
     # get_distances_for_dataset(cifar, clip_model, "cifar10")
 
