@@ -59,7 +59,7 @@ class OodCub2011(Dataset):
                 curr_class = " ".join(curr_class.split("_"))
                 self.classes.append(curr_class)
         self.class_to_idx = {cls: i + 1 for (i, cls) in enumerate(self.classes)}
-        self.idx_to_classes = {value: key for (key, value) in self.class_to_idx.items()}
+        self.idx_to_class = {value: key for (key, value) in self.class_to_idx.items()}
 
         self.data = np.array(images)
         self.targets = np.array(labels)
