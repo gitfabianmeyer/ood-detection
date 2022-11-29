@@ -1,3 +1,5 @@
+import logging
+
 import PIL
 import clip
 import numpy as np
@@ -5,6 +7,7 @@ import torchvision
 from metrics.distances import get_distances_for_dataset
 from ood_detection.config import Config
 
+logging.basicConfig(level=logging.DEBUG)
 
 class OodStanfordCars(torchvision.datasets.StanfordCars):
     def __init__(self, datapath, transform, train):

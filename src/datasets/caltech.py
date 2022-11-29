@@ -1,3 +1,4 @@
+import logging
 import os.path
 
 import clip
@@ -7,6 +8,8 @@ from PIL import Image
 from ood_detection.config import Config
 
 from metrics.distances import get_distances_for_dataset
+
+logging.basicConfig(level=logging.DEBUG)
 
 
 class OodCaltech101(torchvision.datasets.Caltech101):

@@ -1,3 +1,4 @@
+import logging
 import os.path
 
 import clip
@@ -5,6 +6,8 @@ import torchvision.datasets
 
 from metrics.distances import get_distances_for_dataset
 from ood_detection.config import Config
+
+logging.basicConfig(level=logging.DEBUG)
 
 
 class OodSVHN(torchvision.datasets.SVHN):

@@ -1,8 +1,12 @@
+import logging
+
 import clip
 import torchvision.datasets
 
 from metrics.distances import get_distances_for_dataset
 from ood_detection.config import Config
+
+logging.basicConfig(level=logging.DEBUG)
 
 
 class OodMNIST(torchvision.datasets.MNIST):

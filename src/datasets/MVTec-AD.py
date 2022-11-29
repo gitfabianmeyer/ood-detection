@@ -1,8 +1,10 @@
+import logging
 import os
 
 from PIL import Image
 from torchvision.datasets import VisionDataset
 
+logging.basicConfig(level=logging.DEBUG)
 
 class OodMVTecAD(VisionDataset):
     def __init__(self, root, transform=None, train=False, download=True):

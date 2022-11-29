@@ -1,3 +1,4 @@
+import logging
 import os
 
 import clip
@@ -8,6 +9,8 @@ from torch.utils.data import Dataset
 
 from ood_detection.config import Config
 from metrics.distances import get_distances_for_dataset
+
+logging.basicConfig(level=logging.DEBUG)
 
 
 class OodCub2011(Dataset):

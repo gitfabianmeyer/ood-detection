@@ -1,3 +1,5 @@
+import logging
+
 import clip
 import numpy as np
 import torchvision.datasets
@@ -5,6 +7,8 @@ import torchvision.datasets
 from datasets.classnames import flowers_classes
 from ood_detection.config import Config
 from metrics.distances import get_distances_for_dataset
+
+logging.basicConfig(level=logging.DEBUG)
 
 
 class OodFlowers102(torchvision.datasets.Flowers102):
