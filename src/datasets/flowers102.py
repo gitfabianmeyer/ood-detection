@@ -29,11 +29,14 @@ def main():
     clip_model, transform = clip.load(Config.VISION_MODEL)
 
     def prompi(pr):
+        print("-" * 60)
+        print()
         prompter = pr
         dataset = OodFlowers102(data_path, transform, train, prompter)
         print(dataset.classes[:2])
         # get_distances_for_dataset(dataset, clip_model, "caltech101")
         full_classification(dataset, clip_model, pr)
+        print("\n\n")
 
 
     prompi(", a type of flower")
