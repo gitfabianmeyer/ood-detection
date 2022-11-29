@@ -2,7 +2,6 @@ import clip
 import torch
 from datasets.classnames import imagenet_templates
 from ood_detection.config import Config
-from ood_detection.ood_classification import get_dataset_features
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 
@@ -34,7 +33,7 @@ def get_dataset_features(loader: torch.utils.data.DataLoader, model, features_pa
         if features_path and targets_path:
             torch.save(features, features_path)
             torch.save(labels, targets_path)
-        return features, labels
+    return features, labels
 
 
 def zeroshot_classifier(classnames: list, templates: list, clip_model):
