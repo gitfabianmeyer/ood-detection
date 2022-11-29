@@ -28,7 +28,7 @@ def main():
 
     dataset = OodFlowers102(data_path, transform, train)
     # get_distances_for_dataset(dataset, clip_model, "caltech101")
-    dataset2 = torchvision.datasets.Flowers102(data_path, transform=transform)
+    dataset2 = torchvision.datasets.Flowers102(data_path, transform=transform, split='val')
 
     dataloader1 = torch.utils.data.DataLoader(dataset, batch_size=256)
     dataloader2 = torch.utils.data.DataLoader(dataset2, batch_size=256)
