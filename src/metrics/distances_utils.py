@@ -14,7 +14,7 @@ def id_ood_printer(id_classes, ood_classes):
 
 
 def dataset_name_printer(name):
-    blank_line = "_" * 30
+    blank_line = "-" * 30
     _logger.info(f"\n\n{blank_line}{name}{blank_line}\n")
 
 
