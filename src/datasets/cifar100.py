@@ -11,14 +11,13 @@ logging.basicConfig(level=logging.DEBUG)
 
 
 class OodCifar100(torchvision.datasets.CIFAR100):
-    def __init__(self, data_path, transform, train, templates):
+    def __init__(self, data_path, transform, train, templates=None):
         super(OodCifar100, self).__init__(root=data_path,
                                           transform=transform,
                                           train=train,
                                           download=True)
         self.targets = np.array(self.targets)
         self.templates = templates if templates else cifar_templates
-
 
 
 def main():
