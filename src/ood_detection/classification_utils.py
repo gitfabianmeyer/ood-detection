@@ -32,7 +32,6 @@ def full_batch_classification(dataset, model, name):
     accuracies5 = []
     accuracies10 = []
     for images, targets in tqdm(dataloader):
-        features, targets = [], []
         images = images.to(device)
 
         if type(targets) != torch.Tensor:
@@ -41,7 +40,7 @@ def full_batch_classification(dataset, model, name):
         image_features = model.encode_image(images)
         image_features /= image_features.norm(dim=-1, keepdim=True)
 
-        top1, top5, top10 = classify(image_features, zeroshot_weights,targets)
+        top1, top5, top10 = classify(image_features, zeroshot_weights, targets)
         accuracies1.append(top1)
         accuracies5.append(top5)
         accuracies10.append(top10)
@@ -50,7 +49,7 @@ def full_batch_classification(dataset, model, name):
     mean5 = np.mean(accuracies5)
     mean10 = np.mean(accuracies10)
 
-    print(f"\nClip Top1 Acc: {mean1:.3f} with zeroshot on {name} ({features.size(0)} images)")
+    print(f"\nClip Top1 Acc: {mean1:.3f} with zeroshot on {name} ")
     print(f"\nClip Top5 Acc: {mean5:.3f} with zeroshot on {name}")
     print(f"\nClip Top5 Acc: {mean10:.3f} with zeroshot on {name}")
 
