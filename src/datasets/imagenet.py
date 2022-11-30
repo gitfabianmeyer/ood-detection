@@ -6,6 +6,8 @@ import imageio
 import numpy as np
 import os
 import subprocess
+
+from datasets.classnames import imagenet_templates
 from torch.utils.data import Dataset
 from torchvision.datasets import ImageFolder
 
@@ -15,42 +17,6 @@ from ood_detection.config import Config
 from metrics.distances import get_distances_for_dataset
 
 logging.basicConfig(level=logging.DEBUG)
-
-
-
-dir_structure_help = r"""
-TinyImageNetPath
-├── test
-│   └── images
-│       ├── test_0.JPEG
-│       ├── t...
-│       └── ...
-├── train
-│   ├── n01443537
-│   │   ├── images
-│   │   │   ├── n01443537_0.JPEG
-│   │   │   ├── n...
-│   │   │   └── ...
-│   │   └── n01443537_boxes.txt
-│   ├── n01629819
-│   │   ├── images
-│   │   │   ├── n01629819_0.JPEG
-│   │   │   ├── n...
-│   │   │   └── ...
-│   │   └── n01629819_boxes.txt
-│   ├── n...
-│   │   ├── images
-│   │   │   ├── ...
-│   │   │   └── ...
-├── val
-│   ├── images
-│   │   ├── val_0.JPEG
-│   │   ├── v...
-│   │   └── ...
-│   └── val_annotations.txt
-├── wnids.txt
-└── words.txt
-"""
 
 
 def download_and_unzip(root_dir):
@@ -261,13 +227,14 @@ class TinyImageNetImageFolder(ImageFolder):
 
 
 class OodTinyImageNet(TinyImageNetImageFolder):
-    def __init__(self, data_path, transform, train):
+    def __init__(self, data_path, transform, train, templates=None):
         super(OodTinyImageNet, self).__init__(root=os.path.join(data_path, 'tinyimagenet/tiny-imagenet-200'),
                                               transform=transform,
                                               train=train,
                                               download=True
                                               )
         self.transform = transform
+        self.templates = templates if templates else imagenet_templates
 
 
 def main():
@@ -281,4 +248,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-

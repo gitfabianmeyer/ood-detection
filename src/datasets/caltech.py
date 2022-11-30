@@ -5,6 +5,7 @@ import clip
 import numpy as np
 import torchvision.datasets
 from PIL import Image
+from datasets.classnames import caltech101_templates
 from ood_detection.config import Config
 
 from metrics.distances import get_distances_for_dataset
@@ -13,7 +14,7 @@ logging.basicConfig(level=logging.DEBUG)
 
 
 class OodCaltech101(torchvision.datasets.Caltech101):
-    def __init__(self, data_path, transform, train):
+    def __init__(self, data_path, transform, train, templates=None):
         super().__init__(data_path,
                          transform=transform,
                          # train=train,
@@ -23,6 +24,7 @@ class OodCaltech101(torchvision.datasets.Caltech101):
         self.classes = self.categories
         self.idx_to_class = {i: cls for (i, cls) in enumerate(self.classes)}
         self.class_to_idx = {value: key for (key, value) in self.idx_to_class.items()}
+        self.templates = templates if templates else caltech101_templates
 
     def __getitem__(self, idx):
         img = Image.open(self.data[idx])

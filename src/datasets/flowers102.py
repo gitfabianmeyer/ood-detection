@@ -4,7 +4,7 @@ import clip
 import numpy as np
 import torchvision.datasets
 
-from datasets.classnames import flowers_classes
+from datasets.classnames import flowers102_classes
 from ood_detection.config import Config
 from metrics.distances import get_distances_for_dataset
 
@@ -12,12 +12,13 @@ logging.basicConfig(level=logging.DEBUG)
 
 
 class OodFlowers102(torchvision.datasets.Flowers102):
-    def __init__(self, datapath, transform, train):
-        super().__init__(datapath,
+    def __init__(self, data_path, transform, train, templates=None):
+        super().__init__(data_path,
                          transform=transform,
                          split='train' if train else 'val',
                          download=True)
-        self.classes = flowers_classes
+        self.classes = flowers102_classes
+        self.templates = templates if templates else flowers102_templates
         self.data = self._image_files
         self.targets = np.array(self._labels)
         self.class_to_idx = {cls: i for (i, cls) in enumerate(self.classes)}

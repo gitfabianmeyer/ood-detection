@@ -6,6 +6,7 @@ import torchvision
 import subprocess
 from urllib.request import Request, urlopen
 
+from datasets.classnames import imagenet_templates
 from metrics.distances import get_distances_for_dataset
 from ood_detection.config import Config
 
@@ -37,18 +38,19 @@ def download(out_dir, category, set_name):
 
 
 class OodLSUN(torchvision.datasets.LSUN):
-    def __init__(self, datapath, transform, train):
+    def __init__(self, data_path, transform, train, templates=None):
 
         self.download = True
-        self.root = os.path.join(datapath, 'lsun')
+        self.root = os.path.join(data_path, 'lsun')
         if download:
             if not os.listdir(self.root):
                 self._download()
             else:
                 _logger.info("LSUN already downloaded")
-        super(OodLSUN, self).__init__(root=os.path.join(datapath, 'lsun'),
+        super(OodLSUN, self).__init__(root=os.path.join(data_path, 'lsun'),
                                       classes='train' if train else 'val',
                                       transform=transform)
+        self.templates = templates if templates else imagenet_templates
 
     def _download(self, category=None):
         categories = list_categories()

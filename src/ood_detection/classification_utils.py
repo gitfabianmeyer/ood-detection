@@ -1,6 +1,5 @@
 import clip
 import torch
-from datasets.classnames import imagenet_templates
 from ood_detection.config import Config
 from torch.utils.data import DataLoader
 from tqdm import tqdm
@@ -11,7 +10,11 @@ device = Config.DEVICE
 def full_classification(dataset, model, name):
     dataloader = DataLoader(dataset, batch_size=512)
     features, targets = get_dataset_features(dataloader, model, None, None)
-    zeroshot_weights = zeroshot_classifier(dataset.classes, templates=imagenet_templates, clip_model=model)
+    templates = dataset.templates
+    print(templates)
+    zeroshot_weights = zeroshot_classifier(dataset.classes,
+                                           templates=templates,
+                                           clip_model=model)
     classify(features, zeroshot_weights, targets, name, True)
 
 

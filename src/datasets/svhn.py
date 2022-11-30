@@ -6,13 +6,14 @@ import torchvision.datasets
 
 from metrics.distances import get_distances_for_dataset
 from ood_detection.config import Config
+from datasets.classnames import mnist_templates
 
 logging.basicConfig(level=logging.DEBUG)
 
 
 class OodSVHN(torchvision.datasets.SVHN):
-    def __init__(self, root, transform, train):
-        self.root = os.path.join(root, 'svhn')
+    def __init__(self, data_path, transform, train, templates=None):
+        self.root = os.path.join(data_path, 'svhn')
         if not os.path.exists(self.root):
             os.mkdir(self.root)
         super(OodSVHN, self).__init__(root=self.root,
@@ -25,6 +26,7 @@ class OodSVHN(torchvision.datasets.SVHN):
                         '7 - seven', '8 - eight', '9 - nine']
         self.class_to_idx = {self.classes[i]: i for i in range(10)}
         self.idx_to_class = {value: key for (key, value) in self.class_to_idx.items()}
+        self.templates = templates if templates else mnist_templates
 
 
 def main():

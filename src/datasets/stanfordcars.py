@@ -6,17 +6,20 @@ import numpy as np
 import torchvision
 from metrics.distances import get_distances_for_dataset
 from ood_detection.config import Config
+from datasets.classnames import stanfordcars_templates
 
 logging.basicConfig(level=logging.DEBUG)
 
+
 class OodStanfordCars(torchvision.datasets.StanfordCars):
-    def __init__(self, datapath, transform, train):
-        super().__init__(datapath,
+    def __init__(self, data_path, transform, train, templates=None):
+        super().__init__(data_path,
                          transform=transform,
                          download=True,
                          split='train' if train else 'test')
         self.data, self.targets = zip(*self._samples)
         self.targets = np.array(self.targets)
+        self.templates = templates if templates else stanfordcars_templates
 
     def __getitem__(self, idx):
 

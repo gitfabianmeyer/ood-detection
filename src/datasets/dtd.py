@@ -4,20 +4,23 @@ import PIL
 import clip
 import numpy as np
 import torchvision.datasets
+from datasets.classnames import dtd_templates
 
 from metrics.distances import get_distances_for_dataset
 from ood_detection.config import Config
 
 logging.basicConfig(level=logging.DEBUG)
 
+
 class OodDTD(torchvision.datasets.DTD):
-    def __init__(self, datapath, preprocess, train):
-        super().__init__(datapath,
+    def __init__(self, data_path, preprocess, train, templates=None):
+        super().__init__(data_path,
                          transform=preprocess,
                          download=True,
                          split='train' if train else 'val')
         self.data = self._image_files
         self.targets = np.array(self._labels)
+        self.templates = templates if templates else dtd_templates
 
     def __getitem__(self, idx):
         image, label = self.data[idx], self.targets[idx]

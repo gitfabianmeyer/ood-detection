@@ -4,6 +4,7 @@ import os
 import clip
 import numpy as np
 from PIL import Image
+from datasets.classnames import imagenet_templates
 from ood_detection.classification_utils import full_classification
 from torchvision.datasets.utils import download_url
 from torch.utils.data import Dataset
@@ -20,7 +21,7 @@ class OodCub2011(Dataset):
     filename = 'CUB_200_2011.tgz'
     tgz_md5 = '97eceeb196236b17998738112f37df78'
 
-    def __init__(self, root, transform=None, train=True, download=True, extraprompt=""):
+    def __init__(self, root, transform=None, train=True, download=True, templates=None):
         self.root = os.path.expanduser(root)
         self.transform = transform
         self.train = train
@@ -32,7 +33,8 @@ class OodCub2011(Dataset):
             raise RuntimeError('Dataset not found or corrupted.' +
                                ' You can use download=True to download it')
 
-        self.classes = [cls + extraprompt for cls in self.classes]
+        self.templates = templates if templates else imagenet_templates
+
     def _load_metadata(self):
         images = []
         labels = []
@@ -122,10 +124,10 @@ def main():
     dataset = OodCub2011(data_path, transform, train)
     full_classification(dataset, clip_model, 'normal cub')
 
-    dataset = OodCub2011(data_path, transform, train, extraprompt=" bird")
+    dataset = OodCub2011(data_path, transform, train)
     full_classification(dataset, clip_model, 'bird cub')
 
-    dataset = OodCub2011(data_path, transform, train, extraprompt=" textures")
+    dataset = OodCub2011(data_path, transform, train)
     full_classification(dataset, clip_model, 'textures cub')
     # get_distances_for_dataset(dataset, clip_model, "CUB2011")
 
