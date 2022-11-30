@@ -14,8 +14,7 @@ __email__ = 'fy@cs.princeton.edu'
 __license__ = 'MIT'
 
 logging.basicConfig(level=logging.DEBUG)
-
-
+_logger = logging.getLogger(__name__)
 
 def list_categories():
     url = 'http://dl.yf.io/lsun/categories.txt'
