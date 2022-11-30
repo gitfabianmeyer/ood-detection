@@ -19,7 +19,7 @@ def dataset_name_printer(name):
 
 
 def distance_name_printer(name):
-    _logger.info(f"\nStarting {name.upper()}...")
+    _logger.info(f"\t\t\tStarting {name.upper()}...")
 
 
 def mean_std_printer(mean, std, runs):

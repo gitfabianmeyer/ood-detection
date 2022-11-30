@@ -9,7 +9,7 @@ from datasets.classnames import dtd_templates
 from metrics.distances import get_distances_for_dataset
 from ood_detection.config import Config
 
-logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(level=logging.INFO)
 
 
 class OodDTD(torchvision.datasets.DTD):

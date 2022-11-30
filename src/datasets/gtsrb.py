@@ -8,7 +8,7 @@ from ood_detection.config import Config
 
 from metrics.distances import get_distances_for_dataset
 
-logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(level=logging.INFO)
 
 
 class OodGTSRB(torchvision.datasets.GTSRB):

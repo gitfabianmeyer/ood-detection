@@ -1,3 +1,5 @@
+import logging
+
 import clip
 import torchvision
 
@@ -5,6 +7,7 @@ from datasets.classnames import mnist_templates
 from metrics.distances import get_distances_for_dataset
 from ood_detection.config import Config
 
+logging.basicConfig(level=logging.INFO)
 
 class OodFashionMNIST(torchvision.datasets.FashionMNIST):
     def __init__(self, data_path, transform, train, templates=None):

@@ -7,7 +7,7 @@ from datasets.classnames import mnist_templates
 from metrics.distances import get_distances_for_dataset
 from ood_detection.config import Config
 
-logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(level=logging.INFO)
 
 
 class OodMNIST(torchvision.datasets.MNIST):
@@ -17,9 +17,7 @@ class OodMNIST(torchvision.datasets.MNIST):
                                        download=True,
                                        train=train)
 
-        self.templates = templates if templates else [
-            'a photo of the number: "{}".',
-        ]
+        self.templates = templates if templates else mnist_templates
         self.classes = [
             '0',
             '1',
@@ -32,8 +30,8 @@ class OodMNIST(torchvision.datasets.MNIST):
             '8',
             '9',
         ]
-        self.class_to_idx = {cls: i for (i, cls) in enumerate(self.classes)}
-        self.idx_to_class = {value: key for (key, value) in self.class_to_idx.items()}
+        # self.class_to_idx = {cls: i for (i, cls) in enumerate(self.classes)}
+        # self.idx_to_class = {value: key for (key, value) in self.class_to_idx.items()}
 
 
 def main():

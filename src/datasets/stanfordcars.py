@@ -8,7 +8,7 @@ from metrics.distances import get_distances_for_dataset
 from ood_detection.config import Config
 from datasets.classnames import stanfordcars_templates
 
-logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(level=logging.INFO)
 
 
 class OodStanfordCars(torchvision.datasets.StanfordCars):

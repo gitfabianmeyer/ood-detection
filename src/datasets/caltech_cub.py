@@ -12,7 +12,7 @@ from torch.utils.data import Dataset
 from ood_detection.config import Config
 from metrics.distances import get_distances_for_dataset
 
-logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(level=logging.INFO)
 
 
 class OodCub2011(Dataset):
@@ -122,14 +122,7 @@ def main():
     clip_model, transform = clip.load(Config.VISION_MODEL)
 
     dataset = OodCub2011(data_path, transform, train)
-    full_classification(dataset, clip_model, 'normal cub')
-
-    dataset = OodCub2011(data_path, transform, train)
-    full_classification(dataset, clip_model, 'bird cub')
-
-    dataset = OodCub2011(data_path, transform, train)
-    full_classification(dataset, clip_model, 'textures cub')
-    # get_distances_for_dataset(dataset, clip_model, "CUB2011")
+    get_distances_for_dataset(dataset, clip_model, "CUB2011")
 
 
 if __name__ == '__main__':
