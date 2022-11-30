@@ -5,7 +5,7 @@ import clip
 import torchvision.datasets
 
 from metrics.distances import get_distances_for_dataset
-from ood_detection.classification_utils import full_classification
+from ood_detection.classification_utils import full_classification, full_batch_classification
 from ood_detection.config import Config
 from datasets.classnames import mnist_templates
 
@@ -39,37 +39,37 @@ def main():
     clip_model, transform = clip.load('RN50x64')
     dataset = OodSVHN(data_path, transform, train)
     # get_distances_for_dataset(dataset, clip_model, "SVHN")
-    full_classification(dataset, clip_model, "SVHN BASE 0 - ZERO")
+    full_batch_classification(dataset, clip_model, "SVHN BASE 0 - ZERO")
 
     templates = ['a street sign of the number: "{}" ', ]
     dataset = OodSVHN(data_path, transform, train, templates)
-    full_classification(dataset, clip_model, "SVHN STREET SIGN TEMPLATE 0 - ZERO")
+    full_batch_classification(dataset, clip_model, "SVHN STREET SIGN TEMPLATE 0 - ZERO")
 
     classes = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"]
     dataset = OodSVHN(data_path, transform, train, classes=classes)
-    full_classification(dataset, clip_model, "SVHN STREET SIGN BASE 0")
+    full_batch_classification(dataset, clip_model, "SVHN STREET SIGN BASE 0")
 
     classes = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"]
     dataset = OodSVHN(data_path, transform, train, templates=templates, classes=classes)
-    full_classification(dataset, clip_model, "SVHN STREET SIGN TEMPLATE 0")
+    full_batch_classification(dataset, clip_model, "SVHN STREET SIGN TEMPLATE 0")
 
     print('--------------------ViT-L/14-------------------------------')
     clip_model, transform = clip.load('ViT-L/14')
     dataset = OodSVHN(data_path, transform, train)
     # get_distances_for_dataset(dataset, clip_model, "SVHN")
-    full_classification(dataset, clip_model, "SVHN BASE 0 - ZERO")
+    full_batch_classification(dataset, clip_model, "SVHN BASE 0 - ZERO")
 
     templates = ['a street sign of the number: "{}" ', ]
     dataset = OodSVHN(data_path, transform, train, templates)
-    full_classification(dataset, clip_model, "SVHN STREET SIGN TEMPLATE 0 - ZERO")
+    full_batch_classification(dataset, clip_model, "SVHN STREET SIGN TEMPLATE 0 - ZERO")
 
     classes = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"]
     dataset = OodSVHN(data_path, transform, train, classes=classes)
-    full_classification(dataset, clip_model, "SVHN STREET SIGN BASE 0")
+    full_batch_classification(dataset, clip_model, "SVHN STREET SIGN BASE 0")
 
     classes = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"]
     dataset = OodSVHN(data_path, transform, train, templates=templates, classes=classes)
-    full_classification(dataset, clip_model, "SVHN STREET SIGN TEMPLATE 0")
+    full_batch_classification(dataset, clip_model, "SVHN STREET SIGN TEMPLATE 0")
 
 
 if __name__ == '__main__':
