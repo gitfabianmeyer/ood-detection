@@ -210,5 +210,4 @@ def get_distances_for_dataset(dataset, clip_model, name):
                           splits=10)
     logging_dict = distancer.get_all_distances()
     logging_dict['dataset'] = name
-    distancer.get_all_distances()
     # wandb_log(distancer.get_all_distances())
