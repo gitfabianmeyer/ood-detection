@@ -4,7 +4,7 @@ import clip
 import numpy as np
 import torchvision.datasets
 
-from datasets.classnames import flowers102_classes
+from datasets.classnames import flowers102_classes, flowers102_templates
 from ood_detection.config import Config
 from metrics.distances import get_distances_for_dataset
 

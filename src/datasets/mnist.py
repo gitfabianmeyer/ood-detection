@@ -11,8 +11,8 @@ logging.basicConfig(level=logging.INFO)
 
 
 class OodMNIST(torchvision.datasets.MNIST):
-    def __init__(self, datapath, transform, train, templates=None):
-        super(OodMNIST, self).__init__(root=datapath,
+    def __init__(self, data_path, transform, train, templates=None):
+        super(OodMNIST, self).__init__(root=data_path,
                                        transform=transform,
                                        download=True,
                                        train=train)
@@ -30,8 +30,7 @@ class OodMNIST(torchvision.datasets.MNIST):
             '8',
             '9',
         ]
-        # self.class_to_idx = {cls: i for (i, cls) in enumerate(self.classes)}
-        # self.idx_to_class = {value: key for (key, value) in self.class_to_idx.items()}
+        self.idx_to_class = {value: key for (key, value) in self.class_to_idx.items()}
 
 
 def main():
