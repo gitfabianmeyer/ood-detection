@@ -122,7 +122,18 @@ def main():
     clip_model, transform = clip.load(Config.VISION_MODEL)
 
     dataset = OodCub2011(data_path, transform, train)
-    get_distances_for_dataset(dataset, clip_model, "CUB2011")
+    full_classification(dataset)
+    templates = ["An close-up image of {}, a type of bird",]
+    dataset = OodCub2011(data_path, transform, train, templates=templates)
+    full_classification(dataset)
+    templates = ["An close-up image of {}, a type of bird",
+                 "A hobby photography of the bird {}.",
+                 "{} from the species bird.",
+                 "This is the {}, a bird."]
+    dataset = OodCub2011(data_path, transform, train, templates=templates)
+    full_classification(dataset)
+
+    # get_distances_for_dataset(dataset, clip_model, "CUB2011")
 
 
 if __name__ == '__main__':
