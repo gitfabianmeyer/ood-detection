@@ -4,7 +4,7 @@ _logger = logging.getLogger(__name__)
 _logger.setLevel(logging.INFO)
 
 
-def shape_printer(name, tensor):
+def shape_printer(tensor, name):
     _logger.info(f"Shape of {name}: {tensor.shape}")
 
 
