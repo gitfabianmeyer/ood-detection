@@ -5,8 +5,7 @@ _logger.setLevel(logging.INFO)
 
 
 def shape_printer(name, tensor):
-    # _logger.info(f"Shape of {name}: {tensor.shape}")
-    pass
+    _logger.info(f"Shape of {name}: {tensor.shape}")
 
 
 def id_ood_printer(id_classes, ood_classes):
