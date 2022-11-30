@@ -1,6 +1,7 @@
 import clip
 import numpy as np
 import torch
+from metrics.distances_utils import shape_printer
 from ood_detection.config import Config
 from torch.utils.data import DataLoader
 from tqdm import tqdm
@@ -105,10 +106,12 @@ def classify(features, zeroshot_weights, targets, dataset=None, print_results=Fa
 
 
 def accuracy(output, target, top_k=(1,)):
+    shape_printer(output, "output")
+    shape_printer(target, "target")
     output = output.cpu()
     target = target.cpu()
     pred = output.topk(max(top_k), 1, True, True)[1].t()
-
+    shape_printer(pred, "pred")
     correct = pred.eq(target.view(1, -1).expand_as(pred))
 
     return [float(correct[:k].reshape(-1).float().sum(0, keepdim=True).cpu().numpy()) for k in top_k]
