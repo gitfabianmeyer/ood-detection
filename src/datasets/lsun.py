@@ -8,14 +8,12 @@ from urllib.request import Request, urlopen
 
 from datasets.classnames import imagenet_templates
 from metrics.distances import get_distances_for_dataset
+from ood_detection.classification_utils import full_batch_classification
 from ood_detection.config import Config
-
-__author__ = 'Fisher Yu'
-__email__ = 'fy@cs.princeton.edu'
-__license__ = 'MIT'
 
 logging.basicConfig(level=logging.INFO)
 _logger = logging.getLogger(__name__)
+
 
 def list_categories():
     url = 'http://dl.yf.io/lsun/categories.txt'
@@ -76,7 +74,8 @@ def main():
     clip_model, transform = clip.load(Config.VISION_MODEL)
 
     dataset = OodLSUN(data_path, transform, train)
-    get_distances_for_dataset(dataset, clip_model, "LSUN")
+    # get_distances_for_dataset(dataset, clip_model, "LSUN")
+    full_batch_classification(dataset, clip_model, 'LSUN')
 
 
 if __name__ == '__main__':
