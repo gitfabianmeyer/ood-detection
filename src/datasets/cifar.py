@@ -3,6 +3,7 @@ import clip
 import numpy as np
 import torchvision.datasets
 from datasets.classnames import cifar_templates
+from ood_detection.classification_utils import full_classification, full_batch_classification
 from ood_detection.config import Config
 
 from metrics.distances import get_distances_for_dataset
@@ -27,7 +28,9 @@ def main():
     clip_model, transform = clip.load(Config.VISION_MODEL)
 
     cifar = OodCifar10(data_path, transform, train)
-    get_distances_for_dataset(cifar, clip_model, "cifar10")
+    # get_distances_for_dataset(cifar, clip_model, "cifar10")
+    full_classification(cifar, clip_model, "Cifar10")
+    full_batch_classification(cifar, clip_model, "Batch Cifar 10")
 
 
 if __name__ == '__main__':
