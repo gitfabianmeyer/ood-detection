@@ -20,6 +20,7 @@ def full_classification(dataset, model, name):
     classify(features, zeroshot_weights, targets, name, True)
 
 
+@torch.no_grad()
 def full_batch_classification(dataset, model, name):
     dataloader = DataLoader(dataset, batch_size=10)
     templates = dataset.templates
@@ -33,10 +34,8 @@ def full_batch_classification(dataset, model, name):
     accuracies10 = []
     for images, targets in tqdm(dataloader):
         images = images.to(device)
-
-        if type(targets) != torch.Tensor:
-            targets = torch.Tensor(targets)
         targets = targets.to(device)
+
         image_features = model.encode_image(images)
         image_features /= image_features.norm(dim=-1, keepdim=True)
 
