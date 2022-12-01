@@ -49,6 +49,7 @@ class OodLSUN(torchvision.datasets.LSUN):
                                       classes='train' if train else 'val',
                                       transform=transform)
         self.templates = templates if templates else imagenet_templates
+        self.idx_to_class = {i: cls for (i, cls) in enumerate(self.classes)}
 
     def _download(self, category=None):
         categories = list_categories()
