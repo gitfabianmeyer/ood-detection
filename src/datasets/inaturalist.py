@@ -1,3 +1,5 @@
+import os.path
+
 import clip
 import torchvision.datasets
 from ood_detection.classification_utils import full_batch_classification
@@ -6,9 +8,13 @@ from ood_detection.config import Config
 
 class OodINaturalist(torchvision.datasets.INaturalist):
     def __init__(self, data_path, transform, train):
-        super(OodINaturalist, self).__init__(root=data_path,
+        version = "2021_train" if train else "2021_valid"
+        self.root = os.path.join(data_path, "iNaturalist")
+        download = False if os.path.exists(os.path.join(self.root, version)) else True
+        super(OodINaturalist, self).__init__(root=self.root,
                                              transform=transform,
-                                             download=True,
+                                             download=download,
+                                             version=version
                                              )
 
 
