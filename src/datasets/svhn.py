@@ -33,28 +33,12 @@ class OodSVHN(torchvision.datasets.SVHN):
 def main():
     data_path = Config.DATAPATH
     train = False
-    # clip_model, transform = clip.load(Config.VISION_MODEL)
-    print('--------------------ViT-L/14-------------------------------')
-    clip_model, transform = clip.load('ViT-L/14')
-
-    print('--------------------RN50x64-------------------------------')
-
-    clip_model, transform = clip.load('RN50x64')
-    dataset = OodSVHN(data_path, transform, train)
-    # get_distances_for_dataset(dataset, clip_model, "SVHN")
-    full_batch_classification(dataset, clip_model, "SVHN BASE 0 - ZERO")
-
-    templates = ['a street sign of the number: "{}" ', ]
-    dataset = OodSVHN(data_path, transform, train, templates)
-    full_batch_classification(dataset, clip_model, "SVHN STREET SIGN TEMPLATE 0 - ZERO")
+    clip_model, transform = clip.load(Config.VISION_MODEL)
 
     classes = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"]
     dataset = OodSVHN(data_path, transform, train, classes=classes)
-    full_batch_classification(dataset, clip_model, "SVHN STREET SIGN BASE 0")
+    get_distances_for_dataset(dataset, clip_model, "SVHN")
 
-    classes = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"]
-    dataset = OodSVHN(data_path, transform, train, templates=templates, classes=classes)
-    full_batch_classification(dataset, clip_model, "SVHN STREET SIGN TEMPLATE 0")
 
 if __name__ == '__main__':
     main()
