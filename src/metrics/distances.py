@@ -2,6 +2,7 @@ import logging
 import random
 from abc import ABC, abstractmethod
 
+import clip
 import numpy as np
 import torch
 from datasets.classnames import imagenet_templates
@@ -15,10 +16,11 @@ from tqdm import tqdm
 from metrics.distances_utils import id_ood_printer, \
     shape_printer, dataset_name_printer, mean_std_printer, \
     distance_name_printer, accuracy_printer
-from metrics.logging import wandb_log
+from metrics.metrics_logging import wandb_log
 
 _logger = logging.getLogger(__name__)
 _logger.setLevel(logging.INFO)
+
 
 class Distancer:
     def __init__(self, dataloaders, clip_model, splits=5):
@@ -188,17 +190,12 @@ class ConfusionLogProbability(Distance):
         labels = zeroshot_classifier(self.classes, imagenet_templates, self.clip_model)
         id_ood_printer(id_classes, ood_classes)
         ood_features = torch.cat([self.feature_dict[ood_class] for ood_class in ood_classes])
-        shape_printer("ood features", ood_features)
-        shape_printer("labels features", labels)
 
         logits = ood_features.to(torch.float32) @ labels.to(torch.float32).t()
-        shape_printer("logits", logits)
         softmax_scores = F.softmax(logits, dim=1)
-        shape_printer("Softmax Scores", softmax_scores)
         id_scores = softmax_scores[:, :len(id_classes)]  # use only id labels proba
         shape_printer("id scores", id_scores)
         confusion_log_proba = torch.log(id_scores.sum(dim=1).mean())
-        shape_printer("confusion_log_proba", confusion_log_proba)
         return confusion_log_proba.cpu().numpy()
 
 
@@ -210,4 +207,4 @@ def get_distances_for_dataset(dataset, clip_model, name):
                           splits=10)
     logging_dict = distancer.get_all_distances()
     logging_dict['dataset'] = name
-    # wandb_log(distancer.get_all_distances())
+    wandb_log(distancer.get_all_distances())
