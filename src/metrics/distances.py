@@ -15,7 +15,7 @@ from tqdm import tqdm
 
 from metrics.distances_utils import id_ood_printer, \
     shape_printer, dataset_name_printer, mean_std_printer, \
-    distance_name_printer, accuracy_printer
+    distance_name_printer, accuracy_printer, debug_scores
 from metrics.metrics_logging import wandb_log
 
 _logger = logging.getLogger(__name__)
@@ -23,8 +23,9 @@ _logger.setLevel(logging.INFO)
 
 
 class Distancer:
-    def __init__(self, dataloaders, clip_model, splits=5):
+    def __init__(self, dataloaders, clip_model, splits=5, id_split=.4):
         self.splits = splits
+        self.id_split = id_split
         self.dataloaders = dataloaders
         self.classes = list(self.dataloaders.keys())
         self.clip_model = clip_model.eval()
@@ -193,28 +194,26 @@ class ConfusionLogProbability(Distance):
 
         logits = ood_features.to(torch.float32) @ labels.to(torch.float32).t()
 
-        # ----------------remove ------------------------
-        std, mean = torch.std_mean(logits)
-        _logger.info(f"Logits: mean: {mean: .3f}, std: {std}")
+        debug_scores(logits, "Logits")
         softmax_scores = F.softmax(logits, dim=1)
-        std, mean = torch.std_mean(softmax_scores)
-        _logger.info(f"Softmax Scores: mean: {mean: .3f}, std: {std}")
-        shape_printer(softmax_scores, "Softmax Scores")
-        # ----------------remove ------------------------
+        debug_scores(softmax_scores)
 
         id_scores = softmax_scores[:, :len(id_classes)]  # use only id labels proba
         confusion_log_proba = torch.log(id_scores.sum(dim=1).mean())
         return confusion_log_proba.cpu().numpy()
 
 
-def get_distances_for_dataset(dataset, clip_model, name):
+def get_distances_for_dataset(dataset, clip_model, name, splits=10, id_split=.4):
     dataset_name_printer(name)
     loaders = single_isolated_class_loader(dataset, batch_size=512)
     distancer = Distancer(dataloaders=loaders,
                           clip_model=clip_model,
-                          splits=10)
+                          splits=splits,
+                          id_split=id_split)
     logging_dict = distancer.get_all_distances()
     logging_dict['dataset'] = name
     logging_dict['model'] = Config.VISION_MODEL
-    # wandb_log(logging_dict)
-    print(logging_dict)
+    logging_dict['id_split_size'] = id_split
+    logging_dict["splits"] = splits
+    wandb_log(logging_dict)
+

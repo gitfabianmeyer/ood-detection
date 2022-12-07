@@ -1,5 +1,7 @@
 import logging
 
+import torch
+
 _logger = logging.getLogger(__name__)
 _logger.setLevel(logging.INFO)
 
@@ -27,3 +29,9 @@ def mean_std_printer(mean, std, runs):
 
 def accuracy_printer(accuracy):
     _logger.info(f"Zero Shot Accuracy: {accuracy: .3f}")
+
+
+def debug_scores(ten, name):
+    std, mean = torch.std_mean(ten)
+    _logger.info(f"{name}: mean: {mean: .4f}, std: {std: .5f}")
+    shape_printer(tensor=ten, name=name)
