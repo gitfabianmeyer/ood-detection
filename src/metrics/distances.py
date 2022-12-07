@@ -203,7 +203,6 @@ class ConfusionLogProbability(Distance):
         # ----------------remove ------------------------
 
         id_scores = softmax_scores[:, :len(id_classes)]  # use only id labels proba
-        shape_printer(id_scores, "id scores")
         confusion_log_proba = torch.log(id_scores.sum(dim=1).mean())
         return confusion_log_proba.cpu().numpy()
 
