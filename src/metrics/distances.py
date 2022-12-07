@@ -195,10 +195,10 @@ class ConfusionLogProbability(Distance):
 
         # ----------------remove ------------------------
         std, mean = torch.std_mean(logits)
-        _logger.info(f"Logits: mean: {mean: .3f}, std: {std: .3f}")
+        _logger.info(f"Logits: mean: {mean: .3f}, std: {std}")
         softmax_scores = F.softmax(logits, dim=1)
         std, mean = torch.std_mean(softmax_scores)
-        _logger.info(f"Softmax Scores: mean: {mean: .3f}, std: {std: .3f}")
+        _logger.info(f"Softmax Scores: mean: {mean: .3f}, std: {std}")
         shape_printer(softmax_scores, "Softmax Scores")
         # ----------------remove ------------------------
 
