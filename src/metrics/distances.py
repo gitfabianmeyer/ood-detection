@@ -193,6 +193,8 @@ class ConfusionLogProbability(Distance):
 
         logits = ood_features.to(torch.float32) @ labels.to(torch.float32).t()
         softmax_scores = F.softmax(logits, dim=1)
+        std, mean = torch.std_mean(softmax_scores)
+        _logger.info(f"Softmax Scores: mean: {mean: .3f}, std: {std: .3f}")
         id_scores = softmax_scores[:, :len(id_classes)]  # use only id labels proba
         shape_printer("id scores", id_scores)
         confusion_log_proba = torch.log(id_scores.sum(dim=1).mean())
@@ -207,4 +209,6 @@ def get_distances_for_dataset(dataset, clip_model, name):
                           splits=10)
     logging_dict = distancer.get_all_distances()
     logging_dict['dataset'] = name
-    wandb_log(distancer.get_all_distances())
+    logging_dict['model'] = Config.VISION_MODEL
+    # wandb_log(logging_dict)
+    print(logging_dict)
