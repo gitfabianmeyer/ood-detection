@@ -19,3 +19,7 @@ dependencies:
       - nltk
       - imageio
       - lmdb
+      - wget
+      - opencv-python
+      - scikit-image
+      - Wand
