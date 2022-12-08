@@ -196,9 +196,9 @@ class ConfusionLogProbability(Distance):
 
         logits = ood_features.to(torch.float32) @ labels.to(torch.float32).t()
 
-        debug_scores(logits, "Logits")
+        # debug_scores(logits, "Logits")
         softmax_scores = F.softmax(logits, dim=1)
-        debug_scores(softmax_scores)
+        # debug_scores(softmax_scores, "Softmaxis")
 
         id_scores = softmax_scores[:, :len(id_classes)]  # use only id labels proba
         confusion_log_proba = torch.log(id_scores.sum(dim=1).mean())
