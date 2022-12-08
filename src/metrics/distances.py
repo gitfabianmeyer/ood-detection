@@ -135,7 +135,7 @@ class ZeroShotAccuracy(Distance):
 
     def get_distance(self):
         # do for the whole set
-        top1, top5 = classify(features=torch.cat(list(self.feature_dict.values())),
+        top1 = classify(features=torch.cat(list(self.feature_dict.values())),
                               zeroshot_weights=self.labels,
                               targets=self.dataset_targets)
         return top1
