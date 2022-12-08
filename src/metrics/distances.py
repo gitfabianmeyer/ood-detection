@@ -78,14 +78,15 @@ class Distancer:
         clp_mean, clp_std = self.get_clp()
         mean_std_printer(clp_mean, clp_std, self.splits)
 
-        accuracy = self.get_zeroshot_accuracy()
-        accuracy_printer(accuracy)
+        zsa_dict = self.get_zeroshot_accuracy()
+        accuracy_printer(zsa_dict["zsa"])
+        res_dict = {"mmd_mean": mmd_mean,
+                    "mmd_std": mmd_std,
+                    "clp_mean": clp_mean,
+                    "clp_std": clp_std}
 
-        return {"mmd_mean": mmd_mean,
-                "mmd_std": mmd_std,
-                "clp_mean": clp_mean,
-                "clp_std": clp_std,
-                "accuracy": accuracy}
+        return {**res_dict, **zsa_dict}
+
 
     def get_dataset_targets(self):
         targets = []
@@ -136,9 +137,15 @@ class ZeroShotAccuracy(Distance):
     def get_distance(self):
         # do for the whole set
         top1 = classify(features=torch.cat(list(self.feature_dict.values())),
-                              zeroshot_weights=self.labels,
-                              targets=self.dataset_targets)
-        return top1
+                        zeroshot_weights=self.labels,
+                        targets=self.dataset_targets)
+
+        class_lengths = [len(feat_class) for feat_class in self.feature_dict.values()]
+        len_dataset = sum(class_lengths)
+        len_max_class = max(class_lengths)
+        results = {"zsa": top1,
+                   "zsa_baseline": len_max_class / len_dataset}
+        return results
 
 
 class MaximumMeanDiscrepancy(Distance):
@@ -218,4 +225,3 @@ def get_distances_for_dataset(dataset, clip_model, name, splits=10, id_split=.4)
     logging_dict['id_split_size'] = id_split
     logging_dict["splits"] = splits
     wandb_log(logging_dict)
-
