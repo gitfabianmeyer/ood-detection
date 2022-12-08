@@ -96,7 +96,7 @@ def classify(features, zeroshot_weights, targets, dataset=None, print_results=Fa
     if print_results and dataset:
         print(f"\nClip Top1 Acc: {top1:.3f} with zeroshot on {dataset} ({features.size(0)} images)")
         # print(f"\nClip Top5 Acc: {top5:.3f} with zeroshot on {dataset}")
-    return top1, # top5
+    return top1 # top5
 
 
 def accuracy(output, target, top_k=(1,)):
