@@ -7,7 +7,7 @@ def wandb_log(metrics_dict, experiment="distances"):
     if experiment == "distances":
         wandb.init(project="thesis-datasets",
                    entity="wandbefab",
-                   name="-".join([metrics_dict["name"], datetime.today().strftime('%Y/%m/%d')]),
+                   name="-".join([metrics_dict["dataset"], datetime.today().strftime('%Y/%m/%d')]),
                    tags=['zeroshot', 'mmd', 'clp', 'zsa'],
                    )
         wandb.config = {
