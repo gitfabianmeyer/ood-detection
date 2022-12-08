@@ -108,6 +108,8 @@ class Distance(ABC):
 
     def get_id_ood_split(self, in_distri_percentage=.4):
         random.shuffle(self.classes)
+        if len(self.classes) == 2:
+            return self.classes[:1], self.classes[1:]
         id_split = int(len(self.classes) * in_distri_percentage)
         return self.classes[:id_split], self.classes[id_split:]
 
