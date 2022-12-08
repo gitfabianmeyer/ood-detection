@@ -87,7 +87,7 @@ def zeroshot_classifier(classnames: list, templates: list, clip_model):
 def classify(features, zeroshot_weights, targets, dataset=None, print_results=False):
     top1, top5, n = 0., 0., 0.,
     logits = 100. * features.to(torch.float32) @ zeroshot_weights.t().to(torch.float32)
-    acc1 = accuracy(logits, targets, top_k=(1))
+    acc1 = accuracy(logits, targets, top_k=(1,))
     top1 += acc1
     # top5 += acc5
     n = features.size(0)
