@@ -1,3 +1,4 @@
+import logging
 import os.path
 
 import clip
@@ -5,6 +6,7 @@ import numpy as np
 from metrics.distances import get_distances_for_dataset
 from ood_detection.config import Config
 from torchvision.datasets import ImageFolder
+logging.basicConfig(level=logging.INFO)
 
 
 class OodPneumonia(ImageFolder):
