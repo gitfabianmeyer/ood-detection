@@ -24,14 +24,12 @@ def full_classification(dataset, model, name):
 def full_batch_classification(dataset, model, name):
     dataloader = DataLoader(dataset, batch_size=10)
     templates = dataset.templates
-    print(templates)
     zeroshot_weights = zeroshot_classifier(dataset.classes,
                                            templates=templates,
                                            clip_model=model)
 
     accuracies1 = []
-    accuracies5 = []
-    accuracies10 = []
+
     for images, targets in tqdm(dataloader):
         images = images.to(device)
         targets = targets.to(device)
@@ -39,18 +37,12 @@ def full_batch_classification(dataset, model, name):
         image_features = model.encode_image(images)
         image_features /= image_features.norm(dim=-1, keepdim=True)
 
-        top1, top5, top10 = classify(image_features, zeroshot_weights, targets)
+        top1 = classify(image_features, zeroshot_weights, targets)
         accuracies1.append(top1)
-        accuracies5.append(top5)
-        accuracies10.append(top10)
 
     mean1 = np.mean(accuracies1)
-    mean5 = np.mean(accuracies5)
-    mean10 = np.mean(accuracies10)
 
     print(f"\nClip Top1 Acc: {mean1:.3f} with zeroshot on {name} ")
-    print(f"\nClip Top5 Acc: {mean5:.3f} with zeroshot on {name}")
-    print(f"\nClip Top5 Acc: {mean10:.3f} with zeroshot on {name}")
 
 
 @torch.no_grad()
@@ -97,7 +89,6 @@ def classify(features, zeroshot_weights, targets, dataset=None, print_results=Fa
 
 
 def accuracy(output, target, top_k=(1,)):
-
     output = output.cpu()
     target = target.cpu()
     pred = output.topk(max(top_k), 1, True, True)[1].t()
