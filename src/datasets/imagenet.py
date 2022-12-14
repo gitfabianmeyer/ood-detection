@@ -224,6 +224,7 @@ class TinyImageNetImageFolder(ImageFolder):
         self.words_to_nid = {value: key for (key, value) in self.nid_to_words.items()}
         self.classes = list(self.words_to_nid.keys())
         self.class_to_idx = {self.nid_to_words[key]: value for (key, value) in self.class_to_idx.items()}
+        self.idx_to_class = {value: key for (key, value) in self.class_to_idx.items()}
 
 
 class OodTinyImageNet(TinyImageNetImageFolder):

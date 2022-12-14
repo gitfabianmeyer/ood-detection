@@ -1,8 +1,45 @@
+import io
+from typing import Tuple, Any
+
 import numpy
 import numpy as np
 import torch
 from PIL import Image
 from torch.utils.data import Dataset, DataLoader
+
+
+class IsolatedLsunClass(Dataset):
+    def __init__(self, dataset, class_label=None):
+        assert class_label, 'a semantic label must be specified'
+        self.transform = dataset.transform
+        self.class_label = class_label
+        class_mask = np.array(dataset.targets) == dataset.class_to_idx[class_label]
+        self.db = dataset.dbs[dataset.class_to_idx[class_label]]
+        self.targets = torch.tensor(dataset.targets[class_mask])
+        self.class_to_idx = dataset.class_to_idx
+
+    def __len__(self):
+        return len(self.targets)
+
+    def __getitem__(self, index: int) -> Tuple[Any, Any]:
+        img = None
+        env = self.env
+        with env.begin(write=False) as txn:
+            imgbuf = txn.get(self.keys[index])
+
+        buf = io.BytesIO()
+        buf.write(imgbuf)
+        buf.seek(0)
+        img = Image.open(buf).convert("RGB")
+
+        if self.transform is not None:
+            img = self.transform(img)
+
+        return img
+
+    @property
+    def name(self):
+        return self.class_label
 
 
 class IsolatedClass(Dataset):
@@ -39,11 +76,14 @@ class IsolatedClass(Dataset):
         return self.class_label
 
 
-def single_isolated_class_loader(full_dataset, batch_size=1):
+def single_isolated_class_loader(full_dataset, batch_size=1, lsun=False):
     loaders_dict = {}
     labels = full_dataset.classes
     for label in labels:
-        dataset = IsolatedClass(full_dataset, label)
+        if lsun:
+            dataset = IsolatedLsunClass(full_dataset, label)
+        else:
+            dataset = IsolatedClass(full_dataset, label)
         loader = DataLoader(dataset=dataset, batch_size=batch_size, num_workers=4)
         loaders_dict[label] = loader
 
