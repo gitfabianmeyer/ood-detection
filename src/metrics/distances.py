@@ -87,7 +87,6 @@ class Distancer:
 
         return {**res_dict, **zsa_dict}
 
-
     def get_dataset_targets(self):
         targets = []
         for dataloader in self.dataloaders.values():
@@ -212,9 +211,9 @@ class ConfusionLogProbability(Distance):
         return confusion_log_proba.cpu().numpy()
 
 
-def get_distances_for_dataset(dataset, clip_model, name, splits=10, id_split=.4):
+def get_distances_for_dataset(dataset, clip_model, name, splits=10, id_split=.4, lsun=False):
     dataset_name_printer(name)
-    loaders = single_isolated_class_loader(dataset, batch_size=512)
+    loaders = single_isolated_class_loader(dataset, batch_size=512, lsun=lsun)
     distancer = Distancer(dataloaders=loaders,
                           clip_model=clip_model,
                           splits=splits,
