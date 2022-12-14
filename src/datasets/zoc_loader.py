@@ -22,19 +22,8 @@ class IsolatedLsunClass(Dataset):
         return len(self.targets)
 
     def __getitem__(self, index: int) -> Tuple[Any, Any]:
-        img = None
-        env = self.env
-        with env.begin(write=False) as txn:
-            imgbuf = txn.get(self.keys[index])
 
-        buf = io.BytesIO()
-        buf.write(imgbuf)
-        buf.seek(0)
-        img = Image.open(buf).convert("RGB")
-
-        if self.transform is not None:
-            img = self.transform(img)
-
+        img, _ = self.db[index]
         return img
 
     @property

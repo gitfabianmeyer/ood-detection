@@ -250,8 +250,8 @@ def main():
     clip_model, transform = clip.load(Config.VISION_MODEL)
 
     dataset = OodLSUN(data_path, transform, train)
-    full_batch_classification(dataset, clip_model, "LSUN")
     get_distances_for_dataset(dataset, clip_model, "LSUN", lsun=True)
+    full_batch_classification(dataset, clip_model, "LSUN")
 
 
 if __name__ == '__main__':
