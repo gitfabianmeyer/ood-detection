@@ -3,7 +3,6 @@ import clip
 import numpy as np
 import torchvision.datasets
 from datasets.classnames import cifar_templates
-from ood_detection.classification_utils import full_classification, full_batch_classification
 from ood_detection.config import Config
 
 from metrics.distances import get_distances_for_dataset
@@ -20,6 +19,7 @@ class OodCifar10(torchvision.datasets.CIFAR10):
                                          )
         self.targets = np.array(self.targets)
         self.templates = templates if templates else cifar_templates
+        self.idx_to_class = {value: key for (key, value) in self.class_to_idx.items()}
 
 
 def main():
