@@ -251,9 +251,10 @@ def main():
     train = False
     clip_model, transform_clip = clip.load(Config.VISION_MODEL)
     corruption_dict = corruptions.Corruptions
-
+    corr = "Gaussian Noise"
     for i in range(1,6):
-        corruption = corruption_dict['Gaussian Noise'](severity=i)
+        print(f"Corruption {corr}, severity: {i}")
+        corruption = corruption_dict[corr](severity=i)
         transform_list = transform_clip.transforms[:-1]
         transform_list.append(corruption)
         transform = Compose(transform_list)
