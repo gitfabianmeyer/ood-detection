@@ -12,12 +12,14 @@ import subprocess
 from urllib.request import Request, urlopen
 
 from PIL import Image
+from datasets import corruptions
 from datasets.classnames import imagenet_templates
 from metrics.distances import get_distances_for_dataset
 from ood_detection.classification_utils import full_batch_classification
 from ood_detection.config import Config
 from torchvision.datasets import VisionDataset
 from torchvision.datasets.utils import verify_str_arg, iterable_to_str
+from torchvision.transforms import Compose
 
 logging.basicConfig(level=logging.INFO)
 _logger = logging.getLogger(__name__)
@@ -247,11 +249,17 @@ class OodLSUN(LSUN):
 def main():
     data_path = Config.DATAPATH
     train = False
-    clip_model, transform = clip.load(Config.VISION_MODEL)
+    clip_model, transform_clip = clip.load(Config.VISION_MODEL)
+    corruption_dict = corruptions.Corruptions
 
-    dataset = OodLSUN(data_path, transform, train)
-    get_distances_for_dataset(dataset, clip_model, "LSUN", lsun=True)
-    full_batch_classification(dataset, clip_model, "LSUN")
+    for i in range(1,6):
+        corruption = corruption_dict['Gaussian Noise'](severity=i)
+        transform_list = transform_clip.transforms[:-1]
+        transform_list.append(corruption)
+        transform = Compose(transform_list)
+        dataset = OodLSUN(data_path, transform, train)
+        # get_distances_for_dataset(dataset, clip_model, "LSUN", lsun=True)
+        full_batch_classification(dataset, clip_model, "LSUN")
 
 
 if __name__ == '__main__':

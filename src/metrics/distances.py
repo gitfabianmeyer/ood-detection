@@ -211,6 +211,16 @@ class ConfusionLogProbability(Distance):
         return confusion_log_proba.cpu().numpy()
 
 
+class WassersteinDistance(Distance):
+
+    @property
+    def name(self):
+        return "Wasserstein Distance"
+
+    def get_distance(self):
+        pass
+
+
 def get_distances_for_dataset(dataset, clip_model, name, splits=10, id_split=.4, lsun=False):
     dataset_name_printer(name)
     loaders = single_isolated_class_loader(dataset, batch_size=512, lsun=lsun)
