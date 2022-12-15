@@ -263,8 +263,8 @@ def main():
         transform_list.append(corruption)
         transform = Compose(transform_list)
         dataset = OodLSUN(data_path, transform, train)
-        # get_distances_for_dataset(dataset, clip_model, "LSUN", lsun=True)
-        full_batch_classification(dataset, clip_model, "LSUN")
+        get_distances_for_dataset(dataset, clip_model, "LSUN", lsun=True, corruption=corr, severity=i)
+        # full_batch_classification(dataset, clip_model, "LSUN")
 
 
 if __name__ == '__main__':
