@@ -109,7 +109,6 @@ def clipped_zoom(img, zoom_factor):
     # trim off any extra pixels
     trim_top = (img.shape[0] - h) // 2
     img = img[trim_top:trim_top + h, trim_top:trim_top + h]
-    print(f"CLIPPED ZOOM IMG: {img.shape}")
     return img
 
 
@@ -151,7 +150,7 @@ class SpeckleNoiseTransform(OodTransform):
 class GaussianBlurTransform(OodTransform):
     def __call__(self, sample):
         c = [1, 2, 3, 4, 6][self.severity - 1]
-        sample = gaussian(np.array(sample) / 255., sigma=c, multichannel=True)
+        sample = gaussian(np.array(sample) / 255., sigma=c, channel_axis=True)
         return np.clip(sample, 0, 1) * 255
 
 
@@ -161,7 +160,7 @@ class GlassBlurTransform(OodTransform):
         # sigma, max_delta, iterations
         c = [(0.7, 1, 2), (0.9, 2, 1), (1, 2, 3), (1.1, 3, 2), (1.5, 4, 2)][self.severity - 1]
 
-        sample = np.uint8(gaussian(np.array(sample) / 255., sigma=c[0], multichannel=True) * 255)
+        sample = np.uint8(gaussian(np.array(sample) / 255., sigma=c[0], channel_axis=True) * 255)
         # locally shuffle pixels
         for i in range(c[2]):
             for h in range(224 - c[1], c[1], -1):
@@ -171,7 +170,7 @@ class GlassBlurTransform(OodTransform):
                     # swap
                     sample[h, w], sample[h_prime, w_prime] = sample[h_prime, w_prime], sample[h, w]
 
-        return np.clip(gaussian(sample / 255., sigma=c[0], multichannel=True), 0, 1) * 255
+        return np.clip(gaussian(sample / 255., sigma=c[0], channel_axis=True), 0, 1) * 255
 
 
 # dothis
@@ -222,17 +221,12 @@ class ZoomBlurTransform(OodTransform):
              np.arange(1, 1.31, 0.03)][self.severity - 1]
 
         sample = (np.array(sample) / 255.).astype(np.float32)
-        print(f"SAMPLE {sample.shape}")
 
         out = np.zeros_like(sample)
-        print(f"OUT {out.shape}")
         for zoom_factor in c:
-            print(f"zoomi: {zoom_factor}")
             out += clipped_zoom(sample, zoom_factor)
-            print(f"OUT 2 {out.shape}")
 
         sample = (sample + out) / (len(c) + 1)
-        print(f"SAMPLE 2 {sample.shape}")
         sample = sample.permute(2, 0, 1)
         return np.clip(sample, 0, 1) * 255
 
