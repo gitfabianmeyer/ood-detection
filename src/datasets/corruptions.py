@@ -16,8 +16,10 @@ from scipy.ndimage import zoom as scizoom
 from scipy.ndimage.interpolation import map_coordinates
 import warnings
 
-from src.ood_detection.config import Config
+from ood_detection.config import Config
 
+
+# https://github.com/hendrycks/robustness/blob/master/ImageNet- C/imagenet_c/imagenet_c/corruptions.py
 
 def disk(radius, alias_blur=0.1, dtype=np.float32):
     if radius <= 8:
@@ -106,8 +108,9 @@ def clipped_zoom(img, zoom_factor):
     img = scizoom(img[top:top + ch, top:top + ch], (zoom_factor, zoom_factor, 1), order=1)
     # trim off any extra pixels
     trim_top = (img.shape[0] - h) // 2
-
-    return img[trim_top:trim_top + h, trim_top:trim_top + h]
+    img = img[trim_top:trim_top + h, trim_top:trim_top + h]
+    print(f"CLIPPED ZOOM IMG: {img.shape}")
+    return img
 
 
 # /////////////// End Distortion Helpers ///////////////
@@ -123,11 +126,12 @@ class GaussianNoiseTransform(OodTransform):
         return np.clip(sample + np.random.normal(size=sample.shape, scale=c), 0, 1) * 255
 
 
+# dothis
 class ShotNoiseTransform(OodTransform):
     def __call__(self, sample):
         c = [60, 25, 12, 5, 3][self.severity - 1]
         sample = np.array(sample) / 255.
-        return np.clip(np.random.poisson(sample * c) / c, 0, 1) * 255
+        return np.clip(np.random.poisson(sample * c) / float(c), 0, 1) * 255
 
 
 class ImpulseNoiseTransform(OodTransform):
@@ -144,13 +148,14 @@ class SpeckleNoiseTransform(OodTransform):
         return np.clip(sample + sample * np.random.normal(size=sample.shape, scale=c), 0, 1) * 255
 
 
-class GaussionBlurTransform(OodTransform):
+class GaussianBlurTransform(OodTransform):
     def __call__(self, sample):
         c = [1, 2, 3, 4, 6][self.severity - 1]
         sample = gaussian(np.array(sample) / 255., sigma=c, multichannel=True)
         return np.clip(sample, 0, 1) * 255
 
 
+# dothis
 class GlassBlurTransform(OodTransform):
     def __call__(self, sample):
         # sigma, max_delta, iterations
@@ -169,6 +174,7 @@ class GlassBlurTransform(OodTransform):
         return np.clip(gaussian(sample / 255., sigma=c[0], multichannel=True), 0, 1) * 255
 
 
+# dothis
 class DefocusBlurTransform(OodTransform):
     def __call__(self, sample):
         c = [(3, 0.1), (4, 0.5), (6, 0.5), (8, 0.5), (10, 0.5)][self.severity - 1]
@@ -184,6 +190,7 @@ class DefocusBlurTransform(OodTransform):
         return np.clip(channels, 0, 1) * 255
 
 
+# dothis
 class MotionBlurTransform(OodTransform):
     def __call__(self, x):
 
@@ -204,8 +211,10 @@ class MotionBlurTransform(OodTransform):
             return np.clip(np.array([x, x, x]).transpose((1, 2, 0)), 0, 255)
 
 
+# dothis reshaping / permuting
 class ZoomBlurTransform(OodTransform):
     def __call__(self, sample):
+        sample = sample.permute(1, 2, 0)
         c = [np.arange(1, 1.11, 0.01),
              np.arange(1, 1.16, 0.01),
              np.arange(1, 1.21, 0.02),
@@ -213,11 +222,18 @@ class ZoomBlurTransform(OodTransform):
              np.arange(1, 1.31, 0.03)][self.severity - 1]
 
         sample = (np.array(sample) / 255.).astype(np.float32)
+        print(f"SAMPLE {sample.shape}")
+
         out = np.zeros_like(sample)
+        print(f"OUT {out.shape}")
         for zoom_factor in c:
+            print(f"zoomi: {zoom_factor}")
             out += clipped_zoom(sample, zoom_factor)
+            print(f"OUT 2 {out.shape}")
 
         sample = (sample + out) / (len(c) + 1)
+        print(f"SAMPLE 2 {sample.shape}")
+        sample = sample.permute(2, 0, 1)
         return np.clip(sample, 0, 1) * 255
 
 
@@ -450,21 +466,21 @@ class ElasticTransform(OodTransform):
 
 Corruptions = collections.OrderedDict()
 Corruptions['Gaussian Noise'] = GaussianNoiseTransform
-Corruptions['Shot Noise'] = ShotNoiseTransform
-Corruptions['Impulse Noise'] = ImpulseNoiseTransform
-Corruptions['Defocus Blur'] = DefocusBlurTransform
-Corruptions['Glass Blur'] = GlassBlurTransform
-Corruptions['Motion Blur'] = MotionBlurTransform
-Corruptions['Zoom Blur'] = ZoomBlurTransform
-Corruptions['Snow'] = SnowTransform
-Corruptions['Frost'] = FrostTransform
-Corruptions['Fog'] = FogTransform
-Corruptions['Brightness'] = BrightnessTransform
+Corruptions['Shot Noise'] = ShotNoiseTransform  # dothis
+Corruptions['Impulse Noise'] = ImpulseNoiseTransform  # dothis
+Corruptions['Defocus Blur'] = DefocusBlurTransform  # dothis
+Corruptions['Glass Blur'] = GlassBlurTransform  # dothis
+Corruptions['Motion Blur'] = MotionBlurTransform  # dothis
+Corruptions['Zoom Blur'] = ZoomBlurTransform  # dothis
+Corruptions['Snow'] = SnowTransform  # dothis
+Corruptions['Frost'] = FrostTransform  # dothis Permute
+Corruptions['Fog'] = FogTransform  # dothis shapes
+Corruptions['Brightness'] = BrightnessTransform # dothis SHAPES
 Corruptions['Contrast'] = ContrastTransform
-Corruptions['Elastic'] = ElasticTransform
+Corruptions['Elastic'] = ElasticTransform # dothis zu krass
 Corruptions['Pixelate'] = Pixelate
 Corruptions['JPEG'] = JpegCompressionTransform
 Corruptions['Speckle Noise'] = SpeckleNoiseTransform
-Corruptions['Gaussian Blur'] = GaussionBlurTransform
+Corruptions['Gaussian Blur'] = GaussianBlurTransform
 Corruptions['Spatter'] = SpatterTransfrom
 Corruptions['Saturate'] = SaturateTransform
