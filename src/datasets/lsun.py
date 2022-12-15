@@ -250,8 +250,12 @@ def main():
     data_path = Config.DATAPATH
     train = False
     clip_model, transform_clip = clip.load(Config.VISION_MODEL)
+    dataset = OodLSUN(data_path, transform_clip, train)
+    # get_distances_for_dataset(dataset, clip_model, "LSUN", lsun=True)
+    full_batch_classification(dataset, clip_model, "LSUN")
+
     corruption_dict = corruptions.Corruptions
-    corr = "Gaussian Noise"
+    corr = "Gaussian Blur"
     for i in range(1,6):
         print(f"Corruption {corr}, severity: {i}")
         corruption = corruption_dict[corr](severity=i)
