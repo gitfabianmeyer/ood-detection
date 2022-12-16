@@ -1,6 +1,8 @@
 import collections
 import os.path
+from abc import ABC, abstractmethod
 
+import PIL
 import numpy as np
 import skimage as sk
 import torch
@@ -113,13 +115,24 @@ def clipped_zoom(img, zoom_factor):
 
 
 # /////////////// End Distortion Helpers ///////////////
-class OodTransform:
+class OodTransform(ABC):
     def __init__(self, severity=1):
         self.severity = severity
+        self.sample_shape = (224, 224, 3)
+
+    def __call__(self, sample):
+        if isinstance(sample, (PIL.ImageFile.ImageFile, PIL.Image.Image)):
+            sample = np.array(sample)
+        assert sample.shape == self.sample_shape, f"Wrong image shape: {sample.shape} instead of {self.sample_shape}"
+        return self.transform(sample)
+
+    @abstractmethod
+    def transform(self, sample):
+        pass
 
 
 class GaussianNoiseTransform(OodTransform):
-    def __call__(self, sample):
+    def transform(self, sample):
         c = [.08, .12, 0.18, 0.26, 0.38][self.severity - 1]
         sample = np.array(sample) / 255.
         return np.clip(sample + np.random.normal(size=sample.shape, scale=c), 0, 1) * 255
@@ -127,36 +140,36 @@ class GaussianNoiseTransform(OodTransform):
 
 # dothis
 class ShotNoiseTransform(OodTransform):
-    def __call__(self, sample):
+    def transform(self, sample):
         c = [60, 25, 12, 5, 3][self.severity - 1]
         sample = np.array(sample) / 255.
         return np.clip(np.random.poisson(sample * c) / float(c), 0, 1) * 255
 
 
 class ImpulseNoiseTransform(OodTransform):
-    def __call__(self, sample):
+    def transform(self, sample):
         c = [.03, .06, .09, 0.17, 0.27][self.severity - 1]
         sample = sk.util.random_noise(np.array(sample) / 255., mode='s&p', amount=c)
         return np.clip(sample, 0, 1) * 255
 
 
 class SpeckleNoiseTransform(OodTransform):
-    def __call__(self, sample):
+    def transform(self, sample):
         c = [.15, .2, 0.35, 0.45, 0.6][self.severity - 1]
         sample = np.array(sample) / 255.
         return np.clip(sample + sample * np.random.normal(size=sample.shape, scale=c), 0, 1) * 255
 
 
 class GaussianBlurTransform(OodTransform):
-    def __call__(self, sample):
+    def transform(self, sample):
         c = [1, 2, 3, 4, 6][self.severity - 1]
-        sample = gaussian(np.array(sample) / 255., sigma=c, channel_axis=True)
+        sample = gaussian(np.array(sample) / 255., sigma=c, multichannel=True)
         return np.clip(sample, 0, 1) * 255
 
 
 # dothis
 class GlassBlurTransform(OodTransform):
-    def __call__(self, sample):
+    def transform(self, sample):
         # sigma, max_delta, iterations
         c = [(0.7, 1, 2), (0.9, 2, 1), (1, 2, 3), (1.1, 3, 2), (1.5, 4, 2)][self.severity - 1]
 
@@ -175,7 +188,7 @@ class GlassBlurTransform(OodTransform):
 
 # dothis
 class DefocusBlurTransform(OodTransform):
-    def __call__(self, sample):
+    def transform(self, sample):
         c = [(3, 0.1), (4, 0.5), (6, 0.5), (8, 0.5), (10, 0.5)][self.severity - 1]
 
         sample = np.array(sample) / 255.
@@ -189,9 +202,8 @@ class DefocusBlurTransform(OodTransform):
         return np.clip(channels, 0, 1) * 255
 
 
-# dothis
 class MotionBlurTransform(OodTransform):
-    def __call__(self, x):
+    def transform(self, x):
 
         c = [(10, 3), (15, 5), (15, 8), (15, 12), (20, 15)][self.severity - 1]
 
@@ -212,7 +224,7 @@ class MotionBlurTransform(OodTransform):
 
 # dothis reshaping / permuting
 class ZoomBlurTransform(OodTransform):
-    def __call__(self, sample):
+    def transform(self, sample):
         sample = sample.permute(1, 2, 0)
         c = [np.arange(1, 1.11, 0.01),
              np.arange(1, 1.16, 0.01),
@@ -250,7 +262,7 @@ class ZoomBlurTransform(OodTransform):
 #         return np.clip(np.array([x, x, x]).transpose((1, 2, 0)), 0, 255)
 
 class FogTransform(OodTransform):
-    def __call__(self, sample):
+    def transform(self, sample):
         c = [(1.5, 2), (2, 2), (2.5, 1.7), (2.5, 1.5), (3, 1.4)][self.severity - 1]
 
         sample = np.array(sample) / 255.
@@ -261,11 +273,11 @@ class FogTransform(OodTransform):
 
 class FrostTransform(OodTransform):
     def __init__(self, severity):
-        super(FrostTransform, self).__init__()
+        super(FrostTransform, self).__init__(severity)
         self.frostis = ['frost1.png', 'frost2.png', 'frost3.png', 'frost4.jpg', 'frost5.jpg', 'frost6.jpg']
         self.frostis = [os.path.join(Config.DATAPATH, 'frost', frost) for frost in self.frostis]
 
-    def __call__(self, sample):
+    def transform(self, sample):
         c = [(1, 0.4),
              (0.8, 0.6),
              (0.7, 0.7),
@@ -283,7 +295,7 @@ class FrostTransform(OodTransform):
 
 
 class SnowTransform(OodTransform):
-    def __call__(self, sample):
+    def transform(self, sample):
         c = [(0.1, 0.3, 3, 0.5, 10, 4, 0.8),
              (0.2, 0.3, 2, 0.5, 12, 4, 0.7),
              (0.55, 0.3, 4, 0.9, 12, 8, 0.7),
@@ -314,7 +326,7 @@ class SnowTransform(OodTransform):
 
 
 class SpatterTransfrom(OodTransform):
-    def __call__(self, sample):
+    def transform(self, sample):
 
         c = [(0.65, 0.3, 4, 0.69, 0.6, 0),
              (0.65, 0.3, 3, 0.68, 0.6, 0),
@@ -371,7 +383,7 @@ class SpatterTransfrom(OodTransform):
 
 
 class ContrastTransform(OodTransform):
-    def __call__(self, sample):
+    def transform(self, sample):
         c = [0.4, .3, .2, .1, .05][self.severity - 1]
 
         sample = np.array(sample) / 255.
@@ -380,7 +392,7 @@ class ContrastTransform(OodTransform):
 
 
 class BrightnessTransform(OodTransform):
-    def __call__(self, sample):
+    def transform(self, sample):
         c = [.1, .2, .3, .4, .5][self.severity - 1]
 
         sample = np.array(sample) / 255.
@@ -392,7 +404,7 @@ class BrightnessTransform(OodTransform):
 
 
 class SaturateTransform(OodTransform):
-    def __call__(self, sample):
+    def transform(self, sample):
         c = [(0.3, 0), (0.1, 0), (2, 0), (5, 0.1), (20, 0.2)][self.severity - 1]
 
         sample = np.array(sample) / 255.
@@ -404,7 +416,7 @@ class SaturateTransform(OodTransform):
 
 
 class JpegCompressionTransform(OodTransform):
-    def __call__(self, sample):
+    def transform(self, sample):
         c = [25, 18, 15, 10, 7][self.severity - 1]
 
         output = BytesIO()
@@ -415,7 +427,7 @@ class JpegCompressionTransform(OodTransform):
 
 
 class Pixelate(OodTransform):
-    def __call__(self, sample):
+    def transform(self, sample):
         c = [0.6, 0.5, 0.4, 0.3, 0.25][self.severity - 1]
 
         sample = sample.resize((int(224 * c), int(224 * c)), PILImage.BOX)
@@ -426,7 +438,7 @@ class Pixelate(OodTransform):
 
 # mod of https://gist.github.com/erniejunior/601cdf56d2b424757de5
 class ElasticTransform(OodTransform):
-    def __call__(self, sample):
+    def transform(self, sample):
         c = [(244 * 2, 244 * 0.7, 244 * 0.1),  # 244 should have been 224, but ultimately nothing is incorrect
              (244 * 2, 244 * 0.08, 244 * 0.2),
              (244 * 0.05, 244 * 0.01, 244 * 0.02),
@@ -458,20 +470,24 @@ class ElasticTransform(OodTransform):
         return np.clip(map_coordinates(sample, indices, order=1, mode='reflect').reshape(shape), 0, 1) * 255
 
 
+def get_clip_corruptin_transform(corruption_name, clip_transforms):
+    assert corruption_name in Corruptions.keys(), 'Use a corruption from the list'
+    transforms = []
+
 Corruptions = collections.OrderedDict()
 Corruptions['Gaussian Noise'] = GaussianNoiseTransform
-Corruptions['Shot Noise'] = ShotNoiseTransform  # dothis
-Corruptions['Impulse Noise'] = ImpulseNoiseTransform  # dothis
-Corruptions['Defocus Blur'] = DefocusBlurTransform  # dothis
-Corruptions['Glass Blur'] = GlassBlurTransform  # dothis
+Corruptions['Shot Noise'] = ShotNoiseTransform
+Corruptions['Impulse Noise'] = ImpulseNoiseTransform
+Corruptions['Defocus Blur'] = DefocusBlurTransform
+Corruptions['Glass Blur'] = GlassBlurTransform
 Corruptions['Motion Blur'] = MotionBlurTransform  # dothis
 Corruptions['Zoom Blur'] = ZoomBlurTransform  # dothis
-Corruptions['Snow'] = SnowTransform  # dothis
-Corruptions['Frost'] = FrostTransform  # dothis Permute
-Corruptions['Fog'] = FogTransform  # dothis shapes
-Corruptions['Brightness'] = BrightnessTransform # dothis SHAPES
+Corruptions['Snow'] = SnowTransform
+Corruptions['Frost'] = FrostTransform
+Corruptions['Fog'] = FogTransform
+Corruptions['Brightness'] = BrightnessTransform
 Corruptions['Contrast'] = ContrastTransform
-Corruptions['Elastic'] = ElasticTransform # dothis zu krass
+Corruptions['Elastic'] = ElasticTransform
 Corruptions['Pixelate'] = Pixelate
 Corruptions['JPEG'] = JpegCompressionTransform
 Corruptions['Speckle Noise'] = SpeckleNoiseTransform
