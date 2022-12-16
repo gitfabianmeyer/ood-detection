@@ -418,12 +418,14 @@ class SaturateTransform(OodTransform):
 class JpegCompressionTransform(OodTransform):
     def transform(self, sample):
         c = [25, 18, 15, 10, 7][self.severity - 1]
-
-        output = BytesIO()
-        sample.save(output, 'JPEG', quality=c)
-        sample = PILImage.open(output)
-
-        return sample
+        if isinstance(sample, np.ndarray):
+            sample = PILImage.fromarray(sample)
+        with BytesIO() as f:
+            sample.save(f, format='JPEG', quality=c)
+            f.seek(0)
+            sample = PILImage.open(f)
+            sample.load()
+        return np.array(sample) * 255
 
 
 class Pixelate(OodTransform):
@@ -474,12 +476,13 @@ def get_clip_corruptin_transform(corruption_name, clip_transforms):
     assert corruption_name in Corruptions.keys(), 'Use a corruption from the list'
     transforms = []
 
+
 Corruptions = collections.OrderedDict()
 Corruptions['Gaussian Noise'] = GaussianNoiseTransform
 Corruptions['Shot Noise'] = ShotNoiseTransform
 Corruptions['Impulse Noise'] = ImpulseNoiseTransform
 Corruptions['Defocus Blur'] = DefocusBlurTransform
-Corruptions['Glass Blur'] = GlassBlurTransform
+Corruptions['Glass Blur'] = GlassBlurTransform # speed
 Corruptions['Motion Blur'] = MotionBlurTransform  # dothis
 Corruptions['Zoom Blur'] = ZoomBlurTransform  # dothis
 Corruptions['Snow'] = SnowTransform
@@ -488,8 +491,8 @@ Corruptions['Fog'] = FogTransform
 Corruptions['Brightness'] = BrightnessTransform
 Corruptions['Contrast'] = ContrastTransform
 Corruptions['Elastic'] = ElasticTransform
-Corruptions['Pixelate'] = Pixelate
-Corruptions['JPEG'] = JpegCompressionTransform
+Corruptions['Pixelate'] = Pixelate  # do this
+Corruptions['JPEG'] = JpegCompressionTransform  # DO this
 Corruptions['Speckle Noise'] = SpeckleNoiseTransform
 Corruptions['Gaussian Blur'] = GaussianBlurTransform
 Corruptions['Spatter'] = SpatterTransfrom
