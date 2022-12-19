@@ -254,8 +254,8 @@ def main():
     corruption_dict = corruptions.Corruptions
     for name, corri in corruption_dict.items():
         for i in range(1, 6):
-            print(f"Corruption {corri}, severity: {i}")
-            corruption = corruption_dict[corri](severity=i)
+            print(f"Corruption {name}, severity: {i}")
+            corruption = corri(severity=i)
             transform_list = transform_clip.transforms[:-2]
             transform_list.append(corruption)
             transform_list.extend(transform_clip.transforms[-2:])
