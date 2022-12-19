@@ -8,6 +8,7 @@ def wandb_log(metrics_dict, experiment="distances"):
         name = "-".join([metrics_dict["dataset"], metrics_dict["corruption"], datetime.today().strftime('%Y/%m/%d')])
     else:
         name = "-".join([metrics_dict["dataset"], datetime.today().strftime('%Y/%m/%d')])
+        metrics_dict["corruption"] = "No Corruption"
     if experiment == "distances":
         run = wandb.init(project="thesis-datasets",
                          entity="wandbefab",
