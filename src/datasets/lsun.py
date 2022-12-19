@@ -260,8 +260,9 @@ def main():
         for i in range(1, 6):
             print(f"Corruption {corr}, severity: {i}")
             corruption = corruption_dict[co](severity=i)
-            transform_list = transform_clip.transforms[:-1]
+            transform_list = transform_clip.transforms[:-2]
             transform_list.append(corruption)
+            transform_list.append(transform_clip[-2:])
             transform = Compose(transform_list)
             dataset = OodLSUN(data_path, transform, train)
             run = get_distances_for_dataset(dataset, clip_model, "LSUN", lsun=True, corruption=corr, severity=i)
