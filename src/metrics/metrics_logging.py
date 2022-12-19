@@ -31,9 +31,12 @@ def wandb_log(metrics_dict, experiment="distances"):
         return
 
     # remove strings
-    metrics_dict.pop("corruption")
-    metrics_dict.pop("dataset")
-    metrics_dict.pop("model")
+    try:
+        metrics_dict.pop("dataset")
+        metrics_dict.pop("model")
+        metrics_dict.pop("corruption")
+    except KeyError:
+        pass
     wandb.log(
         metrics_dict
     )
