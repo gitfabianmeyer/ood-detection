@@ -36,4 +36,4 @@ def wandb_log(metrics_dict, experiment="distances"):
     wandb.log(
         metrics_dict
     )
-    run.finish()
+    return run

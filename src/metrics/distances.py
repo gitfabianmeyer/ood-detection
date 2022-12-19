@@ -237,4 +237,4 @@ def get_distances_for_dataset(dataset, clip_model, name, splits=10, id_split=.4,
     if corruption and severity:
         logging_dict["corruption"] = corruption
         logging_dict["severity"] = severity
-    wandb_log(logging_dict)
+    return wandb_log(logging_dict)
