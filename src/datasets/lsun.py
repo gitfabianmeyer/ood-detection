@@ -261,7 +261,7 @@ def main():
             transform_list.extend(transform_clip.transforms[-2:])
             transform = Compose(transform_list)
             dataset = OodLSUN(data_path, transform, train)
-            run = get_distances_for_dataset(dataset, clip_model, "LSUN", lsun=True, corruption=corri, severity=i)
+            run = get_distances_for_dataset(dataset, clip_model, "LSUN", lsun=True, corruption=name, severity=i)
         run.finish()
 
     clip_model, transform_clip = clip.load(Config.VISION_MODEL)
