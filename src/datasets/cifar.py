@@ -38,12 +38,12 @@ def main():
             if name == 'Glass Blur':
                 continue
             print(f"Corruption {name}, severity: {i}")
-            corruption = corruption_dict[corr](severity=i)
+            corruption = corr(severity=i)
             transform_list = transform_clip.transforms[:-1]
             transform_list.append(corruption)
             transform = Compose(transform_list)
             dataset = OodCifar10(data_path, transform, train)
-            get_distances_for_dataset(dataset, clip_model, "CIFAR10", lsun=False, corruption=corr, severity=i)
+            get_distances_for_dataset(dataset, clip_model, "CIFAR10", lsun=False, corruption=name, severity=i)
 
 
 if __name__ == '__main__':
