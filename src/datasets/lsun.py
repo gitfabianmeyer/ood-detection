@@ -255,16 +255,17 @@ def main():
     full_batch_classification(dataset, clip_model, "LSUN")
 
     corruption_dict = corruptions.Corruptions
-    corr = "Gaussian Blur"
-    for i in range(1,6):
-        print(f"Corruption {corr}, severity: {i}")
-        corruption = corruption_dict[corr](severity=i)
-        transform_list = transform_clip.transforms[:-1]
-        transform_list.append(corruption)
-        transform = Compose(transform_list)
-        dataset = OodLSUN(data_path, transform, train)
-        get_distances_for_dataset(dataset, clip_model, "LSUN", lsun=True, corruption=corr, severity=i)
-        # full_batch_classification(dataset, clip_model, "LSUN")
+    corr = "Gaussian Blur", "Impulse Noise"
+    for co in corr:
+        for i in range(1, 6):
+            print(f"Corruption {corr}, severity: {i}")
+            corruption = corruption_dict[co](severity=i)
+            transform_list = transform_clip.transforms[:-1]
+            transform_list.append(corruption)
+            transform = Compose(transform_list)
+            dataset = OodLSUN(data_path, transform, train)
+            get_distances_for_dataset(dataset, clip_model, "LSUN", lsun=True, corruption=corr, severity=i)
+            # full_batch_classification(dataset, clip_model, "LSUN")
 
 
 if __name__ == '__main__':

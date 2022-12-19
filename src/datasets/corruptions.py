@@ -2,7 +2,8 @@ import collections
 import os.path
 from abc import ABC, abstractmethod
 
-import PIL
+import PIL.Image
+from PIL import Image, ImageFile
 import numpy as np
 import skimage as sk
 import torch
@@ -12,7 +13,6 @@ from wand.image import Image as WandImage
 from wand.api import library as wandlibrary
 import wand.color as WandColor
 import ctypes
-from PIL import Image as PILImage
 import cv2
 from scipy.ndimage import zoom as scizoom
 from scipy.ndimage.interpolation import map_coordinates
@@ -121,9 +121,10 @@ class OodTransform(ABC):
         self.sample_shape = (224, 224, 3)
 
     def __call__(self, sample):
-        if isinstance(sample, (PIL.ImageFile.ImageFile, PIL.Image.Image)):
+        if isinstance(sample, (ImageFile.ImageFile, Image.Image)):
             sample = np.array(sample)
         assert sample.shape == self.sample_shape, f"Wrong image shape: {sample.shape} instead of {self.sample_shape}"
+
         return self.transform(sample)
 
     @abstractmethod
@@ -135,10 +136,10 @@ class GaussianNoiseTransform(OodTransform):
     def transform(self, sample):
         c = [.08, .12, 0.18, 0.26, 0.38][self.severity - 1]
         sample = np.array(sample) / 255.
-        return np.clip(sample + np.random.normal(size=sample.shape, scale=c), 0, 1) * 255
+        sample = np.clip(sample + np.random.normal(size=sample.shape, scale=c), 0, 1) * 255
+        return sample
 
 
-# dothis
 class ShotNoiseTransform(OodTransform):
     def transform(self, sample):
         c = [60, 25, 12, 5, 3][self.severity - 1]
@@ -163,11 +164,10 @@ class SpeckleNoiseTransform(OodTransform):
 class GaussianBlurTransform(OodTransform):
     def transform(self, sample):
         c = [1, 2, 3, 4, 6][self.severity - 1]
-        sample = gaussian(np.array(sample) / 255., sigma=c, multichannel=True)
+        sample = gaussian(np.array(sample) / 255., sigma=c, channel_axis=2)
         return np.clip(sample, 0, 1) * 255
 
 
-# dothis
 class GlassBlurTransform(OodTransform):
     def transform(self, sample):
         # sigma, max_delta, iterations
@@ -186,7 +186,6 @@ class GlassBlurTransform(OodTransform):
         return np.clip(gaussian(sample / 255., sigma=c[0], channel_axis=True), 0, 1) * 255
 
 
-# dothis
 class DefocusBlurTransform(OodTransform):
     def transform(self, sample):
         c = [(3, 0.1), (4, 0.5), (6, 0.5), (8, 0.5), (10, 0.5)][self.severity - 1]
@@ -203,29 +202,36 @@ class DefocusBlurTransform(OodTransform):
 
 
 class MotionBlurTransform(OodTransform):
-    def transform(self, x):
-
+    def transform(self, sample):
         c = [(10, 3), (15, 5), (15, 8), (15, 12), (20, 15)][self.severity - 1]
+        if isinstance(sample, np.ndarray):
+            sample = Image.fromarray(sample)
+        with BytesIO() as output:
+            sample.save(output, format='PNG')
+            output.seek(0)
+            sample = MotionImage(blob=output.getvalue())
 
-        output = BytesIO()
-        x.save(output, format='PNG')
-        x = MotionImage(blob=output.getvalue())
+        # sample.save(output, format='PNG')
+        # sample = MotionImage(blob=output.getvalue())
+        sample.motion_blur(radius=c[0], sigma=c[1], angle=np.random.uniform(-45, 45))
 
-        x.motion_blur(radius=c[0], sigma=c[1], angle=np.random.uniform(-45, 45))
-
-        x = cv2.imdecode(np.fromstring(x.make_blob(), np.uint8),
-                         cv2.IMREAD_UNCHANGED)
-
-        if x.shape != (224, 224):
-            return np.clip(x[..., [2, 1, 0]], 0, 255)  # BGR to RGB
-        else:  # greyscale to RGB
-            return np.clip(np.array([x, x, x]).transpose((1, 2, 0)), 0, 255)
+        sample = cv2.imdecode(np.frombuffer(sample.make_blob(), np.uint8),
+                              cv2.IMREAD_UNCHANGED)
+        # print(sample[:5, :5, :])
+        if sample.shape != self.sample_shape:
+            return np.clip(sample[..., [2, 1, 0]], 0, 255)  # BGR to RGB
+        return sample.astype(float)
 
 
-# dothis reshaping / permuting
 class ZoomBlurTransform(OodTransform):
     def transform(self, sample):
-        sample = sample.permute(1, 2, 0)
+        if isinstance(sample, (PIL.Image.Image, PIL.ImageFile.ImageFile)):
+            sample = np.asarray(sample)
+        if sample.shape != self.sample_shape:
+            if sample.shape == (3, 224, 224):
+                sample = sample.transpose(1, 2, 0)
+            else:
+                raise IndexError(f"Wrong shape. Expected CHW or HWC, got:{sample.shape}")
         c = [np.arange(1, 1.11, 0.01),
              np.arange(1, 1.16, 0.01),
              np.arange(1, 1.21, 0.02),
@@ -239,7 +245,6 @@ class ZoomBlurTransform(OodTransform):
             out += clipped_zoom(sample, zoom_factor)
 
         sample = (sample + out) / (len(c) + 1)
-        sample = sample.permute(2, 0, 1)
         return np.clip(sample, 0, 1) * 255
 
 
@@ -272,7 +277,7 @@ class FogTransform(OodTransform):
 
 
 class FrostTransform(OodTransform):
-    def __init__(self, severity):
+    def __init__(self, severity=1):
         super(FrostTransform, self).__init__(severity)
         self.frostis = ['frost1.png', 'frost2.png', 'frost3.png', 'frost4.jpg', 'frost5.jpg', 'frost6.jpg']
         self.frostis = [os.path.join(Config.DATAPATH, 'frost', frost) for frost in self.frostis]
@@ -308,14 +313,14 @@ class SnowTransform(OodTransform):
         snow_layer = clipped_zoom(snow_layer[..., np.newaxis], c[2])
         snow_layer[snow_layer < c[3]] = 0
 
-        snow_layer = PILImage.fromarray((np.clip(snow_layer.squeeze(), 0, 1) * 255).astype(np.uint8), mode='L')
+        snow_layer = Image.fromarray((np.clip(snow_layer.squeeze(), 0, 1) * 255).astype(np.uint8), mode='L')
         output = BytesIO()
         snow_layer.save(output, format='PNG')
         snow_layer = MotionImage(blob=output.getvalue())
 
         snow_layer.motion_blur(radius=c[4], sigma=c[5], angle=np.random.uniform(-135, -45))
 
-        snow_layer = cv2.imdecode(np.fromstring(snow_layer.make_blob(), np.uint8),
+        snow_layer = cv2.imdecode(np.frombuffer(snow_layer.make_blob(), np.uint8),
                                   cv2.IMREAD_UNCHANGED) / 255.
         snow_layer = snow_layer[..., np.newaxis]
 
@@ -419,23 +424,31 @@ class JpegCompressionTransform(OodTransform):
     def transform(self, sample):
         c = [25, 18, 15, 10, 7][self.severity - 1]
         if isinstance(sample, np.ndarray):
-            sample = PILImage.fromarray(sample)
+            sample = Image.fromarray(sample)
         with BytesIO() as f:
             sample.save(f, format='JPEG', quality=c)
             f.seek(0)
-            sample = PILImage.open(f)
+            sample = Image.open(f)
             sample.load()
-        return np.array(sample) * 255
+        sample = np.array(sample).astype(float)
+        return sample
 
 
-class Pixelate(OodTransform):
+class Pixelate:
+    def __init__(self, severity=1):
+        self.severity = severity
+
+    def __call__(self, sample):
+        if isinstance(sample, np.ndarray):
+            sample = PIL.Image.fromarray(sample, mode='RGB')
+        return self.transform(sample)
+
     def transform(self, sample):
         c = [0.6, 0.5, 0.4, 0.3, 0.25][self.severity - 1]
 
-        sample = sample.resize((int(224 * c), int(224 * c)), PILImage.BOX)
-        sample = sample.resize((224, 224), PILImage.BOX)
-
-        return sample
+        sample = sample.resize((int(224 * c), int(224 * c)), Image.BOX)
+        sample = sample.resize((224, 224), Image.BOX)
+        return np.array(sample).astype(float)
 
 
 # mod of https://gist.github.com/erniejunior/601cdf56d2b424757de5
@@ -472,27 +485,22 @@ class ElasticTransform(OodTransform):
         return np.clip(map_coordinates(sample, indices, order=1, mode='reflect').reshape(shape), 0, 1) * 255
 
 
-def get_clip_corruptin_transform(corruption_name, clip_transforms):
-    assert corruption_name in Corruptions.keys(), 'Use a corruption from the list'
-    transforms = []
-
-
 Corruptions = collections.OrderedDict()
 Corruptions['Gaussian Noise'] = GaussianNoiseTransform
 Corruptions['Shot Noise'] = ShotNoiseTransform
 Corruptions['Impulse Noise'] = ImpulseNoiseTransform
 Corruptions['Defocus Blur'] = DefocusBlurTransform
-Corruptions['Glass Blur'] = GlassBlurTransform # speed
-Corruptions['Motion Blur'] = MotionBlurTransform  # dothis
-Corruptions['Zoom Blur'] = ZoomBlurTransform  # dothis
+Corruptions['Glass Blur'] = GlassBlurTransform  # speed
+Corruptions['Motion Blur'] = MotionBlurTransform
+Corruptions['Zoom Blur'] = ZoomBlurTransform
 Corruptions['Snow'] = SnowTransform
 Corruptions['Frost'] = FrostTransform
 Corruptions['Fog'] = FogTransform
 Corruptions['Brightness'] = BrightnessTransform
 Corruptions['Contrast'] = ContrastTransform
 Corruptions['Elastic'] = ElasticTransform
-Corruptions['Pixelate'] = Pixelate  # do this
-Corruptions['JPEG'] = JpegCompressionTransform  # DO this
+Corruptions['Pixelate'] = Pixelate
+Corruptions['JPEG'] = JpegCompressionTransform
 Corruptions['Speckle Noise'] = SpeckleNoiseTransform
 Corruptions['Gaussian Blur'] = GaussianBlurTransform
 Corruptions['Spatter'] = SpatterTransfrom
