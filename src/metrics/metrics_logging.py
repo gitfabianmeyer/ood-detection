@@ -4,9 +4,10 @@ from ood_detection.config import Config
 
 
 def wandb_log(metrics_dict, experiment="distances"):
-    name = "-".join([metrics_dict["dataset"], datetime.today().strftime('%Y/%m/%d')])
     if "corruption" in metrics_dict.keys():
         name = "-".join([metrics_dict["dataset"], metrics_dict["corruption"], datetime.today().strftime('%Y/%m/%d')])
+    else:
+        name = "-".join([metrics_dict["dataset"], datetime.today().strftime('%Y/%m/%d')])
     if experiment == "distances":
         run = wandb.init(project="thesis-datasets",
                          entity="wandbefab",
