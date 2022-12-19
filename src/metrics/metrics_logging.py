@@ -17,7 +17,7 @@ def wandb_log(metrics_dict, experiment="distances"):
                                'clp',
                                'zsa',
                                metrics_dict["corruption"],
-                               metrics_dict["name"],
+                               metrics_dict["dataset"],
                                metrics_dict["model"]],
                          )
 
