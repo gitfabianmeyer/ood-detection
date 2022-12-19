@@ -32,7 +32,7 @@ def wandb_log(metrics_dict, experiment="distances"):
 
     # remove strings
     metrics_dict.pop("corruption")
-    metrics_dict.pop("name")
+    metrics_dict.pop("dataset")
     metrics_dict.pop("model")
     wandb.log(
         metrics_dict
