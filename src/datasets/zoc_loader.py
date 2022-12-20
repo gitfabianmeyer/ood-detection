@@ -43,18 +43,16 @@ class IsolatedClass(Dataset):
 
     def __getitem__(self, idx):
         image_file = self.data[idx]
-        try:
+        if isinstance(image_file, np.ndarray):
+            if np.logical_and(image_file >= 0, image_file <= 1).all() and np.issubdtype(image_file.dtype, np.floating):
+                image_file = (image_file * 255).astype(np.uint8)
+            elif np.logical_and(image_file >= 0, image_file <= 255).all():
+
+                image_file = image_file.astype(np.uint8)
+            img = Image.fromarray(image_file)
+        else:
             # works for most datasets
             img = Image.open(image_file)
-        except AttributeError:
-            try:
-                if type(image_file) == numpy.ndarray:
-                    img = Image.fromarray(image_file)
-                else:
-                    img = Image.fromarray(image_file.numpy(), mode="L")
-            except TypeError:  # for svhn b/w images
-                img = Image.fromarray(np.transpose(image_file, (1, 2, 0)))
-
         return self.transform(img.convert('RGB'))
 
     def __len__(self):
