@@ -2,12 +2,10 @@ import logging
 import clip
 import numpy as np
 import torchvision.datasets
-from datasets import corruptions
 from datasets.classnames import cifar_templates
 from ood_detection.config import Config
 
-from metrics.distances import get_distances_for_dataset
-from torchvision.transforms import Compose
+from metrics.distances import get_distances_for_dataset, get_corruption_metrics
 
 logging.basicConfig(level=logging.INFO)
 
@@ -28,21 +26,7 @@ def main():
     data_path = Config.DATAPATH
     train = False
     clip_model, transform_clip = clip.load(Config.VISION_MODEL)
-
-    corruption_dict = corruptions.Corruptions
-    for name, corr in corruption_dict.items():
-        for i in range(1, 6):
-            if name == 'Glass Blur':
-                continue
-            print(f"Corruption {name}, severity: {i}")
-            corruption = corr(severity=i)
-            transform_list = transform_clip.transforms[:-2]
-            transform_list.append(corruption)
-            transform_list.extend(transform_clip.transforms[-2:])
-            transform = Compose(transform_list)
-
-            dataset = OodCifar10(data_path, transform, train)
-            get_distances_for_dataset(dataset, clip_model, "CIFAR10", lsun=False, corruption=name, severity=i)
+    get_corruption_metrics(OodCifar10, clip_model, transform_clip, "CIFAR10")
 
     cifar = OodCifar10(data_path, transform_clip, train)
     get_distances_for_dataset(cifar, clip_model, "cifar10")

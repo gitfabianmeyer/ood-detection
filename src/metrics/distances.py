@@ -5,12 +5,14 @@ from abc import ABC, abstractmethod
 import clip
 import numpy as np
 import torch
+from datasets import corruptions
 from datasets.classnames import imagenet_templates
 from datasets.zoc_loader import single_isolated_class_loader
 from ood_detection.config import Config
 from ood_detection.classification_utils import zeroshot_classifier, classify
 from sklearn.metrics.pairwise import rbf_kernel
 import torch.nn.functional as F
+from torchvision.transforms import Compose
 from tqdm import tqdm
 
 from metrics.distances_utils import id_ood_printer, \
@@ -238,3 +240,21 @@ def get_distances_for_dataset(dataset, clip_model, name, splits=10, id_split=.4,
         logging_dict["corruption"] = corruption
         logging_dict["severity"] = severity
     return wandb_log(logging_dict)
+
+
+def get_corruption_metrics(dataset, clip_model, clip_transform, dataset_name, lsun=False, train=False):
+    data_path = Config.DATAPATH
+    corruption_dict = corruptions.Corruptions
+    for name, corr in corruption_dict.items():
+        for i in range(1, 6):
+            if name == 'Glass Blur':
+                continue
+            _logger.info(f"Corruption {name}, severity: {i}")
+            corruption = corr(severity=i)
+            transform_list = clip_transform.transforms[:-2]
+            transform_list.append(corruption)
+            transform_list.extend(clip_transform.transforms[-2:])
+            transform = Compose(transform_list)
+            dataset = dataset(data_path, transform, train)
+
+            get_distances_for_dataset(dataset, clip_model, dataset_name, lsun=False, corruption=name, severity=i)
