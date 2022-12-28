@@ -6,9 +6,8 @@ import numpy as np
 import torchvision.datasets
 from PIL import Image
 from datasets.classnames import caltech101_templates
-from ood_detection.config import Config
 
-from metrics.distances import get_distances_for_dataset, get_corruption_metrics
+from metrics.distances import run_full_distances
 
 logging.basicConfig(level=logging.INFO)
 
@@ -50,13 +49,8 @@ class OodCaltech101(torchvision.datasets.Caltech101):
 
 def main():
     name = 'CALTECH101'
-    data_path = Config.DATAPATH
-    train = False
-    clip_model, transform_clip = clip.load(Config.VISION_MODEL)
-    get_corruption_metrics(OodCaltech101, clip_model, transform_clip, name)
-
-    cifar = OodCaltech101(data_path, transform_clip, train)
-    get_distances_for_dataset(cifar, clip_model, name)
+    dataset = OodCaltech101
+    run_full_distances(name=name, dataset=dataset, lsun=False)
 
 
 if __name__ == '__main__':

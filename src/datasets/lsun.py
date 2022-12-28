@@ -14,13 +14,12 @@ from urllib.request import Request, urlopen
 from PIL import Image
 from datasets import corruptions
 from datasets.classnames import imagenet_templates
-from metrics.distances import get_distances_for_dataset
+from metrics.distances import get_distances_for_dataset, get_corruption_metrics, run_full_distances
 from ood_detection.classification_utils import full_batch_classification
 from ood_detection.config import Config
 from torchvision.datasets import VisionDataset
 from torchvision.datasets.utils import verify_str_arg, iterable_to_str
 from torchvision.transforms import Compose
-
 logging.basicConfig(level=logging.INFO)
 _logger = logging.getLogger(__name__)
 
@@ -247,26 +246,9 @@ class OodLSUN(LSUN):
 
 
 def main():
-    data_path = Config.DATAPATH
-    train = False
-    clip_model, transform_clip = clip.load(Config.VISION_MODEL)
-
-    corruption_dict = corruptions.Corruptions
-    for name, corri in corruption_dict.items():
-        for i in range(1, 6):
-            print(f"Corruption {name}, severity: {i}")
-            corruption = corri(severity=i)
-            transform_list = transform_clip.transforms[:-2]
-            transform_list.append(corruption)
-            transform_list.extend(transform_clip.transforms[-2:])
-            transform = Compose(transform_list)
-            dataset = OodLSUN(data_path, transform, train)
-            run = get_distances_for_dataset(dataset, clip_model, "LSUN", lsun=True, corruption=name, severity=i)
-        run.finish()
-
-    clip_model, transform_clip = clip.load(Config.VISION_MODEL)
-    dataset = OodLSUN(data_path, transform_clip, train)
-    get_distances_for_dataset(dataset, clip_model, "LSUN", lsun=True)
+    name = "LSUN"
+    dataset = OodLSUN
+    run_full_distances(name, lsun=True)
 
 
 if __name__ == '__main__':

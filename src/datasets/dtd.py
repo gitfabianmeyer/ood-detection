@@ -6,16 +6,16 @@ import numpy as np
 import torchvision.datasets
 from datasets.classnames import dtd_templates
 
-from metrics.distances import get_distances_for_dataset
+from metrics.distances import get_distances_for_dataset, run_full_distances
 from ood_detection.config import Config
 
 logging.basicConfig(level=logging.INFO)
 
 
 class OodDTD(torchvision.datasets.DTD):
-    def __init__(self, data_path, preprocess, train, templates=None):
+    def __init__(self, data_path, transform, train, templates=None):
         super().__init__(data_path,
-                         transform=preprocess,
+                         transform=transform,
                          download=True,
                          split='train' if train else 'val')
         self.data = self._image_files
@@ -36,13 +36,11 @@ class OodDTD(torchvision.datasets.DTD):
 
 
 def main():
-    data_path = Config.DATAPATH
-    train = False
-    clip_model, transform = clip.load(Config.VISION_MODEL)
-
-    dataset = OodDTD(data_path, transform, train)
-    get_distances_for_dataset(dataset, clip_model, "Describable Textures Dataset")
+    name = "dtd"
+    dataset = OodDTD
+    run_full_distances(name, dataset, lsun=False)
 
 
 if __name__ == '__main__':
     main()
+

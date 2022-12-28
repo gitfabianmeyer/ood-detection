@@ -7,6 +7,8 @@ from datasets.classnames import cifar_templates
 from metrics.distances import get_distances_for_dataset
 from ood_detection.config import Config
 
+from metrics.distances import run_full_distances
+
 logging.basicConfig(level=logging.INFO)
 
 
@@ -21,13 +23,11 @@ class OodCifar100(torchvision.datasets.CIFAR100):
 
 
 def main():
-    data_path = Config.DATAPATH
-    train = False
-    clip_model, transform = clip.load(Config.VISION_MODEL)
-
-    cifar = OodCifar100(data_path, transform, train)
-    get_distances_for_dataset(cifar, clip_model, "cifar100")
+    name = "cifar100"
+    dataset = OodCifar100
+    run_full_distances(name, dataset, lsun=False)
 
 
 if __name__ == '__main__':
     main()
+

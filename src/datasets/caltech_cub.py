@@ -1,16 +1,13 @@
 import logging
 import os
 
-import clip
 import numpy as np
 from PIL import Image
 from datasets.classnames import imagenet_templates
-from ood_detection.classification_utils import full_classification
 from torchvision.datasets.utils import download_url
 from torch.utils.data import Dataset
 
-from ood_detection.config import Config
-from metrics.distances import get_distances_for_dataset
+from metrics.distances import run_full_distances
 
 logging.basicConfig(level=logging.INFO)
 
@@ -117,12 +114,9 @@ class OodCub2011(Dataset):
 
 
 def main():
-    data_path = Config.DATAPATH
-    train = False
-    clip_model, transform = clip.load(Config.VISION_MODEL)
-
-    dataset = OodCub2011(data_path, transform, train)
-    get_distances_for_dataset(dataset, clip_model, "CUB2011")
+    name = "caltech cub"
+    dataset = OodCub2011
+    run_full_distances(name=name, dataset=dataset, lsun=False)
 
 
 if __name__ == '__main__':

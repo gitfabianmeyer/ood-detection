@@ -47,9 +47,11 @@ class IsolatedClass(Dataset):
             if np.logical_and(image_file >= 0, image_file <= 1).all() and np.issubdtype(image_file.dtype, np.floating):
                 image_file = (image_file * 255).astype(np.uint8)
             elif np.logical_and(image_file >= 0, image_file <= 255).all():
-
                 image_file = image_file.astype(np.uint8)
             img = Image.fromarray(image_file)
+        elif isinstance(image_file, torch.Tensor):
+            # mnist & fashionmnist
+            img = Image.fromarray(image_file.numpy(), mode="L")
         else:
             # works for most datasets
             img = Image.open(image_file)

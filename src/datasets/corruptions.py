@@ -6,19 +6,16 @@ import PIL.Image
 from PIL import Image, ImageFile
 import numpy as np
 import skimage as sk
-import torch
 from skimage.filters import gaussian
 from io import BytesIO
 from wand.image import Image as WandImage
 from wand.api import library as wandlibrary
-import wand.color as WandColor
 import ctypes
 import cv2
 from scipy.ndimage import zoom as scizoom
 from scipy.ndimage.interpolation import map_coordinates
-import warnings
 
-from ood_detection.config import Config
+from ood_detection.config import Config as OodConfig
 
 
 # https://github.com/hendrycks/robustness/blob/master/ImageNet- C/imagenet_c/imagenet_c/corruptions.py
@@ -125,7 +122,7 @@ class OodTransform(ABC):
             sample = np.array(sample)
         assert sample.shape == self.sample_shape, f"Wrong image shape: {sample.shape} instead of {self.sample_shape}"
 
-        return self.transform(sample)
+        return self.transform(sample).astype(np.uint8)
 
     @abstractmethod
     def transform(self, sample):
@@ -206,6 +203,7 @@ class MotionBlurTransform(OodTransform):
         c = [(10, 3), (15, 5), (15, 8), (15, 12), (20, 15)][self.severity - 1]
         if isinstance(sample, np.ndarray):
             sample = Image.fromarray(sample)
+            to_store = sample.copy()
         with BytesIO() as output:
             sample.save(output, format='PNG')
             output.seek(0)
@@ -217,9 +215,13 @@ class MotionBlurTransform(OodTransform):
 
         sample = cv2.imdecode(np.frombuffer(sample.make_blob(), np.uint8),
                               cv2.IMREAD_UNCHANGED)
+        sample = cv2.cvtColor(sample, cv2.COLOR_BGR2RGB)
+
         # print(sample[:5, :5, :])
         if sample.shape != self.sample_shape:
-            return np.clip(sample[..., [2, 1, 0]], 0, 255)  # BGR to RGB
+            to_store.save(os.path.join(OodConfig.DATAPATH, "fail_image.png"))
+            return sample
+        # print(sample.max())
         return sample.astype(float)
 
 
@@ -248,24 +250,6 @@ class ZoomBlurTransform(OodTransform):
         return np.clip(sample, 0, 1) * 255
 
 
-# def barrel(x, severity=1):
-#     c = [(0,0.03,0.03), (0.05,0.05,0.05), (0.1,0.1,0.1),
-#          (0.2,0.2,0.2), (0.1,0.3,0.6)][severity - 1]
-#
-#     output = BytesIO()
-#     x.save(output, format='PNG')
-#
-#     x = WandImage(blob=output.getvalue())
-#     x.distort('barrel', c)
-#
-#     x = cv2.imdecode(np.fromstring(x.make_blob(), np.uint8),
-#                      cv2.IMREAD_UNCHANGED)
-#
-#     if x.shape != (224, 224):
-#         return np.clip(x[..., [2, 1, 0]], 0, 255)  # BGR to RGB
-#     else:  # greyscale to RGB
-#         return np.clip(np.array([x, x, x]).transpose((1, 2, 0)), 0, 255)
-
 class FogTransform(OodTransform):
     def transform(self, sample):
         c = [(1.5, 2), (2, 2), (2.5, 1.7), (2.5, 1.5), (3, 1.4)][self.severity - 1]
@@ -280,7 +264,7 @@ class FrostTransform(OodTransform):
     def __init__(self, severity=1):
         super(FrostTransform, self).__init__(severity)
         self.frostis = ['frost1.png', 'frost2.png', 'frost3.png', 'frost4.jpg', 'frost5.jpg', 'frost6.jpg']
-        self.frostis = [os.path.join(Config.DATAPATH, 'frost', frost) for frost in self.frostis]
+        self.frostis = [os.path.join(OodConfig.DATAPATH, 'frost', frost) for frost in self.frostis]
 
     def transform(self, sample):
         c = [(1, 0.4),
@@ -448,7 +432,7 @@ class Pixelate:
 
         sample = sample.resize((int(224 * c), int(224 * c)), Image.BOX)
         sample = sample.resize((224, 224), Image.BOX)
-        return np.array(sample).astype(float)
+        return np.array(sample).astype(np.float32) / 255
 
 
 # mod of https://gist.github.com/erniejunior/601cdf56d2b424757de5
@@ -490,7 +474,6 @@ Corruptions['Gaussian Noise'] = GaussianNoiseTransform
 Corruptions['Shot Noise'] = ShotNoiseTransform
 Corruptions['Impulse Noise'] = ImpulseNoiseTransform
 Corruptions['Defocus Blur'] = DefocusBlurTransform
-Corruptions['Glass Blur'] = GlassBlurTransform  # speed
 Corruptions['Motion Blur'] = MotionBlurTransform
 Corruptions['Zoom Blur'] = ZoomBlurTransform
 Corruptions['Snow'] = SnowTransform
@@ -501,7 +484,9 @@ Corruptions['Contrast'] = ContrastTransform
 Corruptions['Elastic'] = ElasticTransform
 Corruptions['Pixelate'] = Pixelate
 Corruptions['JPEG'] = JpegCompressionTransform
-Corruptions['Speckle Noise'] = SpeckleNoiseTransform
-Corruptions['Gaussian Blur'] = GaussianBlurTransform
-Corruptions['Spatter'] = SpatterTransfrom
-Corruptions['Saturate'] = SaturateTransform
+Corruptions['Glass Blur'] = GlassBlurTransform  # speed
+
+# Corruptions['Speckle Noise'] = SpeckleNoiseTransform
+# Corruptions['Gaussian Blur'] = GaussianBlurTransform
+# Corruptions['Spatter'] = SpatterTransfrom
+# Corruptions['Saturate'] = SaturateTransform

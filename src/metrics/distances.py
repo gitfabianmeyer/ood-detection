@@ -20,6 +20,7 @@ from metrics.distances_utils import id_ood_printer, \
     distance_name_printer, accuracy_printer, debug_scores
 from metrics.metrics_logging import wandb_log
 
+
 _logger = logging.getLogger(__name__)
 _logger.setLevel(logging.INFO)
 
@@ -244,17 +245,32 @@ def get_distances_for_dataset(dataset, clip_model, name, splits=10, id_split=.4,
 
 def get_corruption_metrics(dataset, clip_model, clip_transform, dataset_name, lsun=False, train=False):
     data_path = Config.DATAPATH
+
     corruption_dict = corruptions.Corruptions
-    for name, corr in corruption_dict.items():
+    for name, corri in corruption_dict.items():
         for i in range(1, 6):
-            if name == 'Glass Blur':
-                continue
-            _logger.info(f"Corruption {name}, severity: {i}")
-            corruption = corr(severity=i)
+            print(f"Corruption {name}, severity: {i}")
+            corruption = corri(severity=i)
             transform_list = clip_transform.transforms[:-2]
             transform_list.append(corruption)
             transform_list.extend(clip_transform.transforms[-2:])
             transform = Compose(transform_list)
-            dataset = dataset(data_path, transform, train)
+            dset = dataset(data_path, transform, train)
+            run = get_distances_for_dataset(dset, clip_model, dataset_name, lsun=lsun, corruption=name, severity=i)
+        run.finish()
 
-            get_distances_for_dataset(dataset, clip_model, dataset_name, lsun=False, corruption=name, severity=i)
+
+def run_full_distances(name, dataset, lsun=False):
+    data_path = Config.DATAPATH
+    train = False
+    clip_model, transform_clip = clip.load(Config.VISION_MODEL)
+
+    get_corruption_metrics(dataset=dataset,
+                           clip_model=clip_model,
+                           clip_transform=transform_clip,
+                           dataset_name=name,
+                           lsun=lsun,
+                           train=train)
+
+    dataset = dataset(data_path, transform_clip, train)
+    get_distances_for_dataset(dataset, clip_model, name, lsun=lsun)
