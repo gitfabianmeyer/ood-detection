@@ -5,7 +5,7 @@ import clip
 import numpy as np
 import torchvision
 from datasets import corruptions
-from metrics.distances import get_distances_for_dataset
+from metrics.distances import get_distances_for_dataset, run_full_distances
 from ood_detection.config import Config
 from datasets.classnames import stanfordcars_templates
 from torchvision.transforms import Compose
@@ -41,24 +41,11 @@ class OodStanfordCars(torchvision.datasets.StanfordCars):
 
 
 def main():
-    data_path = Config.DATAPATH
-    train = False
-    clip_model, transform_clip = clip.load(Config.VISION_MODEL)
+    name = "StanfordCars"
+    dataset = OodStanfordCars
+    run_full_distances(name, dataset, lsun=False)
 
-    dataset = OodStanfordCars(data_path, transform_clip, train)
-    get_distances_for_dataset(dataset, clip_model, "StanfordCars")
-
-    corruption_dict = corruptions.Corruptions
-    corr = "Gaussian Blur"
-    for i in range(1, 6):
-        print(f"Corruption {corr}, severity: {i}")
-        corruption = corruption_dict[corr](severity=i)
-        transform_list = transform_clip.transforms[:-1]
-        transform_list.append(corruption)
-        transform = Compose(transform_list)
-        dataset = OodStanfordCars(data_path, transform, train)
-        get_distances_for_dataset(dataset, clip_model, "StanfordCars", lsun=False, corruption=corr, severity=i)
-        # full_batch_classification(dataset, clip_model, "LSUN")
 
 if __name__ == '__main__':
     main()
+

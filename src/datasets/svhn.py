@@ -4,7 +4,8 @@ import os.path
 import clip
 import torchvision.datasets
 
-from metrics.distances import get_distances_for_dataset
+
+from metrics.distances import get_distances_for_dataset, run_full_distances
 from ood_detection.classification_utils import full_classification, full_batch_classification
 from ood_detection.config import Config
 from datasets.classnames import mnist_templates
@@ -31,14 +32,11 @@ class OodSVHN(torchvision.datasets.SVHN):
 
 
 def main():
-    data_path = Config.DATAPATH
-    train = False
-    clip_model, transform = clip.load(Config.VISION_MODEL)
-
-    classes = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"]
-    dataset = OodSVHN(data_path, transform, train, classes=classes)
-    get_distances_for_dataset(dataset, clip_model, "SVHN")
+    name = "SVHN"
+    dataset = OodSVHN
+    run_full_distances(name, dataset, lsun=False)
 
 
 if __name__ == '__main__':
     main()
+

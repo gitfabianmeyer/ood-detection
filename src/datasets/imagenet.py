@@ -14,7 +14,7 @@ from torchvision.datasets import ImageFolder
 from tqdm.autonotebook import tqdm
 
 from ood_detection.config import Config
-from metrics.distances import get_distances_for_dataset
+from metrics.distances import get_distances_for_dataset, get_corruption_metrics, run_full_distances
 
 logging.basicConfig(level=logging.INFO)
 
@@ -239,13 +239,11 @@ class OodTinyImageNet(TinyImageNetImageFolder):
 
 
 def main():
-    data_path = Config.DATAPATH
-    train = False
-    clip_model, transform = clip.load(Config.VISION_MODEL)
-
-    dataset = OodTinyImageNet(data_path, transform, train)
-    get_distances_for_dataset(dataset, clip_model, "TinyImagenet")
+    name = "Tiny Imagenet"
+    dataset = OodTinyImageNet
+    run_full_distances(name, dataset, lsun=False)
 
 
 if __name__ == '__main__':
     main()
+

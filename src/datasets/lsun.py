@@ -248,7 +248,7 @@ class OodLSUN(LSUN):
 def main():
     name = "LSUN"
     dataset = OodLSUN
-    run_full_distances(name, lsun=True)
+    run_full_distances(name, dataset, lsun=True)
 
 
 if __name__ == '__main__':
