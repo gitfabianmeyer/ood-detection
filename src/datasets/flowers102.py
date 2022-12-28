@@ -1,3 +1,7 @@
+import os
+os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID"
+os.environ["CUDA_VISIBLE_DEVICES"]="1"
+
 import logging
 
 import clip
@@ -6,7 +10,7 @@ import torchvision.datasets
 
 from datasets.classnames import flowers102_classes, flowers102_templates
 from ood_detection.config import Config
-from metrics.distances import get_distances_for_dataset
+from metrics.distances import get_distances_for_dataset, run_full_distances
 
 logging.basicConfig(level=logging.INFO)
 
@@ -26,12 +30,9 @@ class OodFlowers102(torchvision.datasets.Flowers102):
 
 
 def main():
-    data_path = Config.DATAPATH
-    train = False
-    clip_model, transform = clip.load(Config.VISION_MODEL)
-
-    dataset = OodFlowers102(data_path, transform, train)
-    get_distances_for_dataset(dataset, clip_model, "Flowers102")
+    name = "Flowers102"
+    dataset = OodFlowers102
+    run_full_distances(name, dataset, lsun=False)
 
 
 if __name__ == '__main__':
