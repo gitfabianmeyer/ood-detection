@@ -1,13 +1,15 @@
+import os
+
+os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
+os.environ["CUDA_VISIBLE_DEVICES"] = "1"
+
 import logging
 import os.path
 
-import clip
 import torchvision.datasets
 
 
-from metrics.distances import get_distances_for_dataset, run_full_distances
-from ood_detection.classification_utils import full_classification, full_batch_classification
-from ood_detection.config import Config
+from metrics.distances import run_full_distances
 from datasets.classnames import mnist_templates
 
 logging.basicConfig(level=logging.INFO)
