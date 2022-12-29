@@ -22,7 +22,6 @@ class IsolatedLsunClass(Dataset):
         return len(self.targets)
 
     def __getitem__(self, index: int) -> Tuple[Any, Any]:
-
         img, _ = self.db[index]
         return img
 
@@ -48,7 +47,11 @@ class IsolatedClass(Dataset):
                 image_file = (image_file * 255).astype(np.uint8)
             elif np.logical_and(image_file >= 0, image_file <= 255).all():
                 image_file = image_file.astype(np.uint8)
-            img = Image.fromarray(image_file)
+            try:
+                img = Image.fromarray(image_file)
+            except TypeError as te:
+                # svhn
+                img = Image.fromarray(np.transpose(image_file, (1, 2, 0)))
         elif isinstance(image_file, torch.Tensor):
             # mnist & fashionmnist
             img = Image.fromarray(image_file.numpy(), mode="L")
