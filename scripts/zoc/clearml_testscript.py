@@ -18,7 +18,7 @@ from tqdm import tqdm
 
 from clearml import Dataset, Task
 
-task = Task.init(project_name="ma_fmeyer", task_name="FIRST-STEPS", )
+task = Task.init(project_name="ma_fmeyer", task_name="Train Decoder")
 
 task.execute_remotely('5e62040adb57476ea12e8593fa612186')
 

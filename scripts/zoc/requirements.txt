@@ -16,3 +16,4 @@ sentencepiece
 transformers
 numpy
 clearml
+scipy
