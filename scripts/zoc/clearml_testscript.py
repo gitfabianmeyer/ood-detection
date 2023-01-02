@@ -20,6 +20,18 @@ from clearml import Dataset, Task
 
 task = Task.init(project_name="ma_fmeyer", task_name="FIRST-STEPS", )
 
+task.execute_remotely('5e62040adb57476ea12e8593fa612186')
+
+dataset_name = "COCO 2017 Dataset"
+DATASET_PATH = Dataset.get(dataset_project='COCO-2017',
+                           dataset_name=dataset_name
+                           ).get_local_copy()
+# DATASET_PATH = '/mnt/c/users/fmeyer/git/ood-detection/data/coco'
+
+
+DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+print(f"Using: {DEVICE}")
+
 
 class MyCocoDetection:
     def __init__(self, root, train=True):
@@ -69,11 +81,11 @@ def eval_decoder(bert_model, loader):
 
             N, seq_length = input_ids.shape
             position_ids = torch.arange(0, seq_length).expand(N, seq_length)
-            out = bert_model(input_ids=input_ids.to(device),
-                             position_ids=position_ids.to(device),
-                             attention_mask=attention_mask.to(device),
-                             encoder_hidden_states=clip_extended_embed.unsqueeze(1).to(device),
-                             labels=label_ids.to(device))
+            out = bert_model(input_ids=input_ids.to(DEVICE),
+                             position_ids=position_ids.to(DEVICE),
+                             attention_mask=attention_mask.to(DEVICE),
+                             encoder_hidden_states=clip_extended_embed.unsqueeze(1).to(DEVICE),
+                             labels=label_ids.to(DEVICE))
             acc_loss += out.loss.detach().item()
     print('Average loss on {} validation batches={}\n'.format(num_batch, acc_loss / num_batch))
     return acc_loss
@@ -94,11 +106,11 @@ def train_decoder(bert_model, train_loader, eval_loader, optimizer):
             N, seq_length = input_ids.shape
             position_ids = torch.arange(0, seq_length).expand(N, seq_length)
             bert_model.train()
-            out = bert_model(input_ids=input_ids.to(device),
-                             position_ids=position_ids.to(device),
-                             attention_mask=attention_mask.to(device),
-                             encoder_hidden_states=clip_extended_embed.unsqueeze(1).to(device),
-                             labels=label_ids.to(device))
+            out = bert_model(input_ids=input_ids.to(DEVICE),
+                             position_ids=position_ids.to(DEVICE),
+                             attention_mask=attention_mask.to(DEVICE),
+                             encoder_hidden_states=clip_extended_embed.unsqueeze(1).to(DEVICE),
+                             labels=label_ids.to(DEVICE))
 
             out.loss.backward(retain_graph=False)
             optimizer.step()
@@ -182,7 +194,7 @@ def get_loader(train, clip_backbone, clip_model, berttokenizer, datapath):
         split = 'val'
 
     coco_dataset = MyCocoDetection(root=datapath, train=train)
-    clip_features = get_clip_image_features(coco_dataset, split, clip_backbone, clip_model, torch_device='cuda')
+    clip_features = get_clip_image_features(coco_dataset, split, clip_backbone, clip_model, torch_device=DEVICE)
     input_ids, attention_mask, label_ids = get_bert_training_features(coco_dataset, split, clip_backbone, berttokenizer)
     input_ids = torch.tensor(input_ids, dtype=torch.long)
     attention_mask = torch.tensor(attention_mask, dtype=torch.long)
@@ -197,10 +209,6 @@ def get_loader(train, clip_backbone, clip_model, berttokenizer, datapath):
 
 
 if __name__ == '__main__':
-
-    task.execute_remotely('5e62040adb57476ea12e8593fa612186')
-    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    print(f"Using: {device}")
 
     parser = argparse.ArgumentParser()
     parser.add_argument('--lr', type=float, default=1e-5, help="Learning rate")
@@ -220,11 +228,6 @@ if __name__ == '__main__':
     else:
         berttokenizer = BertTokenizer.from_pretrained(args.bert_model)
 
-    dataset_name = "COCO 2017 Dataset"
-    DATASET_PATH = Dataset.get(dataset_project='COCO-2017',
-                               dataset_name=dataset_name
-                               ).get_local_copy()
-
     cmodel, _ = clip.load(args.clip_vision)
     tloader = get_loader(train=True, clip_backbone=args.clip_vision, clip_model=cmodel,
                          berttokenizer=berttokenizer, datapath=DATASET_PATH)
@@ -235,7 +238,7 @@ if __name__ == '__main__':
     bert_config.is_decoder = True
     bert_config.add_cross_attention = True
     bmodel = BertGenerationDecoder.from_pretrained(args.bert_model,
-                                                   config=bert_config).to(device).train()
+                                                   config=bert_config).to(DEVICE).train()
 
     optimizer = AdamW(bmodel.parameters(), lr=args.lr)
 

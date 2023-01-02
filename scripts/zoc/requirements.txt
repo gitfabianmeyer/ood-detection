@@ -13,3 +13,6 @@ scikit-image
 Wand
 pycocotools
 sentencepiece
+transformers
+numpy
+clearml
