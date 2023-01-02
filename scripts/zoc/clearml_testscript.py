@@ -1,35 +1,30 @@
+import argparse
+import copy
 import os
 
+import numpy as np
+
+import clip
 import torch
+from transformers import BertGenerationTokenizer, BertGenerationDecoder, BertGenerationConfig, BertTokenizer
+
+from torch.optim import AdamW
+
 from PIL import Image
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, TensorDataset
 from torchvision.datasets import CocoDetection
 from torchvision.transforms import Compose, Resize, CenterCrop, ToTensor, Normalize
 from tqdm import tqdm
 
 from clearml import Dataset, Task
 
-task = Task.init(project_name="ma_fmeyer", task_name="FIRST-STEPS")
-dataset_name = "COCO 2017 Dataset"
-DATASET_PATH = Dataset.get(
-    dataset_project='COCO-2017',
-    dataset_name=dataset_name
-)
-
-device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-
-print(device)
-print(DATASET_PATH)
+task = Task.init(project_name="ma_fmeyer", task_name="FIRST-STEPS", )
 
 
 class MyCocoDetection:
-    def __init__(self, train=True):
-        if train:
-            filename = 'train2017'
-        else:
-            filename = 'val2017'
-            print('file is val')
-
+    def __init__(self, root, train=True):
+        self.filename = 'train2017' if train else 'val2017'
+        self.root = root
         super(MyCocoDetection, self).__init__()
 
         self.transform = Compose([
@@ -40,9 +35,9 @@ class MyCocoDetection:
         ])
 
         self.coco_dataset = CocoDetection(
-            root=os.path.join(f'{DATASET_PATH}/images', filename),
-            annFile=os.path.join('{}/annotations'.format(DATASET_PATH),
-                                 'captions_{}.json'.format(filename)))
+            root=os.path.join(f'{self.root}/images', self.filename),
+            annFile=os.path.join('{}/annotations'.format(self.root),
+                                 'captions_{}.json'.format(self.filename)))
 
     def __len__(self):
         return len(self.coco_dataset)
@@ -51,8 +46,8 @@ class MyCocoDetection:
         img = self.transform(self.coco_dataset[index][0])
         captions = self.coco_dataset[index][1]
         cap_list = []
-        for i, caption in enumerate(captions):
-            if i == 5:
+        for num_captions, caption in enumerate(captions):
+            if num_captions == 5:
                 # print('more than 5 captions for this image', index)
                 break
             cap = caption['caption']
@@ -62,14 +57,187 @@ class MyCocoDetection:
         return img, cap_list
 
 
-if __name__ == '__main__':
-    task.execute_remotely('5e62040adb57476ea12e8593fa612186')
+def eval_decoder(bert_model, loader):
+    num_batch = len(iter(loader))
+    print('evaluating loss on validation data ...')
+    acc_loss = 0
+    bert_model.eval()
+    with torch.no_grad():
+        for _, batch in enumerate(tqdm(loader)):
+            input_ids, attention_mask, label_ids, clip_embeds = batch
+            clip_extended_embed = clip_embeds.repeat(1, 2).type(torch.FloatTensor)
 
-    dset = MyCocoDetection(train='False')
-    print(len(dset))
-    dloader = DataLoader(dset)
-    i = 0
-    for data, target in tqdm(dloader):
-        i+=1
-        if i % 1000 == 0:
-            print(f"At {i} and still running")
+            N, seq_length = input_ids.shape
+            position_ids = torch.arange(0, seq_length).expand(N, seq_length)
+            out = bert_model(input_ids=input_ids.to(device),
+                             position_ids=position_ids.to(device),
+                             attention_mask=attention_mask.to(device),
+                             encoder_hidden_states=clip_extended_embed.unsqueeze(1).to(device),
+                             labels=label_ids.to(device))
+            acc_loss += out.loss.detach().item()
+    print('Average loss on {} validation batches={}\n'.format(num_batch, acc_loss / num_batch))
+    return acc_loss
+
+
+def train_decoder(bert_model, train_loader, eval_loader, optimizer):
+    early_stop = 0
+    num_batch = len(iter(train_loader))
+    print(f"Starting training for max {args.num_epochs} epochs...")
+    for epoch in range(1, args.num_epochs + 1):
+        acc_loss = 0
+        print('Training : epoch {}'.format(epoch))
+        for i, batch in enumerate(tqdm(train_loader)):
+            # if i==1:break
+            input_ids, attention_mask, label_ids, clip_embeds = batch
+            clip_extended_embed = clip_embeds.repeat(1, 2).type(torch.FloatTensor)
+
+            N, seq_length = input_ids.shape
+            position_ids = torch.arange(0, seq_length).expand(N, seq_length)
+            bert_model.train()
+            out = bert_model(input_ids=input_ids.to(device),
+                             position_ids=position_ids.to(device),
+                             attention_mask=attention_mask.to(device),
+                             encoder_hidden_states=clip_extended_embed.unsqueeze(1).to(device),
+                             labels=label_ids.to(device))
+
+            out.loss.backward(retain_graph=False)
+            optimizer.step()
+            optimizer.zero_grad()
+            acc_loss += out.loss.detach().item()
+
+        validation_loss = eval_decoder(bert_model, eval_loader)
+        print('validation loss in this epoch: ', validation_loss)
+        state = {'net': bert_model.state_dict(),
+                 'epoch': epoch,
+                 'validation loss': validation_loss}
+
+        if epoch == 0:
+            best_val_loss = validation_loss
+            torch.save(state, 'model_dump.pt')
+        else:
+            if validation_loss < best_val_loss:
+                early_stop = 0
+                best_val_loss = validation_loss
+                torch.save(state, 'model.pt')
+            else:
+                early_stop += 1
+
+        print('Average loss on {} training batches in this epoch:{}\n'.format(num_batch, acc_loss / num_batch))
+
+        if early_stop >= 4:
+            print(f"No improvements on val data for {early_stop} iterations. Breaking now")
+            break
+
+    return acc_loss
+
+
+def get_bert_training_features(coco_dataset, split, clip_backbone, tokenizer):
+    sentences = get_bos_sentence_eos(coco_dataset, tokenizer, split, clip_backbone)
+    print(f'tokenizing all processed sentences for {split}...')
+    tokenized = tokenizer(sentences, padding=True,
+                          truncation=True, max_length=77,
+                          return_token_type_ids=False, return_tensors='np')
+
+    label_ids = copy.deepcopy(tokenized['input_ids'])
+    label_ids[label_ids == 0] = -100
+    input_ids = tokenized['input_ids']
+    attention_mask = tokenized['attention_mask']
+
+    return input_ids, attention_mask, label_ids
+
+
+def collate_fn(batch):
+    return tuple(zip(*batch))
+
+
+def get_clip_image_features(coco_dataset, split, clip_backbone, clip_model, torch_device):
+    print('calculating all clip image encoder features')
+    loader = DataLoader(dataset=coco_dataset, batch_size=256, shuffle=False, collate_fn=collate_fn)
+    clip_out_all = []
+    with torch.no_grad():
+        for i, (images, annot) in enumerate(tqdm(loader)):
+            images = torch.stack(images)
+            clip_out = clip_model.encode_image(images.to(torch_device))
+            clip_out_all.append(clip_out.cpu().numpy())
+        clip_out_all = np.concatenate(clip_out_all)
+
+    return clip_out_all
+
+
+def get_bos_sentence_eos(coco_dataset, berttokenizer):
+    print('preprocessing all sentences...')
+    bos_sentence_eos = []
+    for i, (image, captions) in enumerate(tqdm(coco_dataset)):
+
+        for caption in captions:
+            bos_sentence_eos.append(berttokenizer.bos_token + ' ' + caption + ' ' + berttokenizer.eos_token)
+
+    return bos_sentence_eos
+
+
+def get_loader(train, clip_backbone, clip_model, berttokenizer):
+    if train:
+        split = 'train'
+    else:
+        split = 'val'
+
+    coco_dataset = MyCocoDetection(train)
+    clip_features = get_clip_image_features(coco_dataset, split, clip_backbone, clip_model, torch_device='cuda')
+    input_ids, attention_mask, label_ids = get_bert_training_features(coco_dataset, split, clip_backbone, berttokenizer)
+    input_ids = torch.tensor(input_ids, dtype=torch.long)
+    attention_mask = torch.tensor(attention_mask, dtype=torch.long)
+    label_ids = torch.tensor(label_ids, dtype=torch.long)
+    clip_features = torch.tensor(clip_features, dtype=torch.long)
+    print(input_ids.size(), attention_mask.size(), label_ids.size(), clip_features.size())
+    hidden_size = clip_features.size(1)
+    print(clip_features.repeat(1, 5).view(-1, hidden_size).size())
+    dataset = TensorDataset(input_ids, attention_mask, label_ids, clip_features.repeat(1, 5).view(-1, hidden_size))
+    loader = DataLoader(dataset=dataset, batch_size=512, num_workers=2, shuffle=True)
+    return loader
+
+
+if __name__ == '__main__':
+
+    task.execute_remotely('5e62040adb57476ea12e8593fa612186')
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    print(f"Using: {device}")
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--lr', type=float, default=1e-5, help="Learning rate")
+    parser.add_argument('--gamma', type=float, default=0.5)
+    parser.add_argument('--momentum', type=float, default=0.9)
+    parser.add_argument('--weight_decay', type=float, default=1e-4)
+    parser.add_argument('--num_epochs', type=int, default=1, help="End epoch")  # trained with 25 epochs
+    parser.add_argument('--trained_path', type=str, default='./trained_models/COCO/')
+    parser.add_argument('--bert_model', type=str, default='google/bert_for_seq_generation_L-24_bbc_encoder')
+    parser.add_argument('--clip_vision', type=str, default='ViT-B/32')
+
+    args = parser.parse_args()
+
+    # initialize tokenizers for clip and bert, these two use different tokenizers
+    if args.bert_model == "google/bert_for_seq_generation_L-24_bbc_encoder":
+        berttokenizer = BertGenerationTokenizer.from_pretrained(args.bert_model)
+    else:
+        berttokenizer = BertTokenizer.from_pretrained(args.bert_model)
+
+    dataset_name = "COCO 2017 Dataset"
+    DATASET_PATH = Dataset.get(dataset_project='COCO-2017',
+                               dataset_name=dataset_name
+                               ).get_local_copy()
+
+    cmodel, _ = clip.load(args.clip_vision)
+    tloader = get_loader(train=True, clip_backbone=args.clip_vision, clip_model=cmodel,
+                         berttokenizer=berttokenizer)
+    eloader = get_loader(train=False, clip_backbone=args.clip_vision, clip_model=cmodel,
+                         berttokenizer=berttokenizer)
+
+    bert_config = BertGenerationConfig.from_pretrained(args.bert_model)
+    bert_config.is_decoder = True
+    bert_config.add_cross_attention = True
+    bmodel = BertGenerationDecoder.from_pretrained(args.bert_model,
+                                                   config=bert_config).to(device).train()
+
+    optimizer = AdamW(bmodel.parameters(), lr=args.lr)
+
+    loss = train_decoder(bmodel, tloader, eloader, optimizer)
+    print('final training loss={}'.format(loss))

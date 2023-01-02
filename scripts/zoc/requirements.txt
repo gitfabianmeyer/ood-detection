@@ -1,0 +1,14 @@
+clip @ git+https://github.com/openai/CLIP.git@b46f5ac7587d2e1862f8b7b1573179d80dcdd620
+Pillow
+scikit-learn==1.1.1
+seaborn==0.11.2
+torch==1.12.0
+torchvision==0.13.0
+tqdm==4.64.0
+imageio
+lmdb
+wget
+opencv-python
+scikit-image
+Wand
+pycocotools
