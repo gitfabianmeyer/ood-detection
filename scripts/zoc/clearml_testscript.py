@@ -175,13 +175,13 @@ def get_bos_sentence_eos(coco_dataset, berttokenizer):
     return bos_sentence_eos
 
 
-def get_loader(train, clip_backbone, clip_model, berttokenizer):
+def get_loader(train, clip_backbone, clip_model, berttokenizer, datapath):
     if train:
         split = 'train'
     else:
         split = 'val'
 
-    coco_dataset = MyCocoDetection(train)
+    coco_dataset = MyCocoDetection(root=datapath, train=train)
     clip_features = get_clip_image_features(coco_dataset, split, clip_backbone, clip_model, torch_device='cuda')
     input_ids, attention_mask, label_ids = get_bert_training_features(coco_dataset, split, clip_backbone, berttokenizer)
     input_ids = torch.tensor(input_ids, dtype=torch.long)
@@ -227,9 +227,9 @@ if __name__ == '__main__':
 
     cmodel, _ = clip.load(args.clip_vision)
     tloader = get_loader(train=True, clip_backbone=args.clip_vision, clip_model=cmodel,
-                         berttokenizer=berttokenizer)
+                         berttokenizer=berttokenizer, datapath=DATASET_PATH)
     eloader = get_loader(train=False, clip_backbone=args.clip_vision, clip_model=cmodel,
-                         berttokenizer=berttokenizer)
+                         berttokenizer=berttokenizer, datapath=DATASET_PATH)
 
     bert_config = BertGenerationConfig.from_pretrained(args.bert_model)
     bert_config.is_decoder = True

@@ -12,3 +12,4 @@ opencv-python
 scikit-image
 Wand
 pycocotools
+pip install sentencepiece
