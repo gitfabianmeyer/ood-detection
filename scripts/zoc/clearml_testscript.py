@@ -1,7 +1,7 @@
 import os
 
 import torch
-from PIL.Image import Image
+from PIL import Image
 from torch.utils.data import DataLoader
 from torchvision.datasets import CocoDetection
 from torchvision.transforms import Compose, Resize, CenterCrop, ToTensor, Normalize

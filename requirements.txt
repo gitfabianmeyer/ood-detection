@@ -12,3 +12,4 @@ wget
 opencv-python
 scikit-image
 Wand
+pycocotools
