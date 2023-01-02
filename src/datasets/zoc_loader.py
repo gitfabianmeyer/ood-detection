@@ -49,7 +49,7 @@ class IsolatedClass(Dataset):
                 image_file = image_file.astype(np.uint8)
             try:
                 img = Image.fromarray(image_file)
-            except TypeError as te:
+            except TypeError:
                 # svhn
                 img = Image.fromarray(np.transpose(image_file, (1, 2, 0)))
         elif isinstance(image_file, torch.Tensor):
