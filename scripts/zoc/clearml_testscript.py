@@ -3,7 +3,8 @@ import copy
 import os
 
 import numpy as np
-
+import sentencepiece
+import pycocotools
 import clip
 import torch
 from transformers import BertGenerationTokenizer, BertGenerationDecoder, BertGenerationConfig, BertTokenizer
@@ -27,7 +28,6 @@ DATASET_PATH = Dataset.get(dataset_project='COCO-2017',
                            dataset_name=dataset_name
                            ).get_local_copy()
 # DATASET_PATH = '/mnt/c/users/fmeyer/git/ood-detection/data/coco'
-
 
 DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 print(f"Using: {DEVICE}")
@@ -144,7 +144,7 @@ def train_decoder(bert_model, train_loader, eval_loader, optimizer):
 
 
 def get_bert_training_features(coco_dataset, split, clip_backbone, tokenizer):
-    sentences = get_bos_sentence_eos(coco_dataset, tokenizer, split, clip_backbone)
+    sentences = get_bos_sentence_eos(coco_dataset, tokenizer)
     print(f'tokenizing all processed sentences for {split}...')
     tokenized = tokenizer(sentences, padding=True,
                           truncation=True, max_length=77,
@@ -164,26 +164,49 @@ def collate_fn(batch):
 
 def get_clip_image_features(coco_dataset, split, clip_backbone, clip_model, torch_device):
     print('calculating all clip image encoder features')
-    loader = DataLoader(dataset=coco_dataset, batch_size=256, shuffle=False, collate_fn=collate_fn)
-    clip_out_all = []
-    with torch.no_grad():
-        for i, (images, annot) in enumerate(tqdm(loader)):
-            images = torch.stack(images)
-            clip_out = clip_model.encode_image(images.to(torch_device))
-            clip_out_all.append(clip_out.cpu().numpy())
-        clip_out_all = np.concatenate(clip_out_all)
+    features_path = 'clip_image_features.npy'
+    if os.path.isfile(features_path):
+        with open(features_path, 'rb') as e:
+            clip_out_all = np.load(e, allow_pickle=True)
+            print(f"Loaded CLIP pretrained features")
+    else:
+        print("Calculating clip image features")
+        loader = DataLoader(dataset=coco_dataset, batch_size=256, shuffle=False, collate_fn=collate_fn)
+        clip_out_all = []
+        with torch.no_grad():
+            for i, (images, annot) in enumerate(tqdm(loader)):
 
+                images = torch.stack(images)
+                clip_out = clip_model.encode_image(images.to(torch_device))
+                clip_out_all.append(clip_out.cpu().numpy())
+            clip_out_all = np.concatenate(clip_out_all)
+
+        try:
+            with open(features_path, 'wb') as e:
+                np.save(e, clip_out_all, allow_pickle=True)
+        except:
+            print(f"Couldn't store image features.")
     return clip_out_all
 
 
 def get_bos_sentence_eos(coco_dataset, berttokenizer):
-    print('preprocessing all sentences...')
-    bos_sentence_eos = []
-    for i, (image, captions) in enumerate(tqdm(coco_dataset)):
+    save_path = "./bos_sentence_eos.npy"
+    if os.path.isfile(save_path):
+        with open(save_path, 'rb') as e:
+            bos_sentence_eos = np.load(e, allow_pickle=True)
+            bos_sentence_eos = bos_sentence_eos.tolist()
+    else:
+        print('preprocessing all sentences...')
+        bos_sentence_eos = []
+        for i, (image, captions) in enumerate(tqdm(coco_dataset)):
 
-        for caption in captions:
-            bos_sentence_eos.append(berttokenizer.bos_token + ' ' + caption + ' ' + berttokenizer.eos_token)
-
+            for caption in captions:
+                bos_sentence_eos.append(berttokenizer.bos_token + ' ' + caption + ' ' + berttokenizer.eos_token)
+        try:
+            with open(save_path, 'wb') as e:
+                np.save(e, bos_sentence_eos, allow_pickle=True)
+        except:
+            print(f"Could store in {save_path}, continuing...")
     return bos_sentence_eos
 
 
