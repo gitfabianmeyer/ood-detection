@@ -146,7 +146,7 @@ def train_decoder(bert_model, train_loader, eval_loader, optimizer):
 
 
 def get_bert_training_features(coco_dataset, split, clip_backbone, tokenizer):
-    sentences = get_bos_sentence_eos(coco_dataset, tokenizer)
+    sentences = get_bos_sentence_eos(coco_dataset, tokenizer, split, clip_backbone)
     print(f'tokenizing all processed sentences for {split}...')
     tokenized = tokenizer(sentences, padding=True,
                           truncation=True, max_length=77,
