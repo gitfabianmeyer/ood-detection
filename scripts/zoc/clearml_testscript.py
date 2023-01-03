@@ -166,7 +166,8 @@ def collate_fn(batch):
 
 def get_clip_image_features(coco_dataset, split, clip_backbone, clip_model, torch_device):
     print('calculating all clip image encoder features')
-    features_path = 'clip_image_features.npy'
+    features_path = 'clip_image_features_{}_{}.npy'.format(split,
+                                                           clip_backbone)
     if os.path.isfile(features_path):
         with open(features_path, 'rb') as e:
             clip_out_all = np.load(e, allow_pickle=True)
@@ -191,8 +192,8 @@ def get_clip_image_features(coco_dataset, split, clip_backbone, clip_model, torc
     return clip_out_all
 
 
-def get_bos_sentence_eos(coco_dataset, berttokenizer):
-    save_path = "bos_sentence_eos.npy"
+def get_bos_sentence_eos(coco_dataset, berttokenizer, split, backbone):
+    save_path = "bos_sentence_eos_{}_{}.npy".format(backbone, split)
     if os.path.isfile(save_path):
         with open(save_path, 'rb') as e:
             bos_sentence_eos = np.load(e, allow_pickle=True)
