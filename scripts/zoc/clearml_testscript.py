@@ -227,7 +227,7 @@ def get_loader(train, clip_backbone, clip_model, berttokenizer, datapath):
     hidden_size = clip_features.size(1)
     print(clip_features.repeat(1, 5).view(-1, hidden_size).size())
     dataset = TensorDataset(input_ids, attention_mask, label_ids, clip_features.repeat(1, 5).view(-1, hidden_size))
-    loader = DataLoader(dataset=dataset, batch_size=512, num_workers=2, shuffle=True)
+    loader = DataLoader(dataset=dataset, batch_size=128, num_workers=2, shuffle=True)
     return loader
 
 
@@ -238,7 +238,7 @@ if __name__ == '__main__':
     parser.add_argument('--gamma', type=float, default=0.5)
     parser.add_argument('--momentum', type=float, default=0.9)
     parser.add_argument('--weight_decay', type=float, default=1e-4)
-    parser.add_argument('--num_epochs', type=int, default=1, help="End epoch")  # trained with 25 epochs
+    parser.add_argument('--num_epochs', type=int, default=25, help="End epoch")  # trained with 25 epochs
     parser.add_argument('--trained_path', type=str, default='./trained_models/COCO/')
     parser.add_argument('--bert_model', type=str, default='google/bert_for_seq_generation_L-24_bbc_encoder')
     parser.add_argument('--clip_vision', type=str, default='ViT-B/32')
