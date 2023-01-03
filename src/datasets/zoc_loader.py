@@ -68,6 +68,52 @@ class IsolatedClass(Dataset):
         return self.class_label
 
 
+class IsolatedClasses:
+    def __init__(self, dataset, batch_size=1, lsun=False):
+        self.loaders_dict = {}
+        self.labels = dataset.classes
+        self.fill_loaders_dict(dataset)
+        self.batch_size = batch_size
+        self.lsun = lsun
+
+    def fill_loaders_dict(self, full_dataset):
+        for label in self.labels:
+            if self.lsun:
+                dset = IsolatedLsunClass(full_dataset, label)
+            else:
+                dset = IsolatedClass(full_dataset, label)
+
+            loader = DataLoader(dataset=dset, batch_size=self.batch_size, num_workers=4)
+            self.loaders_dict[label] = loader
+
+    def keys(self):
+        return self.loaders_dict.keys()
+
+    def values(self):
+        return self.loaders_dict.values()
+
+    def items(self):
+        return self.loaders_dict.items()
+
+    def __iter__(self):
+        return iter(self.loaders_dict)
+
+    def __getitem__(self, key):
+        return self.loaders_dict[key]
+
+    def __setitem__(self, key, value):
+        self.loaders_dict[key] = value
+
+    def __repr__(self):
+        return repr(self.loaders_dict)
+
+    def __contains__(self, item):
+        return item in self.loaders_dict
+
+    def __iter__(self):
+        return iter(self.loaders_dict)
+
+
 def single_isolated_class_loader(full_dataset, batch_size=1, lsun=False):
     loaders_dict = {}
     labels = full_dataset.classes

@@ -5,9 +5,10 @@ import torch
 from sklearn.metrics import roc_auc_score
 from tqdm import tqdm
 
+from datasets.zoc_loader import IsolatedClasses
+
 
 def greedysearch_generation_topk(clip_embed, berttokenizer, bert_model, device):
-
     N = 1  # batch has single sample
     max_len = 77
     target_list = [torch.tensor(berttokenizer.bos_token_id)]
@@ -61,13 +62,14 @@ def get_ablation_splits(classnames, n, id_classes, ood_classes):
     return splits
 
 
+@torch.no_grad()
 def image_decoder(clip_model,
                   clip_tokenizer,
                   bert_tokenizer,
                   bert_model,
                   device,
                   classnames,
-                  image_loaders=None,
+                  isolated_classes: IsolatedClasses = None,
                   id_classes=6,
                   ood_classes=4):
     ablation_splits = get_ablation_splits(classnames, n=10, id_classes=id_classes,
@@ -81,38 +83,36 @@ def image_decoder(clip_model,
         print(f"OOD Labels: {split[id_classes:]}")
         seen_descriptions = [f"This is a photo of a {label}" for label in seen_labels]
 
-        len_id_targets = sum([len(image_loaders[lab].dataset) for lab in seen_labels])
-        len_ood_targets = sum([len(image_loaders[lab].dataset) for lab in unseen_labels])
+        len_id_targets = sum([len(isolated_classes[lab].dataset) for lab in seen_labels])
+        len_ood_targets = sum([len(isolated_classes[lab].dataset) for lab in unseen_labels])
 
         max_num_entities = 0
         ood_probs_sum = []
         for i, semantic_label in enumerate(split):
-            loader = image_loaders[semantic_label]
+            loader = isolated_classes[semantic_label]
             for idx, image in enumerate(tqdm(loader)):
-                with torch.no_grad():
+                clip_out = clip_model.encode_image(image.to(device)).float()
+                clip_extended_embed = clip_out.repeat(1, 2).type(torch.FloatTensor)
 
-                    clip_out = clip_model.encode_image(image.to(device)).float()
-                    clip_extended_embed = clip_out.repeat(1, 2).type(torch.FloatTensor)
+                # greedy generation
+                target_list, topk_list = greedysearch_generation_topk(clip_extended_embed,
+                                                                      bert_tokenizer,
+                                                                      bert_model,
+                                                                      device)
 
-                    # greedy generation
-                    target_list, topk_list = greedysearch_generation_topk(clip_extended_embed,
-                                                                          bert_tokenizer,
-                                                                          bert_model,
-                                                                          device)
+                topk_tokens = [bert_tokenizer.decode(int(pred_idx.cpu().numpy())) for pred_idx in topk_list]
 
-                    topk_tokens = [bert_tokenizer.decode(int(pred_idx.cpu().numpy())) for pred_idx in topk_list]
+                unique_entities = list(set(topk_tokens) - {semantic_label})
+                if len(unique_entities) > max_num_entities:
+                    max_num_entities = len(unique_entities)
+                all_desc = seen_descriptions + [f"This is a photo of a {label}" for label in unique_entities]
+                all_desc_ids = tokenize_for_clip(all_desc, clip_tokenizer)
 
-                    unique_entities = list(set(topk_tokens) - {semantic_label})
-                    if len(unique_entities) > max_num_entities:
-                        max_num_entities = len(unique_entities)
-                    all_desc = seen_descriptions + [f"This is a photo of a {label}" for label in unique_entities]
-                    all_desc_ids = tokenize_for_clip(all_desc, clip_tokenizer)
-
-                    image_feature = clip_out
-                    image_feature /= image_feature.norm(dim=-1, keepdim=True)
-                    text_features = clip_model.encode_text(all_desc_ids.to(device)).float()
-                    text_features /= text_features.norm(dim=-1, keepdim=True)
-                    zeroshot_probs = (100.0 * image_feature @ text_features.T).softmax(dim=-1).squeeze()
+                image_feature = clip_out
+                image_feature /= image_feature.norm(dim=-1, keepdim=True)
+                text_features = clip_model.encode_text(all_desc_ids.to(device)).float()
+                text_features /= text_features.norm(dim=-1, keepdim=True)
+                zeroshot_probs = (100.0 * image_feature @ text_features.T).softmax(dim=-1).squeeze()
 
                 # detection score is accumulative sum of probs of generated entities
                 ood_prob_sum = np.sum(zeroshot_probs[id_classes:].detach().cpu().numpy())
