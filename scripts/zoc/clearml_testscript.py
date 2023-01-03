@@ -72,7 +72,7 @@ class MyCocoDetection:
 def eval_decoder(bert_model, loader):
     num_batch = len(iter(loader))
     print('evaluating loss on validation data ...')
-    acc_loss = 0
+    acc_loss = 0.
     bert_model.eval()
     with torch.no_grad():
         for _, batch in enumerate(tqdm(loader)):
@@ -96,10 +96,11 @@ def train_decoder(bert_model, train_loader, eval_loader, optimizer):
     num_batch = len(iter(train_loader))
     print(f"Starting training for max {args.num_epochs} epochs...")
     for epoch in range(1, args.num_epochs + 1):
-        acc_loss = 0
+        acc_loss = 0.
         print('Training : epoch {}'.format(epoch))
         for i, batch in enumerate(tqdm(train_loader)):
-            # if i==1:break
+            if i == 1:
+                break
             input_ids, attention_mask, label_ids, clip_embeds = batch
             clip_extended_embed = clip_embeds.repeat(1, 2).type(torch.FloatTensor)
 
@@ -123,7 +124,8 @@ def train_decoder(bert_model, train_loader, eval_loader, optimizer):
                  'epoch': epoch,
                  'validation loss': validation_loss}
 
-        if epoch == 0:
+        best_val_loss = 0.
+        if epoch == 1:
             best_val_loss = validation_loss
             torch.save(state, 'model_dump.pt')
         else:
@@ -175,7 +177,6 @@ def get_clip_image_features(coco_dataset, split, clip_backbone, clip_model, torc
         clip_out_all = []
         with torch.no_grad():
             for i, (images, annot) in enumerate(tqdm(loader)):
-
                 images = torch.stack(images)
                 clip_out = clip_model.encode_image(images.to(torch_device))
                 clip_out_all.append(clip_out.cpu().numpy())
@@ -184,16 +185,18 @@ def get_clip_image_features(coco_dataset, split, clip_backbone, clip_model, torc
         try:
             with open(features_path, 'wb') as e:
                 np.save(e, clip_out_all, allow_pickle=True)
+                print("saved clip image features")
         except:
             print(f"Couldn't store image features.")
     return clip_out_all
 
 
 def get_bos_sentence_eos(coco_dataset, berttokenizer):
-    save_path = "./bos_sentence_eos.npy"
+    save_path = "bos_sentence_eos.npy"
     if os.path.isfile(save_path):
         with open(save_path, 'rb') as e:
             bos_sentence_eos = np.load(e, allow_pickle=True)
+            print("Loaded bos sentence eos")
             bos_sentence_eos = bos_sentence_eos.tolist()
     else:
         print('preprocessing all sentences...')
@@ -205,6 +208,7 @@ def get_bos_sentence_eos(coco_dataset, berttokenizer):
         try:
             with open(save_path, 'wb') as e:
                 np.save(e, bos_sentence_eos, allow_pickle=True)
+                print("saved bos sentence eaos")
         except:
             print(f"Could store in {save_path}, continuing...")
     return bos_sentence_eos
