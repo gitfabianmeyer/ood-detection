@@ -21,7 +21,7 @@ from tqdm import tqdm
 from clearml import Dataset, Task
 
 run_clearml = True
-
+load_from_clearml = True
 if run_clearml:
     task = Task.init(project_name="ma_fmeyer", task_name="Train Decoder")
     task.execute_remotely('5e62040adb57476ea12e8593fa612186')
@@ -108,6 +108,9 @@ def train_decoder(bert_model, train_loader, eval_loader, optimizer):
         acc_loss = 0.
 
         for batch_idx, batch in enumerate(tqdm(train_loader)):
+            if batch_idx == 1:
+                print(f"Seems to run, breaking now")
+                break
             input_ids, attention_mask, label_ids, clip_embeds = batch
             clip_extended_embed = clip_embeds.repeat(1, 2).type(torch.FloatTensor)
 
@@ -123,11 +126,13 @@ def train_decoder(bert_model, train_loader, eval_loader, optimizer):
             out.loss.backward(retain_graph=False)
             optimizer.step()
             optimizer.zero_grad()
-            acc_loss += out.loss.detach().item()
+
+            curr_loss=out.loss.detach().item()
+            acc_loss += curr_loss
             if run_clearml:
                 logger.report_scalar("train", "loss",
                                      iteration=(epoch * num_batch + batch_idx),
-                                     value=out.loss.detach.item())
+                                     value=curr_loss)
 
         validation_loss = eval_decoder(bert_model, eval_loader)
         if run_clearml:
@@ -179,34 +184,33 @@ def collate_fn(batch):
     return tuple(zip(*batch))
 
 
+@torch.no_grad()
 def get_clip_image_features(coco_dataset, split, clip_backbone, clip_model, torch_device):
     print('calculating all clip image encoder features')
     features_path = 'clip_image_features_{}_{}.npy'.format(split,
                                                            clip_backbone)
-    if os.path.isfile(features_path):
-        with open(features_path, 'rb') as e:
-            clip_out_all = np.load(e, allow_pickle=True)
-            print(f"Loaded CLIP pretrained features")
+
+    if load_from_clearml:
+        artifact_task = Task.get_task(project_name='ma_fmeyer', task_name='Train Decoder')
+        artifact = artifact_task.artifacts[features_path].get_local_copy()
+        artifact = np.load(artifact)
+        clip_out_all = artifact[features_path]
+
     else:
         print("Calculating clip image features")
         loader = DataLoader(dataset=coco_dataset, batch_size=256, shuffle=False, collate_fn=collate_fn)
         clip_out_all = []
-        with torch.no_grad():
-            for i, (images, annot) in enumerate(tqdm(loader)):
-                images = torch.stack(images)
-                clip_out = clip_model.encode_image(images.to(torch_device))
-                clip_out_all.append(clip_out.cpu().numpy())
-            clip_out_all = np.concatenate(clip_out_all)
+        for i, (images, annot) in enumerate(tqdm(loader)):
+            images = torch.stack(images)
+            clip_out = clip_model.encode_image(images.to(torch_device))
+            clip_out_all.append(clip_out.cpu().numpy())
+        clip_out_all = np.concatenate(clip_out_all)
 
         try:
             if run_clearml:
                 task.upload_artifact(name=features_path,
                                      artifact_object=clip_out_all)
                 print(f"Uploaded clip image features {split} as artifact")
-            else:
-                with open(features_path, 'wb') as e:
-                    np.save(e, clip_out_all, allow_pickle=True)
-                    print("saved clip image features")
         except:
             print(f"Couldn't store image features.")
 
@@ -214,12 +218,14 @@ def get_clip_image_features(coco_dataset, split, clip_backbone, clip_model, torc
 
 
 def get_bos_sentence_eos(coco_dataset, berttokenizer, split, backbone):
-    save_path = "bos_sentence_eos_{}_{}.npy".format(backbone, split)
-    if os.path.isfile(save_path):
-        with open(save_path, 'rb') as e:
-            bos_sentence_eos = np.load(e, allow_pickle=True)
-            print("Loaded bos sentence eos")
-            bos_sentence_eos = bos_sentence_eos.tolist()
+    features_path = "bos_sentence_eos_{}_{}.npy".format(backbone, split)
+    if load_from_clearml:
+        artifact_task = Task.get_task(project_name='ma_fmeyer', task_name='bos_sentence_eos')
+        artifact = artifact_task.artifacts[features_path].get_local_copy()
+        artifact = np.load(artifact)
+        bos_sentence_eos = artifact[features_path]
+        bos_sentence_eos = bos_sentence_eos.tolist()
+
     else:
         print('preprocessing all sentences...')
         bos_sentence_eos = []
@@ -229,15 +235,12 @@ def get_bos_sentence_eos(coco_dataset, berttokenizer, split, backbone):
                 bos_sentence_eos.append(berttokenizer.bos_token + ' ' + caption + ' ' + berttokenizer.eos_token)
         try:
             if run_clearml:
-                task.upload_artifact(namne=save_path,
-                                     artifact_object=bos_sentence_eos)
-                print(f"Uploaded {save_path} as artifact")
-            else:
-                with open(save_path, 'wb') as e:
-                    np.save(e, bos_sentence_eos, allow_pickle=True)
-                    print("saved bos sentence eaos")
+
+                task.upload_artifact(name=features_path,
+                                     artifact_object=np.array(bos_sentence_eos))
+                print(f"Uploaded {features_path} as artifact")
         except:
-            print(f"Could store in {save_path}, continuing...")
+            print(f"Couldn't store in {features_path}, continuing...")
     return bos_sentence_eos
 
 
@@ -269,7 +272,7 @@ if __name__ == '__main__':
     parser.add_argument('--gamma', type=float, default=0.5)
     parser.add_argument('--momentum', type=float, default=0.9)
     parser.add_argument('--weight_decay', type=float, default=1e-4)
-    parser.add_argument('--num_epochs', type=int, default=25, help="End epoch")  # trained with 25 epochs
+    parser.add_argument('--num_epochs', type=int, default=2, help="End epoch")  # trained with 25 epochs
     parser.add_argument('--trained_path', type=str, default='./trained_models/COCO/')
     parser.add_argument('--bert_model', type=str, default='google/bert_for_seq_generation_L-24_bbc_encoder')
     parser.add_argument('--clip_vision', type=str, default='ViT-B/32')
