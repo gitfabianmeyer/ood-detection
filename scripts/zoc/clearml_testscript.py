@@ -191,7 +191,7 @@ def get_clip_image_features(coco_dataset, split, clip_backbone, clip_model, torc
                                                            clip_backbone)
 
     if load_from_clearml:
-        artifact_task = Task.get_task(project_name='ma_fmeyer', task_name='Train Decoder')
+        artifact_task = Task.get_task(project_name='ma_fmeyer', task_name='clip_image_features')
         artifact = artifact_task.artifacts[features_path].get_local_copy()
         artifact = np.load(artifact)
         clip_out_all = artifact[features_path]

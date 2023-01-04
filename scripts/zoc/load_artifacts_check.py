@@ -27,7 +27,7 @@ task = Task.init(project_name="ma_fmeyer", task_name="Test loading artifacts")
 
 clip_image = True
 if clip_image:
-    artifact_task = Task.get_task(project_name='ma_fmeyer', task_name='Train Decoder')
+    artifact_task = Task.get_task(project_name='ma_fmeyer', task_name='clip_image_features')
 else:
     artifact_task = Task.get_task(project_name='ma_fmeyer', task_name='bos_sentence_eos')
 
@@ -56,5 +56,5 @@ for split in ['train', 'val']:
 
     features[features_path] = arr
 
-print(features)
+print(features.keys())
 
