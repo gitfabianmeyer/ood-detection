@@ -68,11 +68,6 @@ class MyCocoDetection:
         return img, cap_list
 
 
-def get_bert_training_features(coco_dataset, split, clip_backbone, tokenizer):
-    sentences = get_bos_sentence_eos(coco_dataset, tokenizer, split, clip_backbone)
-    return 1, 2, 3
-
-
 def collate_fn(batch):
     return tuple(zip(*batch))
 
@@ -104,24 +99,6 @@ def get_clip_image_features(coco_dataset, split, clip_backbone, clip_model, torc
     except Exception as e:
         print(e)
     return clip_out_all
-
-
-def get_bos_sentence_eos(coco_dataset, berttokenizer, split, backbone):
-    save_path = "bos_sentence_eos_{}_{}.npy".format(backbone, split)
-
-    print('preprocessing all sentences...')
-    bos_sentence_eos = []
-    for i, (image, captions) in enumerate(tqdm(coco_dataset)):
-
-        for caption in captions:
-            bos_sentence_eos.append(berttokenizer.bos_token + ' ' + caption + ' ' + berttokenizer.eos_token)
-    try:
-        task.upload_artifact(name=save_path,
-                             artifact_object=np.array(bos_sentence_eos))
-        print(f"Uploaded {save_path} as artifact")
-    except:
-        print(f"Could store in {save_path}, continuing...")
-    return bos_sentence_eos
 
 
 def get_loader(train, clip_backbone, clip_model, berttokenizer, datapath):
