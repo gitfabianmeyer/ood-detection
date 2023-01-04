@@ -19,15 +19,18 @@ from tqdm import tqdm
 
 from clearml import Dataset, Task
 
-task = Task.init(project_name="ma_fmeyer", task_name="Train Decoder")
+run_clearml = True
 
-task.execute_remotely('5e62040adb57476ea12e8593fa612186')
+if run_clearml:
+    task = Task.init(project_name="ma_fmeyer", task_name="Train Decoder")
+    task.execute_remotely('5e62040adb57476ea12e8593fa612186')
+    dataset_name = "COCO 2017 Dataset"
+    DATASET_PATH = Dataset.get(dataset_project='COCO-2017',
+                               dataset_name=dataset_name
+                               ).get_local_copy()
 
-dataset_name = "COCO 2017 Dataset"
-DATASET_PATH = Dataset.get(dataset_project='COCO-2017',
-                           dataset_name=dataset_name
-                           ).get_local_copy()
-# DATASET_PATH = '/mnt/c/users/fmeyer/git/ood-detection/data/coco'
+else:
+    DATASET_PATH = '/mnt/c/users/fmeyer/git/ood-detection/data/coco'
 
 DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 print(f"Using: {DEVICE}")
@@ -95,12 +98,13 @@ def train_decoder(bert_model, train_loader, eval_loader, optimizer):
     early_stop = 0
     num_batch = len(iter(train_loader))
     print(f"Starting training for max {args.num_epochs} epochs...")
+
+    best_val_loss = np.inf
     for epoch in range(1, args.num_epochs + 1):
-        acc_loss = 0.
         print('Training : epoch {}'.format(epoch))
+        acc_loss = 0.
+
         for i, batch in enumerate(tqdm(train_loader)):
-            if i == 1:
-                break
             input_ids, attention_mask, label_ids, clip_embeds = batch
             clip_extended_embed = clip_embeds.repeat(1, 2).type(torch.FloatTensor)
 
@@ -124,7 +128,6 @@ def train_decoder(bert_model, train_loader, eval_loader, optimizer):
                  'epoch': epoch,
                  'validation loss': validation_loss}
 
-        best_val_loss = 0.
         if epoch == 1:
             best_val_loss = validation_loss
             torch.save(state, 'model_dump.pt')
@@ -184,11 +187,17 @@ def get_clip_image_features(coco_dataset, split, clip_backbone, clip_model, torc
             clip_out_all = np.concatenate(clip_out_all)
 
         try:
-            with open(features_path, 'wb') as e:
-                np.save(e, clip_out_all, allow_pickle=True)
-                print("saved clip image features")
+            if run_clearml:
+                task.upload_artifact(name=features_path,
+                                     artifact_object=clip_out_all)
+                print(f"Uploaded clip image features {split} as artifact")
+            else:
+                with open(features_path, 'wb') as e:
+                    np.save(e, clip_out_all, allow_pickle=True)
+                    print("saved clip image features")
         except:
             print(f"Couldn't store image features.")
+
     return clip_out_all
 
 
@@ -207,9 +216,14 @@ def get_bos_sentence_eos(coco_dataset, berttokenizer, split, backbone):
             for caption in captions:
                 bos_sentence_eos.append(berttokenizer.bos_token + ' ' + caption + ' ' + berttokenizer.eos_token)
         try:
-            with open(save_path, 'wb') as e:
-                np.save(e, bos_sentence_eos, allow_pickle=True)
-                print("saved bos sentence eaos")
+            if run_clearml:
+                task.upload_artifact(namne=save_path,
+                                     artifact_object=bos_sentence_eos)
+                print(f"Uploaded {save_path} as artifact")
+            else:
+                with open(save_path, 'wb') as e:
+                    np.save(e, bos_sentence_eos, allow_pickle=True)
+                    print("saved bos sentence eaos")
         except:
             print(f"Could store in {save_path}, continuing...")
     return bos_sentence_eos
