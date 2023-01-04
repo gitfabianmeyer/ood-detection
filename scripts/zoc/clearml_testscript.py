@@ -99,7 +99,8 @@ def eval_decoder(bert_model, loader):
 
 def train_decoder(bert_model, train_loader, eval_loader, optimizer):
     early_stop = 0
-    num_batch = len(iter(train_loader))
+    num_batch_train = len(iter(train_loader))
+    num_batch_val = len(iter(eval_loader))
     print(f"Starting training for max {args.num_epochs} epochs...")
 
     best_val_loss = np.inf
@@ -108,9 +109,6 @@ def train_decoder(bert_model, train_loader, eval_loader, optimizer):
         acc_loss = 0.
 
         for batch_idx, batch in enumerate(tqdm(train_loader)):
-            if batch_idx == 1:
-                print(f"Seems to run, breaking now")
-                break
             input_ids, attention_mask, label_ids, clip_embeds = batch
             clip_extended_embed = clip_embeds.repeat(1, 2).type(torch.FloatTensor)
 
@@ -127,18 +125,25 @@ def train_decoder(bert_model, train_loader, eval_loader, optimizer):
             optimizer.step()
             optimizer.zero_grad()
 
-            curr_loss=out.loss.detach().item()
+            curr_loss = out.loss.detach().item()
             acc_loss += curr_loss
             if run_clearml:
                 logger.report_scalar("train", "loss",
-                                     iteration=(epoch * num_batch + batch_idx),
+                                     iteration=(epoch * num_batch_train + batch_idx),
                                      value=curr_loss)
+                logger.report_scalar("train", "mean loss",
+                                     iteration=(epoch * num_batch_train + batch_idx),
+                                     value=curr_loss / num_batch_train)
 
         validation_loss = eval_decoder(bert_model, eval_loader)
         if run_clearml:
             logger.report_scalar("val", "loss",
                                  iteration=epoch,
                                  value=validation_loss)
+
+            logger.report_scalar("val", "mean loss",
+                                 iteration=epoch,
+                                 value=acc_loss / num_batch_val)
 
         print('validation loss in this epoch: ', validation_loss)
         state = {'net': bert_model.state_dict(),
@@ -156,7 +161,8 @@ def train_decoder(bert_model, train_loader, eval_loader, optimizer):
             else:
                 early_stop += 1
 
-        print('Average loss on {} training batches in this epoch:{}\n'.format(num_batch, acc_loss / num_batch))
+        print('Average loss on {} training batches in this epoch:{}\n'.format(num_batch_train,
+                                                                              acc_loss / num_batch_train))
 
         if early_stop >= 4:
             print(f"No improvements on val data for {early_stop} iterations. Breaking now")
@@ -235,7 +241,6 @@ def get_bos_sentence_eos(coco_dataset, berttokenizer, split, backbone):
                 bos_sentence_eos.append(berttokenizer.bos_token + ' ' + caption + ' ' + berttokenizer.eos_token)
         try:
             if run_clearml:
-
                 task.upload_artifact(name=features_path,
                                      artifact_object=np.array(bos_sentence_eos))
                 print(f"Uploaded {features_path} as artifact")
@@ -272,7 +277,7 @@ if __name__ == '__main__':
     parser.add_argument('--gamma', type=float, default=0.5)
     parser.add_argument('--momentum', type=float, default=0.9)
     parser.add_argument('--weight_decay', type=float, default=1e-4)
-    parser.add_argument('--num_epochs', type=int, default=2, help="End epoch")  # trained with 25 epochs
+    parser.add_argument('--num_epochs', type=int, default=25, help="End epoch")  # trained with 25 epochs
     parser.add_argument('--trained_path', type=str, default='./trained_models/COCO/')
     parser.add_argument('--bert_model', type=str, default='google/bert_for_seq_generation_L-24_bbc_encoder')
     parser.add_argument('--clip_vision', type=str, default='ViT-B/32')
