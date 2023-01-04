@@ -1,5 +1,6 @@
 import argparse
 import copy
+import logging
 import os
 
 import numpy as np
@@ -28,6 +29,7 @@ if run_clearml:
     DATASET_PATH = Dataset.get(dataset_project='COCO-2017',
                                dataset_name=dataset_name
                                ).get_local_copy()
+    logger = task.get_logger()
 
 else:
     DATASET_PATH = '/mnt/c/users/fmeyer/git/ood-detection/data/coco'
@@ -72,24 +74,25 @@ class MyCocoDetection:
         return img, cap_list
 
 
+@torch.no_grad()
 def eval_decoder(bert_model, loader):
     num_batch = len(iter(loader))
     print('evaluating loss on validation data ...')
     acc_loss = 0.
     bert_model.eval()
-    with torch.no_grad():
-        for _, batch in enumerate(tqdm(loader)):
-            input_ids, attention_mask, label_ids, clip_embeds = batch
-            clip_extended_embed = clip_embeds.repeat(1, 2).type(torch.FloatTensor)
+    for _, batch in enumerate(tqdm(loader)):
+        input_ids, attention_mask, label_ids, clip_embeds = batch
+        clip_extended_embed = clip_embeds.repeat(1, 2).type(torch.FloatTensor)
 
-            N, seq_length = input_ids.shape
-            position_ids = torch.arange(0, seq_length).expand(N, seq_length)
-            out = bert_model(input_ids=input_ids.to(DEVICE),
-                             position_ids=position_ids.to(DEVICE),
-                             attention_mask=attention_mask.to(DEVICE),
-                             encoder_hidden_states=clip_extended_embed.unsqueeze(1).to(DEVICE),
-                             labels=label_ids.to(DEVICE))
-            acc_loss += out.loss.detach().item()
+        N, seq_length = input_ids.shape
+        position_ids = torch.arange(0, seq_length).expand(N, seq_length)
+        out = bert_model(input_ids=input_ids.to(DEVICE),
+                         position_ids=position_ids.to(DEVICE),
+                         attention_mask=attention_mask.to(DEVICE),
+                         encoder_hidden_states=clip_extended_embed.unsqueeze(1).to(DEVICE),
+                         labels=label_ids.to(DEVICE))
+        acc_loss += out.loss.detach().item()
+
     print('Average loss on {} validation batches={}\n'.format(num_batch, acc_loss / num_batch))
     return acc_loss
 
@@ -104,7 +107,7 @@ def train_decoder(bert_model, train_loader, eval_loader, optimizer):
         print('Training : epoch {}'.format(epoch))
         acc_loss = 0.
 
-        for i, batch in enumerate(tqdm(train_loader)):
+        for batch_idx, batch in enumerate(tqdm(train_loader)):
             input_ids, attention_mask, label_ids, clip_embeds = batch
             clip_extended_embed = clip_embeds.repeat(1, 2).type(torch.FloatTensor)
 
@@ -121,8 +124,17 @@ def train_decoder(bert_model, train_loader, eval_loader, optimizer):
             optimizer.step()
             optimizer.zero_grad()
             acc_loss += out.loss.detach().item()
+            if run_clearml:
+                logger.report_scalar("train", "loss",
+                                     iteration=(epoch * num_batch + batch_idx),
+                                     value=out.loss.detach.item())
 
         validation_loss = eval_decoder(bert_model, eval_loader)
+        if run_clearml:
+            logger.report_scalar("val", "loss",
+                                 iteration=epoch,
+                                 value=validation_loss)
+
         print('validation loss in this epoch: ', validation_loss)
         state = {'net': bert_model.state_dict(),
                  'epoch': epoch,
