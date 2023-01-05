@@ -47,7 +47,7 @@ def run_all(args):
         torch.load(args.trained_path + args.model_name, map_location=torch.device(Config.DEVICE))['net'])
     for dname, dset in DATASETS_DICT.items():
 
-        if dname != 'cifar10':
+        if dname != 'dtd':
             print(f"jumping over {dname}")
             continue
 

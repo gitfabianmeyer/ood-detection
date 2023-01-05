@@ -86,7 +86,7 @@ def image_decoder(clip_model,
         _logger.debug(f"Seen labels: {seen_labels}\nOOD Labels: {split[id_classes:]}")
         seen_descriptions = [f"This is a photo of a {label}" for label in seen_labels]
 
-        ood_probs_sum, f1_probs_sum, acc_probs_sum = [], [], []
+        ood_probs_sum, f_probs_sum, acc_probs_sum = [], [], []
 
         for i, semantic_label in enumerate(split):
             loader = isolated_classes[semantic_label]
@@ -124,15 +124,15 @@ def image_decoder(clip_model,
         targets = torch.tensor(len_id_targets * [0] + len_ood_targets * [1])
 
         auc_sum = roc_auc_score(np.array(targets), np.squeeze(ood_probs_sum))
-        f1_score = f1_score(np.array(targets), np.squeeze(ood_probs_sum))
+        f_score = f1_score(np.array(targets), np.squeeze(ood_probs_sum))
         accuracy = accuracy_score(np.array(targets), np.squeeze(ood_probs_sum))
 
         auc_list_sum.append(auc_sum)
-        f1_probs_sum.append(f1_score)
+        f_probs_sum.append(f_score)
         acc_probs_sum.append(accuracy)
 
     std_auc, mean_auc = torch.std_mean(auc_list_sum)
-    std_f1, mean_f1 = torch.std_mean(f1_probs_sum)
+    std_f1, mean_f1 = torch.std_mean(f_probs_sum)
     std_acc, mean_acc = torch.std_mean(acc_probs_sum)
 
     metrics = {'auc_mean': mean_auc,
