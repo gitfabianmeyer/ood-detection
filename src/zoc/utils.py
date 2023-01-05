@@ -66,6 +66,11 @@ def get_ablation_splits(classnames, n, id_classes, ood_classes=None):
     return splits
 
 
+def get_accuracy_score(y_true, id_scores, ood_scores):
+
+    _, indices = torch.topk(torch.stack(id_scores, ood_scores), 1)
+    return accuracy_score(y_true, indices)
+
 @torch.no_grad()
 def image_decoder(clip_model,
                   clip_tokenizer,
@@ -86,9 +91,10 @@ def image_decoder(clip_model,
         _logger.debug(f"Seen labels: {seen_labels}\nOOD Labels: {split[id_classes:]}")
         seen_descriptions = [f"This is a photo of a {label}" for label in seen_labels]
 
-        ood_probs_sum, f_probs_sum, acc_probs_sum = [], [], []
+        ood_probs_sum, f_probs_sum, acc_probs_sum, id_probs_sum = [], [], []
 
         for i, semantic_label in enumerate(split):
+            _logger.info(f"Encoding images for label {semantic_label}")
             loader = isolated_classes[semantic_label]
             for idx, image in enumerate(tqdm(loader)):
                 clip_out = clip_model.encode_image(image.to(device)).float()
@@ -119,13 +125,15 @@ def image_decoder(clip_model,
                 ood_prob_sum = np.sum(zeroshot_probs[id_classes:].detach().cpu().numpy())
                 ood_probs_sum.append(ood_prob_sum)
 
+                id_probs_sum.append(1.-ood_prob_sum)
+
         len_id_targets = sum([len(isolated_classes[lab].dataset) for lab in seen_labels])
         len_ood_targets = sum([len(isolated_classes[lab].dataset) for lab in unseen_labels])
         targets = torch.tensor(len_id_targets * [0] + len_ood_targets * [1])
 
         auc_sum = roc_auc_score(np.array(targets), np.squeeze(ood_probs_sum))
         f_score = f1_score(np.array(targets), np.squeeze(ood_probs_sum))
-        accuracy = accuracy_score(np.array(targets), np.squeeze(ood_probs_sum))
+        accuracy = get_accuracy_score(np.array(targets), np.squeeze(id_probs_sum), np.squeeze(ood_probs_sum))
 
         auc_list_sum.append(auc_sum)
         f_probs_sum.append(f_score)
