@@ -71,10 +71,12 @@ class IsolatedClass(Dataset):
 class IsolatedClasses:
     def __init__(self, dataset, batch_size=1, lsun=False):
         self.loaders_dict = {}
+        self.templates = dataset.templates
+        self.lsun = lsun
+        self.batch_size = batch_size
+
         self.labels = dataset.classes
         self.fill_loaders_dict(dataset)
-        self.batch_size = batch_size
-        self.lsun = lsun
 
     def fill_loaders_dict(self, full_dataset):
         for label in self.labels:

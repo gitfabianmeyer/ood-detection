@@ -21,6 +21,18 @@ def wandb_log(metrics_dict, experiment="distances"):
                                metrics_dict["dataset"],
                                metrics_dict["model"]],
                          )
+    elif experiment == 'zsoodd':
+        run = wandb.init(project="thesis-zsoodd",
+                         entity="wandbefab",
+                         name=name,
+                         tags=[
+                             'zeroshot',
+                             'zsoodd',
+                             'oodd',
+                             metrics_dict['corruption'],
+                             metrics_dict['dataset'],
+                             metrics_dict['model'],
+                         ])
 
         wandb.config = {
             "batch_size": 512,
