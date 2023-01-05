@@ -18,7 +18,7 @@ def greedysearch_generation_topk(clip_embed, berttokenizer, bert_model, device):
     target_list = [torch.tensor(berttokenizer.bos_token_id)]
     top_k_list = []
     bert_model.eval()
-    for i in range(max_len):
+    for _ in range(max_len):
         target = torch.LongTensor(target_list).unsqueeze(0)
         position_ids = torch.arange(0, len(target)).expand(N, len(target)).to(device)
         out = bert_model(input_ids=target.to(device),
@@ -57,7 +57,7 @@ def get_ablation_splits(classnames, n, id_classes, ood_classes=None):
         raise IndexError("Too few classes to build split")
 
     splits = []
-    for i in range(n):
+    for _ in range(n):
         base = random.choices(classnames, k=id_classes)
         leftover = [classname for classname in classnames if classname not in base]
         oods = random.choices(leftover, k=ood_classes)
@@ -68,7 +68,12 @@ def get_ablation_splits(classnames, n, id_classes, ood_classes=None):
 
 def get_accuracy_score(y_true, id_scores, ood_scores):
     _, indices = torch.topk(torch.stack(id_scores, ood_scores), 1)
-    return accuracy_score(y_true, indices)
+    return 1-accuracy_score(y_true, indices)
+
+
+def get_fscore(param, id_scores, ood_scores):
+    _, indices = torch.topk(torch.stack(id_scores, ood_scores), 1)
+    return f1_score(y_true=param, y_pred=indices, pos_label=1)
 
 
 @torch.no_grad()
@@ -132,7 +137,7 @@ def image_decoder(clip_model,
         targets = torch.tensor(len_id_targets * [0] + len_ood_targets * [1])
 
         auc_sum = roc_auc_score(np.array(targets), np.squeeze(ood_probs_sum))
-        f_score = f1_score(np.array(targets), np.squeeze(ood_probs_sum))
+        f_score = get_fscore(np.array(targets), np.squeeze(id_probs_sum), np.squeeze(ood_probs_sum))
         accuracy = get_accuracy_score(np.array(targets), np.squeeze(id_probs_sum), np.squeeze(ood_probs_sum))
 
         auc_list_sum.append(auc_sum)
