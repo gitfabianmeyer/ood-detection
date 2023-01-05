@@ -67,13 +67,13 @@ def get_ablation_splits(classnames, n, id_classes, ood_classes=None):
 
 
 def get_accuracy_score(y_true, id_scores, ood_scores):
-    _, indices = torch.topk(torch.stack(id_scores, ood_scores), 1)
+    _, indices = torch.topk(torch.stack((id_scores, ood_scores)), 1)
     return 1-accuracy_score(y_true, indices)
 
 
-def get_fscore(param, id_scores, ood_scores):
-    _, indices = torch.topk(torch.stack(id_scores, ood_scores), 1)
-    return f1_score(y_true=param, y_pred=indices, pos_label=1)
+def get_fscore(y_true, id_scores, ood_scores):
+    _, indices = torch.topk(torch.stack((id_scores, ood_scores)), 1)
+    return f1_score(y_true=y_true, y_pred=indices, pos_label=1)
 
 
 @torch.no_grad()
