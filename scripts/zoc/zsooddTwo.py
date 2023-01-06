@@ -19,11 +19,12 @@ from transformers import BertGenerationTokenizer, BertGenerationConfig, BertGene
 from zoc.utils import image_decoder
 
 _logger = logging.getLogger(__name__)
+
 splits = [(.4, .6), ]
 
 
 def run_single_dataset_ood(isolated_classes, clip_model, clip_tokenizer, bert_tokenizer, bert_model,
-                           id_classes=.4, runs=1):
+                           id_classes=.4, runs=5):
     labels = isolated_classes.labels
     id_classes = int(len(labels) * id_classes)
     ood_classes = len(labels) - id_classes
@@ -76,7 +77,7 @@ def run_all(args):
                                                   bert_tokenizer=bert_tokenizer,
                                                   bert_model=bert_model,
                                                   id_classes=split[0],
-                                                  runs=1)
+                                                  runs=args.runs_ood)
             metrics_dict['dataset'] = dname
             metrics_dict['model'] = Config.VISION_MODEL
             metrics_dict['id split'] = split[0]
@@ -91,5 +92,6 @@ if __name__ == '__main__':
     parser.add_argument('--trained_path', type=str,
                         default='/mnt/c/Users/fmeyer/Git/ood-detection/data/zoc/trained_models/COCO/')
     parser.add_argument('--model_name', type=str, default='model_3.pt')
+    parser.add_argument('--runs_ood', type=int, default=5)
     args = parser.parse_args()
     run_all(args)
