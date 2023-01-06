@@ -39,10 +39,10 @@ HalfOneDict["dtd"] = OodDTD
 HalfOneDict["fashion mnist"] = OodFashionMNIST
 
 HalfTwoDict = collections.OrderedDict()
-DATASETS_DICT["flowers102"] = OodFlowers102
-DATASETS_DICT["gtsrb"] = OodGTSRB
-DATASETS_DICT["imagenet"] = OodTinyImageNet
-DATASETS_DICT["lsun"] = OodLSUN
-DATASETS_DICT["mnist"] = OodMNIST
-DATASETS_DICT["stanford cars"] = OodStanfordCars
-DATASETS_DICT["svhn"] = OodSVHN
+HalfTwoDict["flowers102"] = OodFlowers102
+HalfTwoDict["gtsrb"] = OodGTSRB
+HalfTwoDict["imagenet"] = OodTinyImageNet
+HalfTwoDict["lsun"] = OodLSUN
+HalfTwoDict["mnist"] = OodMNIST
+HalfTwoDict["stanford cars"] = OodStanfordCars
+HalfTwoDict["svhn"] = OodSVHN

@@ -85,7 +85,6 @@ def run_all(args):
             run = wandb_log(metrics_dict=metrics_dict,
                             experiment='zsoodd')
         run.finish()
-        break
 
 
 if __name__ == '__main__':
