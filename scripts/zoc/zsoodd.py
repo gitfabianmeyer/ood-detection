@@ -18,7 +18,7 @@ splits = [(.4, .6), ]
 def run_single_dataset_ood(isolated_classes, clip_model, clip_tokenizer, bert_tokenizer, bert_model,
                            id_classes=.4, runs=1):
 
-    labels = isolated_classes.labels
+    labels = isolated_classes.labels[:5]
     id_classes = int(len(labels) * id_classes)
     ood_classes = len(labels) - id_classes
     metrics = image_decoder(clip_model=clip_model,

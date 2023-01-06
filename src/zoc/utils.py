@@ -66,13 +66,20 @@ def get_ablation_splits(classnames, n, id_classes, ood_classes=None):
     return splits
 
 
+def get_topk_from_scores(list1, list2):
+    list1 = torch.tensor(list1)
+    list2 = torch.tensor(list2)
+    _, indices = torch.topk(torch.stack((list1, list2)), 1)
+    return indices
+
+
 def get_accuracy_score(y_true, id_scores, ood_scores):
-    _, indices = torch.topk(torch.stack((id_scores, ood_scores)), 1)
-    return 1-accuracy_score(y_true, indices)
+    indices = get_topk_from_scores(id_scores, ood_scores)
+    return 1 - accuracy_score(y_true, indices)
 
 
 def get_fscore(y_true, id_scores, ood_scores):
-    _, indices = torch.topk(torch.stack((id_scores, ood_scores)), 1)
+    indices = get_topk_from_scores(id_scores, ood_scores)
     return f1_score(y_true=y_true, y_pred=indices, pos_label=1)
 
 
@@ -137,7 +144,7 @@ def image_decoder(clip_model,
         targets = torch.tensor(len_id_targets * [0] + len_ood_targets * [1])
 
         auc_sum = roc_auc_score(np.array(targets), np.squeeze(ood_probs_sum))
-        f_score = get_fscore(np.array(targets), np.squeeze(id_probs_sum), np.squeeze(ood_probs_sum))
+        f_score = get_fscore(targets, np.squeeze(id_probs_sum), np.squeeze(ood_probs_sum))
         accuracy = get_accuracy_score(np.array(targets), np.squeeze(id_probs_sum), np.squeeze(ood_probs_sum))
 
         auc_list_sum.append(auc_sum)
