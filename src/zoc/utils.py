@@ -83,6 +83,10 @@ def get_fscore(y_true, id_scores, ood_scores):
     return f1_score(y_true=y_true, y_pred=indices, pos_label=1)
 
 
+def get_mean_std(ls):
+    return np.mean(ls), np.std(ls)
+
+
 @torch.no_grad()
 def image_decoder(clip_model,
                   clip_tokenizer,
@@ -151,9 +155,9 @@ def image_decoder(clip_model,
         f_probs_sum.append(f_score)
         acc_probs_sum.append(accuracy)
 
-    std_auc, mean_auc = torch.std_mean(auc_list_sum)
-    std_f1, mean_f1 = torch.std_mean(f_probs_sum)
-    std_acc, mean_acc = torch.std_mean(acc_probs_sum)
+    mean_auc, std_auc = get_mean_std(auc_list_sum)
+    mean_f1, std_f1 = get_mean_std(f_probs_sum)
+    mean_acc, std_acc = get_mean_std(acc_probs_sum)
 
     metrics = {'auc_mean': mean_auc,
                'auc_std': std_auc,
