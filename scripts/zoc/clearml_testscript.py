@@ -23,7 +23,7 @@ from clearml import Dataset, Task
 run_clearml = True
 load_from_clearml = True
 if run_clearml:
-    task = Task.init(project_name="ma_fmeyer", task_name="Train Decoder")
+    task = Task.init(project_name="ma_fmeyer", task_name="Caption Generator")
     task.execute_remotely('5e62040adb57476ea12e8593fa612186')
     dataset_name = "COCO 2017 Dataset"
     DATASET_PATH = Dataset.get(dataset_project='COCO-2017',
@@ -166,8 +166,14 @@ def train_decoder(bert_model, train_loader, eval_loader, optimizer):
 
         if early_stop >= 4:
             print(f"No improvements on val data for {early_stop} iterations. Breaking now")
-            break
 
+            break
+    try:
+        task.upload_artifact(name=f"model_{epoch}.pt",
+                             artifact_object=state)
+        print(f"Uploaded model_{epoch}.pt as artifact")
+    except:
+        print(f"Could store model_{epoch}.pt, continuing...")
     return acc_loss
 
 
