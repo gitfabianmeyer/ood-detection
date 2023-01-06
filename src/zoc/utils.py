@@ -69,13 +69,13 @@ def get_ablation_splits(classnames, n, id_classes, ood_classes=None):
 def get_topk_from_scores(list1, list2):
     list1 = torch.tensor(list1)
     list2 = torch.tensor(list2)
-    _, indices = torch.topk(torch.stack((list1, list2)), 1)
+    _, indices = torch.topk(torch.stack((list1, list2), dim=1), 1)
     return indices
 
 
 def get_accuracy_score(y_true, id_scores, ood_scores):
     indices = get_topk_from_scores(id_scores, ood_scores)
-    return 1 - accuracy_score(y_true, indices)
+    return accuracy_score(y_true, indices)
 
 
 def get_fscore(y_true, id_scores, ood_scores):
