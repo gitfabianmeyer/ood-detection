@@ -18,7 +18,7 @@ splits = [(.4, .6), ]
 def run_single_dataset_ood(isolated_classes, clip_model, clip_tokenizer, bert_tokenizer, bert_model,
                            id_classes=.4, runs=1):
 
-    labels = isolated_classes.labels[:5]
+    labels = isolated_classes.labels
     id_classes = int(len(labels) * id_classes)
     ood_classes = len(labels) - id_classes
     metrics = image_decoder(clip_model=clip_model,
@@ -49,7 +49,7 @@ def run_all(args):
         torch.load(args.trained_path + args.model_name, map_location=torch.device(Config.DEVICE))['net'])
     for dname, dset in DATASETS_DICT.items():
 
-        if dname != 'dtd':
+        if dname != 'cifar10':
             print(f"jumping over {dname}")
             continue
 
