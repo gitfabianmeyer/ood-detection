@@ -29,3 +29,20 @@ DATASETS_DICT["lsun"] = OodLSUN
 DATASETS_DICT["mnist"] = OodMNIST
 DATASETS_DICT["stanford cars"] = OodStanfordCars
 DATASETS_DICT["svhn"] = OodSVHN
+
+HalfOneDict = collections.OrderedDict()
+HalfOneDict["caltech101"] = OodCaltech101
+HalfOneDict["caltech cub"] = OodCub2011
+HalfOneDict["cifar10"] = OodCifar10
+HalfOneDict["cifar100"] = OodCifar100
+HalfOneDict["dtd"] = OodDTD
+HalfOneDict["fashion mnist"] = OodFashionMNIST
+
+HalfTwoDict = collections.OrderedDict()
+DATASETS_DICT["flowers102"] = OodFlowers102
+DATASETS_DICT["gtsrb"] = OodGTSRB
+DATASETS_DICT["imagenet"] = OodTinyImageNet
+DATASETS_DICT["lsun"] = OodLSUN
+DATASETS_DICT["mnist"] = OodMNIST
+DATASETS_DICT["stanford cars"] = OodStanfordCars
+DATASETS_DICT["svhn"] = OodSVHN
