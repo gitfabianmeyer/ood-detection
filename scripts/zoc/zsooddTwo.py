@@ -11,7 +11,7 @@ from clip.simple_tokenizer import SimpleTokenizer
 
 import torch
 import wandb
-from datasets.config import DATASETS_DICT, HalfOneDict
+from datasets.config import DATASETS_DICT, HalfTwoDict
 from datasets.zoc_loader import IsolatedClasses
 from metrics.metrics_logging import wandb_log
 from ood_detection.config import Config
@@ -54,7 +54,7 @@ def run_all(args):
                                                        config=bert_config).to(Config.DEVICE).train()
     bert_model.load_state_dict(
         torch.load(args.trained_path + args.model_name, map_location=torch.device(Config.DEVICE))['net'])
-    for dname, dset in HalfOneDict.items():
+    for dname, dset in HalfTwoDict.items():
 
         _logger.info(f"Running {dname}...")
 
