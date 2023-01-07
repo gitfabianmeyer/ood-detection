@@ -12,7 +12,7 @@ from clip.simple_tokenizer import SimpleTokenizer
 import torch
 import wandb
 from clearml import Task
-from datasets.config import DATASETS_DICT, HalfTwoDict
+from datasets.config import DATASETS_DICT, HalfOneDict, HalfTwoDict
 from datasets.zoc_loader import IsolatedClasses
 from metrics.metrics_logging import wandb_log
 from ood_detection.config import Config
@@ -21,13 +21,19 @@ from zoc.utils import image_decoder
 
 _logger = logging.getLogger(__name__)
 splits = [(.4, .6), ]
+clearml_model = False
+MODEL_PATH = "/home/fmeyer/ZOC/trained_models/COCO/ViT-B32/"
 
 
-def get_decoder_from_clearml():
-    artifact_task = Task.get_task(project_name='ma_fmeyer', task_name='Train Decoder')
+def get_decoder():
+    if clearml_model:
+        artifact_task = Task.get_task(project_name='ma_fmeyer', task_name='Train Decoder')
 
-    model = artifact_task.artifacts['model'].get_local_copy()
+        model_path = artifact_task.artifacts['model'].get_local_copy()
+    else:
+        model_path = MODEL_PATH
 
+    model = torch.load(model_path + 'model_3.pt', map_location=torch.device(Config.DEVICE))['net']
 
     bert_config = BertGenerationConfig.from_pretrained("google/bert_for_seq_generation_L-24_bbc_encoder")
     bert_config.is_decoder = True
@@ -63,9 +69,9 @@ def run_all(args):
     clip_model, clip_transform = clip.load(Config.VISION_MODEL)
     bert_tokenizer = BertGenerationTokenizer.from_pretrained('google/bert_for_seq_generation_L-24_bbc_encoder')
     clip_tokenizer = SimpleTokenizer()
-    bert_model = get_decoder_from_clearml()
+    bert_model = get_decoder()
 
-    for dname, dset in HalfOneDict.items():
+    for dname, dset in HalfTwoDict.items():
 
         _logger.info(f"Running {dname}...")
 
