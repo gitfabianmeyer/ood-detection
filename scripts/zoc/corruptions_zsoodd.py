@@ -1,13 +1,12 @@
 import os
 
+os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
+os.environ["CUDA_VISIBLE_DEVICES"] = "1"
+
 from datasets import corruptions
 from datasets.cifar import OodCifar10
 from datasets.gtsrb import OodGTSRB
-
 from datasets.corruptions import get_corruption_transform
-
-os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
-os.environ["CUDA_VISIBLE_DEVICES"] = "1"
 
 import argparse
 import logging
