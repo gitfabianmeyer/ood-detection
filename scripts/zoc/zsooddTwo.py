@@ -33,15 +33,15 @@ def get_decoder():
     else:
         model_path = MODEL_PATH
 
-    model = torch.load(model_path + 'model_3.pt', map_location=torch.device(Config.DEVICE))['net']
-
     bert_config = BertGenerationConfig.from_pretrained("google/bert_for_seq_generation_L-24_bbc_encoder")
     bert_config.is_decoder = True
     bert_config.add_cross_attention = True
     bert_model = BertGenerationDecoder.from_pretrained('google/bert_for_seq_generation_L-24_bbc_encoder',
                                                        config=bert_config).to(Config.DEVICE).eval()
+
     bert_model.load_state_dict(
-        torch.load(model, map_location=torch.device(Config.DEVICE))['net'])
+        torch.load(model_path, map_location=torch.device(Config.DEVICE))['net'])
+
     return bert_model
 
 
