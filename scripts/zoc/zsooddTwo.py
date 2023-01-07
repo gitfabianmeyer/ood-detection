@@ -40,7 +40,7 @@ def get_decoder():
                                                        config=bert_config).to(Config.DEVICE).eval()
 
     bert_model.load_state_dict(
-        torch.load(model_path, map_location=torch.device(Config.DEVICE))['net'])
+        torch.load(model_path + 'model_3.pt', map_location=torch.device(Config.DEVICE))['net'])
 
     return bert_model
 
