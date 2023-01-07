@@ -1,7 +1,7 @@
 import os
 
 os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
-os.environ["CUDA_VISIBLE_DEVICES"] = "1"
+os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 
 import argparse
 import logging
@@ -11,6 +11,7 @@ from clip.simple_tokenizer import SimpleTokenizer
 
 import torch
 import wandb
+from clearml import Task
 from datasets.config import DATASETS_DICT, HalfTwoDict
 from datasets.zoc_loader import IsolatedClasses
 from metrics.metrics_logging import wandb_log
@@ -19,12 +20,27 @@ from transformers import BertGenerationTokenizer, BertGenerationConfig, BertGene
 from zoc.utils import image_decoder
 
 _logger = logging.getLogger(__name__)
-
 splits = [(.4, .6), ]
 
 
+def get_decoder_from_clearml():
+    artifact_task = Task.get_task(project_name='ma_fmeyer', task_name='Train Decoder')
+
+    model = artifact_task.artifacts['model'].get_local_copy()
+
+
+    bert_config = BertGenerationConfig.from_pretrained("google/bert_for_seq_generation_L-24_bbc_encoder")
+    bert_config.is_decoder = True
+    bert_config.add_cross_attention = True
+    bert_model = BertGenerationDecoder.from_pretrained('google/bert_for_seq_generation_L-24_bbc_encoder',
+                                                       config=bert_config).to(Config.DEVICE).eval()
+    bert_model.load_state_dict(
+        torch.load(model, map_location=torch.device(Config.DEVICE))['net'])
+    return bert_model
+
+
 def run_single_dataset_ood(isolated_classes, clip_model, clip_tokenizer, bert_tokenizer, bert_model,
-                           id_classes=.4, runs=5):
+                           id_classes=.6, runs=5):
     labels = isolated_classes.labels
     id_classes = int(len(labels) * id_classes)
     ood_classes = len(labels) - id_classes
@@ -47,14 +63,9 @@ def run_all(args):
     clip_model, clip_transform = clip.load(Config.VISION_MODEL)
     bert_tokenizer = BertGenerationTokenizer.from_pretrained('google/bert_for_seq_generation_L-24_bbc_encoder')
     clip_tokenizer = SimpleTokenizer()
-    bert_config = BertGenerationConfig.from_pretrained("google/bert_for_seq_generation_L-24_bbc_encoder")
-    bert_config.is_decoder = True
-    bert_config.add_cross_attention = True
-    bert_model = BertGenerationDecoder.from_pretrained('google/bert_for_seq_generation_L-24_bbc_encoder',
-                                                       config=bert_config).to(Config.DEVICE).train()
-    bert_model.load_state_dict(
-        torch.load(args.trained_path + args.model_name, map_location=torch.device(Config.DEVICE))['net'])
-    for dname, dset in HalfTwoDict.items():
+    bert_model = get_decoder_from_clearml()
+
+    for dname, dset in HalfOneDict.items():
 
         _logger.info(f"Running {dname}...")
 
@@ -89,9 +100,7 @@ def run_all(args):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--trained_path', type=str,
-                        default='/mnt/c/Users/fmeyer/Git/ood-detection/data/zoc/trained_models/COCO/')
-    parser.add_argument('--model_name', type=str, default='model_3.pt')
     parser.add_argument('--runs_ood', type=int, default=5)
+
     args = parser.parse_args()
     run_all(args)
