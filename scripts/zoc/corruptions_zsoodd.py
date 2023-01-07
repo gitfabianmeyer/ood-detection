@@ -77,10 +77,10 @@ def run_all(args):
     bert_model = get_decoder()
 
     for dname, dset in HalfOneDict.items():
-        _logger.info(f"Running {dname} for {run} runs...")
+        _logger.info(f"Running {dname} for {args.runs_ood} runs...")
 
         for corr_name, corr in corruptions.Corruptions.items():
-            for severity in range([0, 2, 4]):
+            for severity in [0, 2, 4]:
                 _logger.info(f"Running {corr_name} for {severity} runs...")
                 if dname == 'lsun':
                     lsun = True
