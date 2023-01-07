@@ -9,6 +9,26 @@ def wandb_log(metrics_dict, experiment="distances"):
     else:
         name = "-".join([metrics_dict["dataset"], datetime.today().strftime('%Y/%m/%d')])
         metrics_dict["corruption"] = "No Corruption"
+
+    if experiment == 'zsoodd_corruptions':
+        run = wandb.init(project="thesis-zsoodd",
+                         entity="wandbefab",
+                         name=name,
+                         tags=[
+                             'zeroshot',
+                             'zsoodd',
+                             'oodd',
+                             metrics_dict['corruption'],
+                             metrics_dict['dataset'],
+                             metrics_dict['model'],
+                         ])
+
+        wandb.config = {
+            "batch_size": 512,
+            "clip_model": Config.VISION_MODEL,
+            "device": Config.DEVICE,
+        }
+
     if experiment == "distances":
         run = wandb.init(project="thesis-datasets",
                          entity="wandbefab",

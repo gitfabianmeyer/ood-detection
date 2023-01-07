@@ -8,6 +8,8 @@ import numpy as np
 import skimage as sk
 from skimage.filters import gaussian
 from io import BytesIO
+
+from torchvision.transforms import Compose
 from wand.image import Image as WandImage
 from wand.api import library as wandlibrary
 import ctypes
@@ -467,6 +469,15 @@ class ElasticTransform(OodTransform):
         x, y, z = np.meshgrid(np.arange(shape[1]), np.arange(shape[0]), np.arange(shape[2]))
         indices = np.reshape(y + dy, (-1, 1)), np.reshape(x + dx, (-1, 1)), np.reshape(z, (-1, 1))
         return np.clip(map_coordinates(sample, indices, order=1, mode='reflect').reshape(shape), 0, 1) * 255
+
+
+def get_corruption_transform(clip_transform, corr, severity):
+    corruption = corr(severity=severity)
+    transform_list = clip_transform.transforms[:-2]
+    transform_list.append(corruption)
+    transform_list.extend(clip_transform.transforms[-2:])
+    transform = Compose(transform_list)
+    return transform
 
 
 Corruptions = collections.OrderedDict()
