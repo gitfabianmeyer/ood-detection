@@ -73,6 +73,10 @@ def run_all(args):
 
     for dname, dset in HalfOneDict.items():
 
+        if dname == 'caltech101':
+            print(f"Jumping over {dname}")
+            continue
+
         _logger.info(f"Running {dname}...")
 
         if dname == 'lsun':
