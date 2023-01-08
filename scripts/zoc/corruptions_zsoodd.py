@@ -78,13 +78,10 @@ def run_all(args):
 
     for dname, dset in HalfOneDict.items():
 
-        if dname != 'dtd':
-            print(f"Jumping over {dname}")
-            continue
         _logger.info(f"Running {dname} for {args.runs_ood} runs...")
 
         for corr_name, corr in corruptions.Corruptions.items():
-            for severity in [0, 2, 4]:
+            for severity in [1, 3, 5]:
                 _logger.info(f"Running {corr_name} - {severity} ...")
                 if dname == 'lsun':
                     lsun = True
@@ -117,8 +114,6 @@ def run_all(args):
                                     experiment='zsoodd_corruptions')
 
             run.finish()
-            break
-        break
 
 
 if __name__ == '__main__':

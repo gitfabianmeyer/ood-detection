@@ -472,6 +472,7 @@ class ElasticTransform(OodTransform):
 
 
 def get_corruption_transform(clip_transform, corr, severity):
+    assert severity in range(1, 6)
     corruption = corr(severity=severity)
     transform_list = clip_transform.transforms[:-2]
     transform_list.append(corruption)

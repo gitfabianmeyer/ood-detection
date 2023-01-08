@@ -16,7 +16,7 @@ def wandb_log(metrics_dict, experiment="distances"):
 
     if experiment == 'zsoodd_corruptions':
         _logger.info(f'logging {experiment}')
-        run = wandb.init(project="thesis-zsoodd",
+        run = wandb.init(project="thesis-zsoodd-corruptions",
                          entity="wandbefab",
                          name=name,
                          tags=[

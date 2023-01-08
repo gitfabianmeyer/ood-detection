@@ -8,7 +8,6 @@ from datasets.cifar import OodCifar10
 from datasets.gtsrb import OodGTSRB
 from datasets.corruptions import get_corruption_transform
 
-
 import argparse
 import logging
 
@@ -18,7 +17,7 @@ from clip.simple_tokenizer import SimpleTokenizer
 import torch
 import wandb
 from clearml import Task
-from datasets.config import DATASETS_DICT, HalfOneDict, HalfTwoDict
+from datasets.config import DATASETS_DICT, HalfOneDict
 from datasets.zoc_loader import IsolatedClasses
 from metrics.metrics_logging import wandb_log
 from ood_detection.config import Config
@@ -77,12 +76,13 @@ def run_all(args):
     clip_tokenizer = SimpleTokenizer()
     bert_model = get_decoder()
 
-    for dname, dset in HalfTwoDict.items():
+    for dname, dset in HalfOneDict.items():
+
         _logger.info(f"Running {dname} for {args.runs_ood} runs...")
 
         for corr_name, corr in corruptions.Corruptions.items():
-            for severity in [0, 2, 4]:
-                _logger.info(f"Running {corr_name} for {severity} runs...")
+            for severity in [1, 3, 5]:
+                _logger.info(f"Running {corr_name} - {severity} ...")
                 if dname == 'lsun':
                     lsun = True
 
@@ -104,6 +104,8 @@ def run_all(args):
                                                           bert_model=bert_model,
                                                           id_classes=split[0],
                                                           runs=args.runs_ood)
+                    metrics_dict['corruption'] = corr_name
+                    metrics_dict['severity'] = severity
                     metrics_dict['dataset'] = dname
                     metrics_dict['model'] = Config.VISION_MODEL
                     metrics_dict['id split'] = split[0]
