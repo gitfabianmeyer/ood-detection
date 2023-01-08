@@ -106,7 +106,7 @@ def run_all(args):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--runs_ood', type=int, default=5)
+    parser.add_argument('--runs_ood', type=int, default=3)
 
     args = parser.parse_args()
     run_all(args)

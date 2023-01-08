@@ -18,8 +18,8 @@ class OodCub2011(Dataset):
     filename = 'CUB_200_2011.tgz'
     tgz_md5 = '97eceeb196236b17998738112f37df78'
 
-    def __init__(self, root, transform=None, train=True, download=True, templates=None):
-        self.root = os.path.expanduser(root)
+    def __init__(self, data_path, transform=None, train=True, download=True, templates=None):
+        self.data_path = os.path.expanduser(data_path)
         self.transform = transform
         self.train = train
 
@@ -36,16 +36,16 @@ class OodCub2011(Dataset):
         images = []
         labels = []
         is_training = []
-        path = os.path.join(self.root, self.base_folder)
-        with open(os.path.join(self.root, 'CUB_200_2011', 'images.txt')) as f:
+        path = os.path.join(self.data_path, self.base_folder)
+        with open(os.path.join(self.data_path, 'CUB_200_2011', 'images.txt')) as f:
             for line in f:
                 curr_img = line.rstrip("\n").split(" ")
                 images.append(os.path.join(path, curr_img[1]))
-        with open(os.path.join(self.root, 'CUB_200_2011', 'image_class_labels.txt')) as f:
+        with open(os.path.join(self.data_path, 'CUB_200_2011', 'image_class_labels.txt')) as f:
             for line in f:
                 curr_class = line.rstrip("\n").split(" ")
                 labels.append(int(curr_class[1]))
-        with open(os.path.join(self.root, 'CUB_200_2011', 'train_test_split.txt')) as f:
+        with open(os.path.join(self.data_path, 'CUB_200_2011', 'train_test_split.txt')) as f:
             for line in f:
                 curr_split = line.rstrip("\n").split(" ")
                 is_training.append(int(curr_split[1]))
@@ -53,7 +53,7 @@ class OodCub2011(Dataset):
         assert len(images) == len(labels), f'Something went wrong: {len(images)} to {len(labels)}'
 
         self.classes = []
-        with open(os.path.join(self.root, 'CUB_200_2011', 'classes.txt')) as f:
+        with open(os.path.join(self.data_path, 'CUB_200_2011', 'classes.txt')) as f:
             for line in f:
                 curr_class = line.rstrip("\n").split(" ")[1]
                 curr_class = curr_class.split(".")[1]
@@ -81,7 +81,7 @@ class OodCub2011(Dataset):
             return False
 
         for index, image in enumerate(self.data):
-            filepath = os.path.join(self.root, self.base_folder, image)
+            filepath = os.path.join(self.data_path, self.base_folder, image)
             if not os.path.isfile(filepath):
                 print(filepath)
                 return False
@@ -94,10 +94,10 @@ class OodCub2011(Dataset):
             print('Files already downloaded and verified')
             return
 
-        download_url(self.url, self.root, self.filename, self.tgz_md5)
+        download_url(self.url, self.data_path, self.filename, self.tgz_md5)
 
-        with tarfile.open(os.path.join(self.root, self.filename), "r:gz") as tar:
-            tar.extractall(path=self.root)
+        with tarfile.open(os.path.join(self.data_path, self.filename), "r:gz") as tar:
+            tar.extractall(path=self.data_path)
 
     def __len__(self):
         return len(self.data)
