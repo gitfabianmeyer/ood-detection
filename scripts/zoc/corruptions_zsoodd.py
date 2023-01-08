@@ -80,11 +80,12 @@ def run_all(args):
 
         if dname != 'dtd':
             print(f"Jumping over {dname}")
+            continue
         _logger.info(f"Running {dname} for {args.runs_ood} runs...")
 
         for corr_name, corr in corruptions.Corruptions.items():
             for severity in [0, 2, 4]:
-                _logger.info(f"Running {corr_name} for {severity} runs...")
+                _logger.info(f"Running {corr_name} - {severity} ...")
                 if dname == 'lsun':
                     lsun = True
 
