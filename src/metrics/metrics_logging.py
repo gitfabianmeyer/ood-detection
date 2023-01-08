@@ -1,6 +1,10 @@
+import logging
+
 import wandb
 from datetime import datetime
 from ood_detection.config import Config
+
+_logger = logging.getLogger(__name__)
 
 
 def wandb_log(metrics_dict, experiment="distances"):
@@ -11,6 +15,7 @@ def wandb_log(metrics_dict, experiment="distances"):
         metrics_dict["corruption"] = "No Corruption"
 
     if experiment == 'zsoodd_corruptions':
+        _logger.info(f'logging {experiment}')
         run = wandb.init(project="thesis-zsoodd",
                          entity="wandbefab",
                          name=name,
@@ -29,7 +34,9 @@ def wandb_log(metrics_dict, experiment="distances"):
             "device": Config.DEVICE,
         }
 
-    if experiment == "distances":
+    elif experiment == "distances":
+        _logger.info(f'logging {experiment}')
+
         run = wandb.init(project="thesis-datasets",
                          entity="wandbefab",
                          name=name,
@@ -42,6 +49,8 @@ def wandb_log(metrics_dict, experiment="distances"):
                                metrics_dict["model"]],
                          )
     elif experiment == 'zsoodd':
+        _logger.info(f'logging {experiment}')
+
         run = wandb.init(project="thesis-zsoodd",
                          entity="wandbefab",
                          name=name,
@@ -61,7 +70,8 @@ def wandb_log(metrics_dict, experiment="distances"):
         }
 
     else:
-        return
+        _logger.error(f"{experiment} could not be found as logging metric.")
+        raise ValueError
 
     # remove strings
     try:

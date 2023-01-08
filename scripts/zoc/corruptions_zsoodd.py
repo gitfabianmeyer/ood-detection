@@ -77,6 +77,9 @@ def run_all(args):
     bert_model = get_decoder()
 
     for dname, dset in HalfOneDict.items():
+
+        if dname != 'dtd':
+            print(f"Jumping over {dname}")
         _logger.info(f"Running {dname} for {args.runs_ood} runs...")
 
         for corr_name, corr in corruptions.Corruptions.items():
@@ -103,6 +106,8 @@ def run_all(args):
                                                           bert_model=bert_model,
                                                           id_classes=split[0],
                                                           runs=args.runs_ood)
+                    metrics_dict['corruption'] = corr_name
+                    metrics_dict['severity'] = severity
                     metrics_dict['dataset'] = dname
                     metrics_dict['model'] = Config.VISION_MODEL
                     metrics_dict['id split'] = split[0]
@@ -111,6 +116,8 @@ def run_all(args):
                                     experiment='zsoodd_corruptions')
 
             run.finish()
+            break
+        break
 
 
 if __name__ == '__main__':
