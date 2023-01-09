@@ -58,7 +58,7 @@ def main():
                                  lr=0.001,
                                  eps=1e-4)
 
-    #result = tip_adapter.compare()
+    result = tip_adapter.compare()
     return result
 
 
