@@ -16,4 +16,6 @@ pycocotools
 sentencepiece
 transformers
 numpy
+wandb
 clearml
+./
