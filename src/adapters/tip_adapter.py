@@ -239,7 +239,7 @@ def zeroshot_tip_finetuned(train_set, model,
         # eval
         adapter.eval()
 
-        affinity = adapter(test_features)
+        affinity = adapter.linear1(test_features)
         cache_logits = get_cache_logits(affinity,
                                         cache_values,
                                         beta)
