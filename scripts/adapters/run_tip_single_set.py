@@ -27,7 +27,7 @@ def main():
         _logger.info(f"Starting {dname} run...")
 
         name = "-".join([dname, 'adapter', datetime.today().strftime('%Y/%m/%d')])
-        run = wandb.init(project="thesis-zsoodd-corruptions",
+        run = wandb.init(project="thesis-tip-adapters",
                          entity="wandbefab",
                          name=name)
         try:
