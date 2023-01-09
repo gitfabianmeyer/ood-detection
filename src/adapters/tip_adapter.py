@@ -94,7 +94,7 @@ def get_train_features(train_set, model, augment_epochs=1):
 
     train_loader = DataLoader(train_set,
                               batch_size=256,
-                              num_workers=8,
+                              num_workers=1,
                               shuffle=False)
 
     train_images_targets = []
@@ -144,7 +144,7 @@ def get_test_features(dataset, model, transform):
     dataset = dataset(data_path=Config.DATAPATH,
                       train=False,
                       transform=transform)
-    dataloader = DataLoader(dataset, batch_size=256, shuffle=False)
+    dataloader = DataLoader(dataset, batch_size=256, shuffle=False, num_workers=1)
     test_features, test_labels = [], []
 
     _logger.info("Getting test features...")
@@ -201,7 +201,8 @@ def zeroshot_tip_finetuned(train_set, model,
 
     train_loader_shuffle = DataLoader(train_set,
                                       batch_size=256,
-                                      shuffle=True)
+                                      shuffle=True,
+                                      num_workers=1)
     adapter = WeightAdapter(model, train_features_agg, len(classes), classes).to(device)
     optimizer = torch.optim.AdamW(adapter.parameters(), lr=lr, eps=eps)
     scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, train_epoch * len(train_loader_shuffle))
