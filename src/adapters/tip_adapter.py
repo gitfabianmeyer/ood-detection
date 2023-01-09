@@ -32,6 +32,8 @@ class WeightAdapter(nn.Module):
 class ClipTipAdapter:
     def __init__(self, dataset, kshots, augment_epochs, lr=0.001, eps=1e-4):
 
+        self.train_images_targets = None
+        self.train_features_agg = None
         self.finetuned_adapter_weights = None
         self.train_epoch = None
         self.classes = None
@@ -116,10 +118,10 @@ class ClipTipAdapter:
         train_images_features_agg = torch.cat(train_images_features_agg, dim=0).mean(0)
         train_images_features_agg /= train_images_features_agg.norm(dim=-1, keepdim=True)
         train_images_features_agg = train_images_features_agg.permute(1, 0)
-        train_images_targets = F.one_hot(torch.cat(train_images_targets, dim=0)).half()
+        train_images_targets = F.one_hot(torch.cat(train_images_targets, dim=0))
 
-        self.train_features_agg = train_images_features_agg
-        self.train_images_targets = train_images_targets
+        self.train_features_agg = train_images_features_agg.to(torch.float32)
+        self.train_images_targets = train_images_targets.to(torch.float32)
 
     def get_train_transform(self):
         return transforms.Compose([
@@ -150,13 +152,13 @@ class ClipTipAdapter:
             test_labels.append(targets)
         test_features = torch.cat(test_features)
         test_labels = torch.cat(test_labels)
-        self.test_features = test_features
-        self.test_labels = test_labels
-        self.label_features = zeroshot_classifier(dataset.classes, dataset.templates, self.model)
+        self.test_features = test_features.to(torch.float32)
+        self.test_labels = test_labels.to(torch.float32)
+        self.label_features = zeroshot_classifier(dataset.classes, dataset.templates, self.model).to(torch.float32)
         self.classes = dataset.classes
 
     def get_cache_logits(self, new_knowledge):
-        return ((-1) * (self.beta * new_knowledge)).exp() @ self.train_images_targets.to(torch.float32)
+        return ((-1) * (self.beta * new_knowledge.to(torch.float32))).exp() @ self.train_images_targets
 
     def get_acc_f1(self, logits):
 
@@ -167,7 +169,7 @@ class ClipTipAdapter:
         return acc, f1
 
     def zeroshot(self):
-        similarity = 100 * self.test_features @ self.label_features.t().softmax(dim=-1)
+        similarity = 100 * self.test_features.to(torch.float32) @ self.label_features.t().softmax(dim=-1)
         return self.get_acc_f1(similarity)
 
     def zeroshot_tip_no_finetuning(self):
@@ -207,7 +209,7 @@ class ClipTipAdapter:
 
                 affinity = adapter.linear1(image_features)
                 cache_logits = self.get_cache_logits(affinity)
-                clip_logits = 100. * image_features @ self.label_features.t()
+                clip_logits = 100. * image_features.to(torch.float32) @ self.label_features.t()
                 clip_logits = clip_logits + cache_logits * self.alpha
 
                 loss = F.cross_entropy(clip_logits, targets)
