@@ -1,5 +1,9 @@
-from clearml import Task
+import os
+
+os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
+os.environ["CUDA_VISIBLE_DEVICES"] = "1"
 from adapters.tip_adapter import ClipTipAdapter
+
 
 # import for clearml
 import clip
@@ -9,7 +13,7 @@ import numpy as np
 import sklearn
 import tqdm
 
-run_clearml = True
+run_clearml = False
 
 cifar_templates = [
     'a photo of a {}.',
@@ -59,7 +63,10 @@ def main():
 
 
 if __name__ == '__main__':
+
     if run_clearml:
+        from clearml import Task
+        print("running clearml")
         task = Task.init(project_name="ma_fmeyer", task_name="tip adapter testing")
         task.execute_remotely('5e62040adb57476ea12e8593fa612186')
 
