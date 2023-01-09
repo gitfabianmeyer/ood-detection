@@ -2,7 +2,7 @@ import os
 
 os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
 os.environ["CUDA_VISIBLE_DEVICES"] = "1"
-from adapters.tip_adapter import ClipTipAdapter
+from adapters.tip_adapter import clip_tip_adapter
 
 
 # import for clearml
@@ -52,14 +52,8 @@ class OodCifar10(torchvision.datasets.CIFAR10):
 def main():
     dataset = OodCifar10
 
-    tip_adapter = ClipTipAdapter(dataset=dataset,
-                                 kshots=16,
-                                 augment_epochs=1,
-                                 lr=0.001,
-                                 eps=1e-4)
-
-    result = tip_adapter.compare()
-    return result
+    results = clip_tip_adapter(dataset=dataset)
+    return results
 
 
 if __name__ == '__main__':
@@ -69,5 +63,4 @@ if __name__ == '__main__':
         print("running clearml")
         task = Task.init(project_name="ma_fmeyer", task_name="tip adapter testing")
         task.execute_remotely('5e62040adb57476ea12e8593fa612186')
-
     main()

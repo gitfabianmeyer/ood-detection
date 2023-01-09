@@ -12,7 +12,7 @@ from torch import nn
 from torch.utils.data import DataLoader
 from torchvision import transforms
 
-from ood_detection.classification_utils import zeroshot_classifier, accuracy, macro_f1_score
+from ood_detection.classification_utils import zeroshot_classifier
 from ood_detection.config import Config
 
 _logger = logging.getLogger()
@@ -30,14 +30,37 @@ class WeightAdapter(nn.Module):
         self.linear1.weight = nn.Parameter(torch.load(train_features).t())
 
 
-def clip_tip_adapter(dataset, kshots, augment_epochs, alpha=1., beta=1.17, lr=0.001, eps=1e-4):
+def zeroshot(clip_logits, test_labels):
+    return get_acc_f1(clip_logits, test_labels)
+
+
+def clip_tip_adapter(dataset, kshots=16, train_epoch=20, alpha=1., beta=1.17, lr=0.001, eps=1e-4):
     clip_model, clip_transform = clip.load(Config.VISION_MODEL)
     clip_model.eval()
     train_set = get_train_set(dataset, kshots)
     train_features_agg, train_images_targets = get_train_features(train_set, clip_model)
     test_features, test_labels, label_features, classes = get_test_features(dataset, clip_model, clip_transform)
 
-    results = compare()
+    clip_logits = 100. * test_features @ label_features.t()
+    zsa, f1 = zeroshot(clip_logits, test_labels)
+    acc_tip_no, f1_tip_no = zeroshot_tip_no_finetuning(test_features,
+                                                       train_features_agg,
+                                                       train_images_targets,
+                                                       clip_logits,
+                                                       test_labels,
+                                                       alpha,
+                                                       beta)
+    acc_tip_fine, f1_tip_fine = zeroshot_tip_finetuned(train_set, clip_model,
+                                                       train_features_agg,
+                                                       train_images_targets,
+                                                       test_features, test_labels,
+                                                       label_features, classes,
+                                                       alpha, beta, lr,
+                                                       eps, train_epoch)
+    results = {"zsa": zsa, "zf1": f1, "tip acc no finetuning": acc_tip_no, "tip f1 no finetuning": f1_tip_no,
+               "tip acc with finetuning": acc_tip_fine, "tip f1 with finetuning": f1_tip_fine}
+    return results
+
 
 def get_kshot_set(train_images, kshots):
     _logger.info(f"Subsampling kshot ({kshots}) set")
@@ -58,19 +81,11 @@ def get_train_set(dataset, kshots):
     imgs, targets = [], []
     for label, items in get_kshot_set(dataset, kshots).items():
         imgs = imgs + random.sample(items, kshots)
-        targets = targets + [label for i in range(kshots)]
+        targets = targets + [label for _ in range(kshots)]
 
     dataset.data = imgs
     dataset.targets = targets
     return dataset
-
-
-def compare():
-    results = {}
-    results["TIP (no finetuning)"] = zeroshot_tip_no_finetuning()
-    results["TIP (finetuning)"] = zeroshot_tip_finetuned()
-    results["zeroshot"] = zeroshot()
-    return results
 
 
 @torch.no_grad()
@@ -156,59 +171,60 @@ def get_cache_logits(new_knowledge, train_images_targets, beta):
     return ((-1) * (beta * new_knowledge.to(torch.float32))).exp() @ train_images_targets
 
 
-def get_acc_f1(self, logits):
+def get_acc_f1(logits, test_labels):
     logits_topk = logits.topk(1, 1, True, True)[1].t().squeeze()
-    acc = accuracy_score(self.test_labels.cpu().numpy(), logits_topk.cpu().numpy()) * 100
-    f1 = f1_score(self.test_labels.cpu().numpy(), logits_topk.cpu().numpy(), average='macro') * 100
+    acc = accuracy_score(test_labels.cpu().numpy(), logits_topk.cpu().numpy()) * 100
+    f1 = f1_score(test_labels.cpu().numpy(), logits_topk.cpu().numpy(), average='macro') * 100
     _logger.info(f"ACC: {acc} \t f1: {f1}")
     return acc, f1
 
 
-def zeroshot(self):
-    similarity = 100 * self.test_features.to(torch.float32) @ self.label_features.t().softmax(dim=-1)
-    return self.get_acc_f1(similarity)
-
-
-def zeroshot_tip_no_finetuning(test_features, train_features_agg):
+def zeroshot_tip_no_finetuning(test_features, train_features_agg, train_images_targets, clip_logits, test_labels, alpha,
+                               beta):
     _logger.info(f"Running TIP Adapter - NO FINETUNING")
     # n_images * feature_size @ (num_classes * feature_size).t() --> n_images x num_classes
     affinity = test_features @ train_features_agg
-    cache_logits = get_cache_logits(affinity)
-    clip_logits = 100. * self.test_features @ self.label_features.t()
-    tip_logits = clip_logits + cache_logits * self.alpha
-    return self.get_acc_f1(tip_logits)
+    cache_logits = get_cache_logits(affinity, train_images_targets, beta)
+    tip_logits = clip_logits + cache_logits * alpha
+    acc, f1 = get_acc_f1(tip_logits, test_labels)
+    return acc, f1
 
 
-def zeroshot_tip_finetuned():
+def zeroshot_tip_finetuned(train_set, model,
+                           train_features_agg, train_images_targets,
+                           test_features, test_labels,
+                           label_features, classes,
+                           alpha, beta,
+                           lr, eps,
+                           train_epoch):
     _logger.info(f"Running TIP Adapter - FINETUNING")
 
-    train_loader_shuffle = DataLoader(self.train_set,
+    train_loader_shuffle = DataLoader(train_set,
                                       batch_size=256,
                                       shuffle=True)
-    adapter = WeightAdapter(self.model, self.train_features_agg, len(self.classes), self.classes).to(device)
-    optimizer = torch.optim.AdamW(adapter.parameters(), lr=self.lr, eps=self.eps)
-    scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, self.train_epoch * len(train_loader_shuffle))
+    adapter = WeightAdapter(model, train_features_agg, len(classes), classes).to(device)
+    optimizer = torch.optim.AdamW(adapter.parameters(), lr=lr, eps=eps)
+    scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, train_epoch * len(train_loader_shuffle))
 
-    best_acc, best_epoch = 0, 0
+    best_acc, best_epoch, best_f1 = 0, 0, 0
     losses, learning_rates, accuracies = [], [], []
-    for epoch in range(self.train_epoch):
-        _logger.info(f"Training epoch\t{epoch}/{self.train_epoch}")
+    for epoch in range(train_epoch):
+        _logger.info(f"Training epoch\t{epoch}/{train_epoch}")
         adapter.train()
-        correct_all = 0
-        n = 0
+
         batch_losses = []
 
         for i, (images, targets) in enumerate(tqdm(train_loader_shuffle)):
             images = images.to(device)
             targets = targets.to(device)
             with torch.no_grad():
-                image_features = self.model.encode_image(images)
+                image_features = model.encode_image(images)
                 image_features /= image_features.norm(dim=-1, keepdim=True)
 
             affinity = adapter.linear1(image_features)
-            cache_logits = self.get_cache_logits(affinity)
-            clip_logits = 100. * image_features.to(torch.float32) @ self.label_features.t()
-            clip_logits = clip_logits + cache_logits * self.alpha
+            cache_logits = get_cache_logits(affinity, train_images_targets, beta)
+            clip_logits = 100. * image_features.to(torch.float32) @ label_features.t()
+            clip_logits = clip_logits + cache_logits * alpha
 
             loss = F.cross_entropy(clip_logits, targets)
             batch_losses.append(loss.item())
@@ -225,15 +241,18 @@ def zeroshot_tip_finetuned():
         # eval
         adapter.eval()
 
-        affinity = adapter(self.test_features)
-        cache_logits = self.get_cache_logits(affinity)
-        clip_logits = 100. * self.test_features @ self.label_features.t()
-        tip_logits = clip_logits + cache_logits * self.alpha
-        acc, f1 = self.get_acc_f1(tip_logits)
+        affinity = adapter(test_features)
+        cache_logits = get_cache_logits(affinity,
+                                        train_images_targets,
+                                        beta)
+        clip_logits = 100. * test_features @ label_features.t()
+        tip_logits = clip_logits + cache_logits * alpha
+        acc, f1 = get_acc_f1(tip_logits, test_labels)
         if acc > best_acc:
             best_acc = acc
             best_f1 = f1
-            best_epoch = epoch
-            self.finetuned_adapter_weights = adapter.weight
+            _logger.info(f"New best acc: {acc} (f1: {f1}")
+            # best_epoch = epoch
+            # finetuned_adapter_weights = adapter.weight # maybe return them
 
     return best_acc, best_f1
