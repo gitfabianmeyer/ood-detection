@@ -23,7 +23,7 @@ run_clearml = False
 
 
 def main():
-    for dname, dset in DATASETS_DICT:
+    for dname, dset in DATASETS_DICT.items():
         _logger.info(f"Starting {dname} run...")
 
         name = "-".join([dname, 'adapter', datetime.today().strftime('%Y/%m/%d')])
