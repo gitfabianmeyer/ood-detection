@@ -163,8 +163,8 @@ class ClipTipAdapter:
     def get_acc_f1(self, logits):
 
         logits_topk = logits.topk(1, 1, True, True)[1].t().squeeze()
-        acc = accuracy_score(self.test_labels, logits_topk) * 100
-        f1 = f1_score(self.test_labels, logits_topk, average='macro') * 100
+        acc = accuracy_score(self.test_labels.cpu().numpy(), logits_topk.cpu().numpy()) * 100
+        f1 = f1_score(self.test_labels.cpu().numpy(), logits_topk.cpu().numpy(), average='macro') * 100
         _logger.info(f"ACC: {acc} \t f1: {f1}")
         return acc, f1
 
