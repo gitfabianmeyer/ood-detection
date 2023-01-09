@@ -1,3 +1,4 @@
+import logging
 import os
 
 os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
@@ -13,6 +14,8 @@ import numpy as np
 import sklearn
 import tqdm
 
+logging.basicConfig(level=logging.INFO)
+_logger = logging.getLogger(__name__)
 run_clearml = False
 
 cifar_templates = [
@@ -50,6 +53,7 @@ class OodCifar10(torchvision.datasets.CIFAR10):
 
 
 def main():
+    _logger.info("Starting cifar run")
     dataset = OodCifar10
 
     results = clip_tip_adapter(dataset=dataset)

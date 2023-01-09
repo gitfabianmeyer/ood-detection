@@ -33,6 +33,7 @@ def zeroshot(clip_logits, test_labels):
 
 
 def clip_tip_adapter(dataset, kshots=16, train_epoch=20, alpha=1., beta=1.17, lr=0.001, eps=1e-4):
+    _logger.info("Initializing everything...")
     clip_model, clip_transform = clip.load(Config.VISION_MODEL)
     clip_model.eval()
     train_set = get_train_set(dataset, kshots)
