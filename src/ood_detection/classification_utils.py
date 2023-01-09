@@ -3,6 +3,7 @@ import numpy as np
 import torch
 from metrics.distances_utils import shape_printer
 from ood_detection.config import Config
+from sklearn.metrics import f1_score
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 
@@ -96,6 +97,12 @@ def accuracy(output, target, top_k=(1,)):
 
     return [float(correct[:k].reshape(-1).float().sum(0, keepdim=True).cpu().numpy()) for k in top_k]
 
+
+def macro_f1_score(output, targets):
+    output = output.cpu()
+    targets = targets.cpu()
+    pred = output.topk(1, 1, True, True)[1].t()
+    f1_score(targets, pred, average='macro')
 
 @torch.no_grad()
 def get_normed_classname_embedding(classname, clip_model, templates):
