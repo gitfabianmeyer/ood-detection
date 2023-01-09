@@ -30,15 +30,15 @@ class WeightAdapter(nn.Module):
 
 
 class ClipTipAdapter:
-    def __init__(self, dataset, kshots, augment_epochs, lr=0.001, eps=1e-4):
+    def __init__(self, dataset, kshots, augment_epochs, alpha=1., beta=1.17, lr=0.001, eps=1e-4):
 
         self.train_images_targets = None
         self.train_features_agg = None
         self.finetuned_adapter_weights = None
         self.train_epoch = None
         self.classes = None
-        self.beta = None
-        self.alpha = None
+        self.beta = beta
+        self.alpha = alpha
         self.label_features = None
         self.test_features = None
         self.test_labels = None
@@ -81,9 +81,10 @@ class ClipTipAdapter:
 
     def compare(self):
         results = {}
-        results["zeroshot"] = self.zeroshot()
         results["TIP (no finetuning)"] = self.zeroshot_tip_no_finetuning()
         results["TIP (finetuning)"] = self.zeroshot_tip_finetuned()
+        results["zeroshot"] = self.zeroshot()
+
         return results
 
     @torch.no_grad()
