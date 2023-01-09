@@ -49,13 +49,8 @@ class ClipTipAdapter:
         self.kshots = kshots
         self.lr = lr
         self.eps = eps
-        self.model, self.transform = clip.load(Config.VISION_MODEL)
         self.model.eval()
-        self.train_transform = self.get_train_transform()
-        self.train_set = self.get_train_set()
-        self.set_test_features()
-        self.get_train_features()
-        self.compare()
+
     def get_kshot_set(self, train_images):
         _logger.info(f"Subsampling kshot ({self.kshots}) set")
         split_by_label_dict = defaultdict(list)
@@ -80,11 +75,15 @@ class ClipTipAdapter:
         return dataset
 
     def compare(self):
+        self.model, self.transform = clip.load(Config.VISION_MODEL)
+        self.train_transform = self.get_train_transform()
+        self.train_set = self.get_train_set()
+        self.set_test_features()
+        self.get_train_features()
         results = {}
         results["TIP (no finetuning)"] = self.zeroshot_tip_no_finetuning()
         results["TIP (finetuning)"] = self.zeroshot_tip_finetuned()
         results["zeroshot"] = self.zeroshot()
-        print(results)
         return results
 
     @torch.no_grad()
