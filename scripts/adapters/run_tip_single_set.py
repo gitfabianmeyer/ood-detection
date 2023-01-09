@@ -23,6 +23,7 @@ run_clearml = False
 
 
 def main():
+    failed = []
     for dname, dset in DATASETS_DICT.items():
         _logger.info(f"Starting {dname} run...")
 
@@ -32,11 +33,13 @@ def main():
                          name=name)
         try:
             results = clip_tip_adapter(dataset=dset)
+            print(results)
             run.log(results)
         except:
+            failed.append(dname)
             pass
         run.finish()
-
+    print(f"Failed: {failed}")
 
 if __name__ == '__main__':
 
