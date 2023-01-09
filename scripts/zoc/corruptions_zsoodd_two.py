@@ -4,8 +4,6 @@ os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
 os.environ["CUDA_VISIBLE_DEVICES"] = "1"
 
 from datasets import corruptions
-from datasets.cifar import OodCifar10
-from datasets.gtsrb import OodGTSRB
 from datasets.corruptions import get_corruption_transform
 
 import argparse
@@ -17,7 +15,7 @@ from clip.simple_tokenizer import SimpleTokenizer
 import torch
 import wandb
 from clearml import Task
-from datasets.config import DATASETS_DICT, HalfOneDict
+from datasets.config import HalfTwoDict
 from datasets.zoc_loader import IsolatedClasses
 from metrics.metrics_logging import wandb_log
 from ood_detection.config import Config
@@ -76,7 +74,7 @@ def run_all(args):
     clip_tokenizer = SimpleTokenizer()
     bert_model = get_decoder()
 
-    for dname, dset in HalfOneDict.items():
+    for dname, dset in HalfTwoDict.items():
 
         _logger.info(f"Running {dname} for {args.runs_ood} runs...")
 
