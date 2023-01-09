@@ -52,8 +52,8 @@ def clip_tip_adapter(dataset, kshots=16, train_epoch=20, alpha=1., beta=1.17, lr
                                                        cache_keys,
                                                        cache_values,
                                                        test_features, test_labels,
-                                                       label_features, classes,
-                                                       alpha, beta, lr,
+                                                       label_features, alpha,
+                                                       beta, lr,
                                                        eps, train_epoch)
     results = {"zsa": zsa, "zf1": f1, "tip acc no finetuning": acc_tip_no, "tip f1 no finetuning": f1_tip_no,
                "tip acc with finetuning": acc_tip_fine, "tip f1 with finetuning": f1_tip_fine}
@@ -191,10 +191,9 @@ def zeroshot_tip_no_finetuning(test_features, cache_keys, cache_values, clip_log
 def zeroshot_tip_finetuned(train_set, model,
                            cache_keys, cache_values,
                            test_features, test_labels,
-                           label_features, classes,
-                           alpha, beta,
-                           lr, eps,
-                           train_epoch):
+                           label_features, alpha,
+                           beta, lr,
+                           eps, train_epoch):
     _logger.info(f"Running TIP Adapter - FINETUNING")
 
     train_loader_shuffle = DataLoader(train_set,
@@ -220,7 +219,7 @@ def zeroshot_tip_finetuned(train_set, model,
                 image_features = model.encode_image(images)
                 image_features /= image_features.norm(dim=-1, keepdim=True)
 
-            affinity = adapter.linear1(image_features)
+            affinity = adapter.linear1(image_features.to(torch.float32))
             cache_logits = get_cache_logits(affinity, cache_values, beta)
             clip_logits = 100. * image_features.to(torch.float32) @ label_features.t()
             clip_logits = clip_logits + cache_logits * alpha
