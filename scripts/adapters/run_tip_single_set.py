@@ -57,6 +57,7 @@ def main():
     dataset = OodCifar10
 
     results = clip_tip_adapter(dataset=dataset)
+    print(results)
     return results
 
 

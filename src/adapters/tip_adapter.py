@@ -174,7 +174,6 @@ def get_acc_f1(logits, test_labels):
     logits_topk = logits.topk(1, 1, True, True)[1].t().squeeze()
     acc = accuracy_score(test_labels.cpu().numpy(), logits_topk.cpu().numpy()) * 100
     f1 = f1_score(test_labels.cpu().numpy(), logits_topk.cpu().numpy(), average='macro') * 100
-    _logger.info(f"ACC: {acc} \t f1: {f1}")
     return acc, f1
 
 
@@ -250,7 +249,7 @@ def zeroshot_tip_finetuned(train_set, model,
         if acc > best_acc:
             best_acc = acc
             best_f1 = f1
-            _logger.info(f"New best acc: {acc} (f1: {f1}")
+            _logger.info(f"New best acc: {acc:.3f} (f1: {f1:.3f}")
             # best_epoch = epoch
             # finetuned_adapter_weights = adapter.weight # maybe return them
 
