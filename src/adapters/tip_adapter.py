@@ -53,7 +53,7 @@ class ClipTipAdapter:
         self.train_set = self.get_train_set()
         self.set_test_features()
 
-        self.train_features_agg, self.train_images_targets = self.get_train_features()
+        self.get_train_features()
         self.zeroshot_weights = zeroshot_classifier(self.test_set.classes)
 
     def get_kshot_set(self, train_images):
