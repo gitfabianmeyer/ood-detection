@@ -122,7 +122,6 @@ class ClipTipAdapter:
 
         self.train_features_agg = train_images_features_agg
         self.train_images_targets = train_images_targets
-        self.len_train_loader
 
     def get_train_transform(self):
         return transforms.Compose([
