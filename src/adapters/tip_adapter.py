@@ -8,7 +8,7 @@ from tqdm import tqdm
 import clip
 import torch
 import torch.nn.functional as F
-from torch import nn
+import torch.nn as nn
 from torch.utils.data import DataLoader
 from torchvision import transforms
 
