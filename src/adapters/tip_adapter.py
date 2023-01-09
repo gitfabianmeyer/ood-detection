@@ -54,8 +54,6 @@ class ClipTipAdapter:
         self.set_test_features()
 
         self.get_train_features()
-        self.zeroshot_weights = zeroshot_classifier(self.test_set.classes)
-
     def get_kshot_set(self, train_images):
         _logger.info(f"Subsampling kshot ({self.kshots}) set")
         split_by_label_dict = defaultdict(list)
