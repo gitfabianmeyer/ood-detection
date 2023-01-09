@@ -14,7 +14,7 @@ import numpy as np
 import sklearn
 import tqdm
 
-run_clearml = True
+run_clearml = False
 
 cifar_templates = [
     'a photo of a {}.',
