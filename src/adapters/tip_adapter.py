@@ -49,7 +49,6 @@ class ClipTipAdapter:
         self.kshots = kshots
         self.lr = lr
         self.eps = eps
-        self.model.eval()
 
     def get_kshot_set(self, train_images):
         _logger.info(f"Subsampling kshot ({self.kshots}) set")
@@ -76,6 +75,7 @@ class ClipTipAdapter:
 
     def compare(self):
         self.model, self.transform = clip.load(Config.VISION_MODEL)
+        self.model.eval()
         self.train_transform = self.get_train_transform()
         self.train_set = self.get_train_set()
         self.set_test_features()
