@@ -41,8 +41,6 @@ def clip_tip_adapter(dataset, kshots=16, train_epoch=20, alpha=1., beta=1.17, lr
 
     test_features, test_labels, label_features, classes = get_test_features(dataset, clip_model, clip_transform)
 
-
-
     clip_logits = 100. * test_features @ label_features.t()
     zsa, f1 = zeroshot(clip_logits, test_labels)
     acc_tip_no, f1_tip_no = zeroshot_tip_no_finetuning(test_features,
@@ -70,17 +68,30 @@ def get_label_dict(train_images):
     # build kshot set
     for i in range(len(train_images)):
         split_by_label_dict[train_images.targets[i]].append(train_images.data[i])
+
     return split_by_label_dict
 
 
-def get_kshot_set(train_images, kshots):
-    label_dict = get_label_dict(train_images)
-    shortest = kshots
-    for key, value in label_dict.items():
-        if len(value) < kshots:
-            shortest = len(value)
-            _logger.warning(f"Found class < kshots: {key} : {shortest}")
-    return label_dict
+def get_truncated_to_min(label_dict, kshots):
+    shortest = min([len(l) for l in label_dict.values()])
+    if shortest < kshots:
+        _logger.warning(f"Set kshots to min class len: {kshots}")
+        kshots = shortest
+
+    imgs, targets = [], []
+    for label, items in label_dict.items():
+        imgs = imgs + random.sample(items, kshots)
+        targets = targets + [label for _ in range(kshots)]
+    return imgs, targets
+
+
+def get_kshot_train_set(dataset, kshots):
+    label_dict = get_label_dict(dataset)
+    imgs, targets = get_truncated_to_min(label_dict, kshots)
+
+    dataset.data = imgs
+    dataset.targets = targets
+    return dataset
 
 
 def get_train_set(dataset, kshots):
@@ -89,14 +100,8 @@ def get_train_set(dataset, kshots):
     dataset = dataset(data_path=Config.DATAPATH,
                       train=True,
                       transform=train_transform)
-    imgs, targets = [], []
-    for label, items in get_kshot_set(dataset, kshots).items():
-        imgs = imgs + random.sample(items, kshots)
-        targets = targets + [label for _ in range(kshots)]
 
-    dataset.data = imgs
-    dataset.targets = targets
-    return dataset
+    return get_kshot_train_set(dataset, kshots)
 
 
 @torch.no_grad()
