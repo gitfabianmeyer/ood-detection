@@ -106,7 +106,7 @@ def clip_tip_adapter(dataset, kshots=16, train_epoch=20, alpha=1., beta=1.17, lr
     clip_model, clip_transform = clip.load(Config.VISION_MODEL)
     clip_model.eval()
     train_set = get_train_set(dataset, kshots)
-    print(f"len trainset: {len(train_set)}. Should be: {len(train_set.classes) * kshots} (max)")
+    _logger.info(f"len trainset: {len(train_set)}. Should be: {len(train_set.classes) * kshots} (max)")
 
     cache_keys, cache_values = get_train_features(train_set, clip_model)
 
@@ -138,7 +138,7 @@ def get_label_dict(train_images):
 
     # build kshot set
     for i in range(len(train_images)):
-        split_by_label_dict[train_images.targets[i]].append(train_images.data[i])
+        split_by_label_dict[int(train_images.targets[i])].append(train_images.data[i])
 
     return split_by_label_dict
 
@@ -153,7 +153,7 @@ def get_truncated_to_min(label_dict, kshots):
     for label, items in label_dict.items():
         imgs = imgs + random.sample(items, kshots)
         targets = targets + [label for _ in range(kshots)]
-    print(F"Truncated: {len(imgs), len(targets)}\n {targets}")
+    _logger.info(F"Truncated: {len(imgs), len(targets)}")
     return imgs, targets
 
 
