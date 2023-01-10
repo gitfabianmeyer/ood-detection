@@ -1,12 +1,14 @@
+import os
+
+os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
+os.environ["CUDA_VISIBLE_DEVICES"] = "1"
+
 from datetime import datetime
 import logging
-import os
 
 import wandb
 from datasets.config import DATASETS_DICT
 
-os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
-os.environ["CUDA_VISIBLE_DEVICES"] = "1"
 from adapters.tip_adapter import clip_tip_adapter
 
 # import for clearml
@@ -25,21 +27,29 @@ run_clearml = False
 def main():
     failed = []
     for dname, dset in DATASETS_DICT.items():
-        _logger.info(f"Starting {dname} run...")
 
-        name = "-".join([dname, 'adapter', datetime.today().strftime('%Y/%m/%d')])
-        run = wandb.init(project="thesis-tip-adapters",
-                         entity="wandbefab",
-                         name=name)
-        try:
-            results = clip_tip_adapter(dataset=dset)
-            print(results)
+        if dname in ['caltech101', 'caltech cub', 'dtd', 'fashion mnist', 'flowers102', 'imagenet', 'lsun', 'mnist']:
+
+            _logger.info(f"Starting {dname} run...")
+
+
+            try:
+                results = clip_tip_adapter(dataset=dset)
+                print(results)
+            except Exception as e:
+                failed.append(dname)
+                raise e
+                break
+            name = "-".join([dname, 'adapter', datetime.today().strftime('%Y/%m/%d')])
+            run = wandb.init(project="thesis-tip-adapters",
+                             entity="wandbefab",
+                             name=name)
             run.log(results)
-        except:
-            failed.append(dname)
-            pass
-        run.finish()
+            run.finish()
+        else:
+            print(f"Jumping over {dname}, already exists")
     print(f"Failed: {failed}")
+
 
 if __name__ == '__main__':
 
