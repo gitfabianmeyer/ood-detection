@@ -109,7 +109,7 @@ def get_train_features(train_set, model, augment_epochs=1):
     _logger.info(f'Getting train features aggregated...')
 
     train_loader = DataLoader(train_set,
-                              batch_size=128,
+                              batch_size=16,
                               num_workers=1,
                               shuffle=False)
 
@@ -165,7 +165,7 @@ def get_test_features(dataset, model, transform):
     dataset = dataset(data_path=Config.DATAPATH,
                       train=False,
                       transform=transform)
-    dataloader = DataLoader(dataset, batch_size=128, shuffle=False, num_workers=1)
+    dataloader = DataLoader(dataset, batch_size=16, shuffle=False, num_workers=1)
     test_features, test_labels = [], []
 
     _logger.info("Getting test features...")
