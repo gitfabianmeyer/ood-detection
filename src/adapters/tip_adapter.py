@@ -61,14 +61,23 @@ def clip_tip_adapter(dataset, kshots=16, train_epoch=20, alpha=1., beta=1.17, lr
     return results
 
 
-def get_kshot_set(train_images, kshots):
-    _logger.info(f"Subsampling kshot ({kshots}) set")
+def get_label_dict(train_images):
     split_by_label_dict = defaultdict(list)
 
     # build kshot set
     for i in range(len(train_images)):
         split_by_label_dict[train_images.targets[i]].append(train_images.data[i])
     return split_by_label_dict
+
+
+def get_kshot_set(train_images, kshots):
+    label_dict = get_label_dict(train_images)
+    shortest = kshots
+    for key, value in label_dict.items():
+        if len(value) < kshots:
+            shortest = len(value)
+            _logger.warning(f"Found class < kshots: {key} : {shortest}")
+    return label_dict
 
 
 def get_train_set(dataset, kshots):
@@ -78,7 +87,7 @@ def get_train_set(dataset, kshots):
                       train=True,
                       transform=train_transform)
     imgs, targets = [], []
-    for label, items in get_kshot_set(dataset, kshots).items():
+    for label, items in get_kshot_set(dataset).items():
         imgs = imgs + random.sample(items, kshots)
         targets = targets + [label for _ in range(kshots)]
 
