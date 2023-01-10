@@ -34,6 +34,8 @@ class OodDTD(torchvision.datasets.DTD):
 
         return image, label
 
+    def __len__(self) -> int:
+        return len(self.data)
 
 def main():
     name = "dtd"
