@@ -237,6 +237,9 @@ class OodTinyImageNet(TinyImageNetImageFolder):
         self.transform = transform
         self.templates = templates if templates else imagenet_templates
 
+    def __len__(self):
+        return len(self.data)
+
 
 def main():
     name = "Tiny Imagenet"

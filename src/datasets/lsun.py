@@ -83,7 +83,7 @@ class LSUNClass(VisionDataset):
         return img, target
 
     def __len__(self) -> int:
-        return self.length
+        return len(self.data)
 
 
 class LSUN(VisionDataset):
@@ -221,6 +221,8 @@ class OodLSUN(LSUN):
         self.class_to_idx = {value: key for (key, value) in self.idx_to_class.items()}
         self.targets = self.set_targets()
 
+    def __len__(self):
+        return len(self.targets)
     def _download(self, category=None):
         categories = list_categories()
         if category is None:

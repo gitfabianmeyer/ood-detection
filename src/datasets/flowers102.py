@@ -1,6 +1,7 @@
 import os
-os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID"
-os.environ["CUDA_VISIBLE_DEVICES"]="1"
+
+os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
+os.environ["CUDA_VISIBLE_DEVICES"] = "1"
 
 import logging
 
@@ -27,6 +28,9 @@ class OodFlowers102(torchvision.datasets.Flowers102):
         self.targets = np.array(self._labels)
         self.class_to_idx = {cls: i for (i, cls) in enumerate(self.classes)}
         self.idx_to_class = {value: key for (key, value) in self.class_to_idx.items()}
+
+    def __len__(self) -> int:
+        return len(self.data)
 
 
 def main():
