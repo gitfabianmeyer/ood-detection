@@ -32,12 +32,80 @@ def zeroshot(clip_logits, test_labels):
     return get_acc_f1(clip_logits, test_labels)
 
 
+def get_adapter_weights(dataset, model, kshots=16, train_epoch=20, alpha=1., beta=1.17, lr=0.001, eps=1e-4):
+    _logger.info("Initializing everything...")
+    clip_model, clip_transform = clip.load(Config.VISION_MODEL)
+    clip_model.eval()
+    train_set = get_train_set(dataset, kshots)
+    cache_keys, cache_values = get_train_features(train_set, clip_model)
+
+    test_features, test_labels, label_features, classes = get_test_features(dataset, clip_model, clip_transform)
+    _logger.info(f"Running TIP Adapter - FINETUNING")
+
+    train_loader_shuffle = DataLoader(train_set,
+                                      batch_size=256,
+                                      shuffle=True,
+                                      num_workers=1)
+    adapter = WeightAdapter(model, cache_keys).to(device)
+    optimizer = torch.optim.AdamW(adapter.parameters(), lr=lr, eps=eps)
+    scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, train_epoch * len(train_loader_shuffle))
+
+    best_acc, best_epoch, best_f1 = 0, 0, 0
+    losses, learning_rates, accuracies = [], [], []
+    for epoch in range(train_epoch):
+        _logger.info(f"Training epoch\t{epoch}/{train_epoch}")
+        adapter.train()
+
+        batch_losses = []
+
+        for i, (images, targets) in enumerate(tqdm(train_loader_shuffle)):
+            images = images.to(device)
+            targets = targets.to(device)
+            with torch.no_grad():
+                image_features = model.encode_image(images)
+                image_features /= image_features.norm(dim=-1, keepdim=True)
+
+            affinity = adapter.linear1(image_features.to(torch.float32))
+            cache_logits = get_cache_logits(affinity, cache_values, beta)
+            clip_logits = 100. * image_features.to(torch.float32) @ label_features.t()
+            clip_logits = clip_logits + cache_logits * alpha
+
+            loss = F.cross_entropy(clip_logits, targets)
+            batch_losses.append(loss.item())
+
+            optimizer.zero_grad()
+            loss.backward()
+            optimizer.step()
+            scheduler.step()
+
+        losses.append(sum(batch_losses))
+        current_lr = scheduler.get_last_lr()[0]
+        learning_rates.append(current_lr)
+        _logger.info(f"LOSS: {sum(batch_losses)}, LR: {current_lr}")
+        # eval
+        adapter.eval()
+
+        affinity = adapter.linear1(test_features)
+        cache_logits = get_cache_logits(affinity,
+                                        cache_values,
+                                        beta)
+        clip_logits = 100. * test_features @ label_features.t()
+        tip_logits = clip_logits + cache_logits * alpha
+        acc, f1 = get_acc_f1(tip_logits, test_labels)
+        if acc > best_acc:
+            best_acc = acc
+            _logger.info(f"New best acc: {acc:.3f} (f1: {f1:.3f})")
+            # best_epoch = epoch
+            finetuned_adapter_weights = adapter.weight # maybe return them
+
+    return finetuned_adapter_weights
+
+
 def clip_tip_adapter(dataset, kshots=16, train_epoch=20, alpha=1., beta=1.17, lr=0.001, eps=1e-4):
     _logger.info("Initializing everything...")
     clip_model, clip_transform = clip.load(Config.VISION_MODEL)
     clip_model.eval()
     train_set = get_train_set(dataset, kshots)
-    print(set(train_set.targets))
     cache_keys, cache_values = get_train_features(train_set, clip_model)
 
     test_features, test_labels, label_features, classes = get_test_features(dataset, clip_model, clip_transform)
@@ -76,8 +144,8 @@ def get_label_dict(train_images):
 def get_truncated_to_min(label_dict, kshots):
     shortest = min([len(l) for l in label_dict.values()])
     if shortest < kshots:
-        _logger.warning(f"Set kshots to min class len: {kshots}")
         kshots = shortest
+        _logger.warning(f"Set kshots to min class len: {shortest}")
 
     imgs, targets = [], []
     for label, items in label_dict.items():
