@@ -37,6 +37,7 @@ def get_adapter_weights(dataset, model, kshots=16, train_epoch=20, alpha=1., bet
     clip_model, clip_transform = clip.load(Config.VISION_MODEL)
     clip_model.eval()
     train_set = get_train_set(dataset, kshots)
+    print(f"len trainset: {len(train_set)}. Should be: {len(train_set.classes) * kshots} (max)")
     cache_keys, cache_values = get_train_features(train_set, clip_model)
 
     test_features, test_labels, label_features, classes = get_test_features(dataset, clip_model, clip_transform)
