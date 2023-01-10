@@ -205,6 +205,13 @@ def zeroshot_tip_no_finetuning(test_features, cache_keys, cache_values, clip_log
     # n_images * feature_size @ (num_classes * feature_size).t() --> n_images x num_classes
     affinity = test_features @ cache_keys
     cache_logits = get_cache_logits(affinity, cache_values, beta)
+
+    print(f'shape test_features: {test_features.shape} ')
+    print(f'shape cache_keys: {cache_keys.shape} ')
+    print(f'shape cache_logits: {cache_logits.shape} ')
+    print(f'shape affinity: {affinity.shape} ')
+    print(f'shape cache_values: {cache_values.shape} ')
+
     tip_logits = clip_logits + cache_logits * alpha
 
     acc, f1 = get_acc_f1(tip_logits, test_labels)
