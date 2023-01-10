@@ -1,7 +1,7 @@
 import os
 
 os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
-os.environ["CUDA_VISIBLE_DEVICES"] = "1"
+os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 
 from datetime import datetime
 import logging
@@ -28,7 +28,7 @@ def main():
     failed = []
     for dname, dset in DATASETS_DICT.items():
 
-        if dname in ['fashion mnist']:
+        if dname in ['flowers102', 'imagenet', 'lsun', 'mnist']:
 
             _logger.info(f"Starting {dname} run...")
 
