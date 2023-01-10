@@ -1,5 +1,6 @@
 import logging
 import shlex
+from typing import Tuple, Any
 
 import clip
 import imageio
@@ -178,15 +179,17 @@ class TinyImageNetDataset(Dataset):
 
     def __getitem__(self, idx):
         if self.preload:
+            print("using preload")
             img = self.data[idx]
             lbl = None if self.mode == 'test' else self.targets[idx]
         else:
+            print("using no preload")
             s = self.samples[idx]
             img = imageio.imread(s[0])
             img = _add_channels(img)
             lbl = None if self.mode == 'test' else s[self.label_idx]
         sample = {'image': img, 'label': lbl}
-
+        raise ValueError
         if self.transform:
             sample = self.transform(sample)
         return sample
@@ -240,6 +243,23 @@ class OodTinyImageNet(TinyImageNetImageFolder):
     def __len__(self):
         return len(self.data)
 
+    def __getitem__(self, index: int) -> Tuple[Any, Any]:
+        """
+        Args:
+            index (int): Index
+
+        Returns:
+            tuple: (sample, target) where target is class_index of the target class.
+        """
+        target = self.targets[index]
+        sample = self.loader(self.data[index])
+        if self.transform is not None:
+            sample = self.transform(sample)
+        if self.target_transform is not None:
+            target = self.target_transform(target)
+
+        return sample, target
+
 
 def main():
     name = "Tiny Imagenet"
@@ -249,4 +269,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-
