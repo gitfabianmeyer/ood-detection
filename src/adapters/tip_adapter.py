@@ -87,7 +87,7 @@ def get_train_set(dataset, kshots):
                       train=True,
                       transform=train_transform)
     imgs, targets = [], []
-    for label, items in get_kshot_set(dataset).items():
+    for label, items in get_kshot_set(dataset, kshots).items():
         imgs = imgs + random.sample(items, kshots)
         targets = targets + [label for _ in range(kshots)]
 
