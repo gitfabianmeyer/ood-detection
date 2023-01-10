@@ -136,8 +136,11 @@ def get_train_features(train_set, model, augment_epochs=1):
     train_images_features_agg = torch.cat(train_images_features_agg, dim=0).mean(0)
     train_images_features_agg /= train_images_features_agg.norm(dim=-1, keepdim=True)
     train_images_features_agg = train_images_features_agg.permute(1, 0)
-    cache_values = F.one_hot(torch.cat(cache_values, dim=0))
 
+    print(cache_values[:20])
+    cache_values = F.one_hot(torch.cat(cache_values, dim=0))
+    print(cache_values[:20])
+    raise ValueError
     cache_keys = train_images_features_agg.to(torch.float32)
     cache_values = cache_values.to(torch.float32)
 
