@@ -19,7 +19,8 @@ class OodCaltech101(torchvision.datasets.Caltech101):
                          transform=transform,
                          # train=train,
                          download=True)
-
+        self.targets = np.array(self.y)
+        self.data = self.transform_to_image_list()
         self.classes = self.categories
         self.idx_to_class = {i: cls for (i, cls) in enumerate(self.classes)}
         self.class_to_idx = {value: key for (key, value) in self.idx_to_class.items()}
@@ -36,6 +37,9 @@ class OodCaltech101(torchvision.datasets.Caltech101):
 
         return img, target
 
+    def __len__(self) -> int:
+        return len(self.targets)
+
     def transform_to_image_list(self):
         # basically use the original __getitem__
         file_list = []
@@ -48,12 +52,11 @@ class OodCaltech101(torchvision.datasets.Caltech101):
         return file_list
 
     def get_split(self, train):
-        targets = np.array(self.y)
-        data = self.transform_to_image_list()
-        x_train, x_test, y_train, y_test = train_test_split(data,
-                                                            targets,
+
+        x_train, x_test, y_train, y_test = train_test_split(self.data,
+                                                            self.targets,
                                                             test_size=.3,
-                                                            stratify=targets,
+                                                            stratify=self.targets,
                                                             random_state=42)
         if train:
             return x_train, y_train
