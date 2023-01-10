@@ -59,11 +59,11 @@ class OodCub2011(Dataset):
                 curr_class = curr_class.split(".")[1]
                 curr_class = " ".join(curr_class.split("_"))
                 self.classes.append(curr_class)
-        self.class_to_idx = {cls: i + 1 for (i, cls) in enumerate(self.classes)}
+        self.class_to_idx = {cls: i for (i, cls) in enumerate(self.classes)}
         self.idx_to_class = {value: key for (key, value) in self.class_to_idx.items()}
 
         self.data = np.array(images)
-        self.targets = np.array(labels)
+        self.targets = np.array(labels) - 1
         is_training = np.array(is_training, dtype=bool)
 
         if self.train:
