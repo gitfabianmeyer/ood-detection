@@ -38,9 +38,20 @@ def clip_tip_adapter(dataset, kshots=16, train_epoch=20, alpha=1., beta=1.17, lr
     clip_model.eval()
     train_set = get_train_set(dataset, kshots)
     cache_keys, cache_values = get_train_features(train_set, clip_model)
+    print(f"cache_keys.shape: {cache_keys.shape}")
+    print(f"cache_values.shape: {cache_values.shape}")
+
+
     test_features, test_labels, label_features, classes = get_test_features(dataset, clip_model, clip_transform)
+    print(f"test_features.shape: {test_features.shape}")
+    print(f"test_labels.shape: {test_labels.shape}")
+    print(f"label_features.shape: {label_features.shape}")
+    print(f"classes.shape: {len(classes)}")
+
+
 
     clip_logits = 100. * test_features @ label_features.t()
+    print(f"clip_logits.shape: {clip_logits.shape}")
     zsa, f1 = zeroshot(clip_logits, test_labels)
     acc_tip_no, f1_tip_no = zeroshot_tip_no_finetuning(test_features,
                                                        cache_keys,
@@ -196,8 +207,14 @@ def zeroshot_tip_no_finetuning(test_features, cache_keys, cache_values, clip_log
     _logger.info(f"Running TIP Adapter - NO FINETUNING")
     # n_images * feature_size @ (num_classes * feature_size).t() --> n_images x num_classes
     affinity = test_features @ cache_keys
+    print(f"affinity.shape: {affinity.shape}")
+
     cache_logits = get_cache_logits(affinity, cache_values, beta)
+    print(f"cache_logits.shape: {cache_logits.shape}")
+
     tip_logits = clip_logits + cache_logits * alpha
+    print(f"tip_logits.shape: {tip_logits.shape}")
+
     acc, f1 = get_acc_f1(tip_logits, test_labels)
     return acc, f1
 

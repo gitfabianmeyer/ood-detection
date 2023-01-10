@@ -28,7 +28,7 @@ def main():
     failed = []
     for dname, dset in DATASETS_DICT.items():
 
-        if dname in ['caltech101', 'caltech cub', 'dtd', 'fashion mnist', 'flowers102', 'imagenet', 'lsun', 'mnist']:
+        if dname in ['caltech cub', 'dtd', 'fashion mnist', 'flowers102', 'imagenet', 'lsun', 'mnist']:
 
             _logger.info(f"Starting {dname} run...")
 
