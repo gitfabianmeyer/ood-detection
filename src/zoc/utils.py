@@ -239,7 +239,7 @@ def tip_image_decoder(clip_model,
 
         adapter = WeightAdapter(clip_model, cache_keys).to(device)
         adapter_weights = get_tip_adapter_weights(train_set, val_set,
-                                                  clip_model, kshots=kshots, train_epoch=train_epoch,
+                                                  clip_model, train_epoch=train_epoch,
                                                   alpha=alpha, beta=beta,
                                                   lr=lr, eps=eps)
         adapter.weights = adapter_weights
