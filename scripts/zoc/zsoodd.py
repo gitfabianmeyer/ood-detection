@@ -102,16 +102,17 @@ def run_all(args):
             metrics_dict['dataset'] = dname
             metrics_dict['model'] = Config.VISION_MODEL
             metrics_dict['id split'] = split[0]
-            run = wandb.init(project="thesis-zsoodd_all_aucs_two_runs",
-                             entity="wandbefab",
-                             name=dname+' split-'+str(split))
-            wandb.log(metrics_dict)
-            run.finish()
+            # run = wandb.init(project="thesis-zsoodd_test",
+            #                  entity="wandbefab",
+            #                  name=dname+' split-'+str(split))
+            # wandb.log(metrics_dict)
+            # run.finish()
+            print(metrics_dict)
 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--runs_ood', type=int, default=2)
+    parser.add_argument('--runs_ood', type=int, default=1)
 
     args = parser.parse_args()
     run_all(args)
