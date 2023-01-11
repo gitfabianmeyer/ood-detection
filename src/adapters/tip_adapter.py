@@ -64,8 +64,14 @@ def get_adapter_weights(train_set, test_set, model, train_epoch=20, alpha=1., be
                 image_features = model.encode_image(images)
                 image_features /= image_features.norm(dim=-1, keepdim=True)
 
+
             affinity = adapter.linear1(image_features.to(torch.float32))
+            print(f"affinity: {affinity.shape}")
+            print(f"cache_values: {cache_values.shape}")
+
             cache_logits = get_cache_logits(affinity, cache_values, beta)
+            print(f"cache_logits: {cache_logits.shape}")
+
             clip_logits = 100. * image_features.to(torch.float32) @ label_features.t()
             clip_logits = clip_logits + cache_logits * alpha
 
