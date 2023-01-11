@@ -71,11 +71,11 @@ def run_all(args):
     clip_tokenizer = SimpleTokenizer()
     bert_model = get_decoder()
 
-    for dname, dset in HalfOneDict.items():
+    for dname, dset in DATASETS_DICT.items():
 
-        if dname == 'caltech101':
-            print(f"Jumping over {dname}")
-            continue
+        # if dname == 'caltech101':
+        #     print(f"Jumping over {dname}")
+        #     continue
 
         _logger.info(f"Running {dname}...")
 
@@ -102,15 +102,16 @@ def run_all(args):
             metrics_dict['dataset'] = dname
             metrics_dict['model'] = Config.VISION_MODEL
             metrics_dict['id split'] = split[0]
-
-            run = wandb_log(metrics_dict=metrics_dict,
-                            experiment='zsoodd')
-        run.finish()
+            run = wandb.init(project="thesis-zsoodd_all_aucs_two_runs",
+                             entity="wandbefab",
+                             name=dname+' split-'+str(split))
+            wandb.log(metrics_dict)
+            run.finish()
 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--runs_ood', type=int, default=5)
+    parser.add_argument('--runs_ood', type=int, default=2)
 
     args = parser.parse_args()
     run_all(args)
