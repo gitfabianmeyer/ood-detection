@@ -10,7 +10,7 @@ from sklearn.model_selection import train_test_split
 from tqdm import tqdm
 
 from datasets.zoc_loader import IsolatedClasses
-
+from adapters.tip_adapter import get_train_features, WeightAdapter
 _logger = logging.getLogger()
 
 
@@ -220,7 +220,12 @@ def tip_image_decoder(clip_model,
                       isolated_classes: IsolatedClasses,
                       id_classes,
                       ood_classes,
-                      runs):
+                      runs,
+                      kshots=16,
+                      train_epoch=2,
+                      alpha=1., beta=1.17,
+                      lr=0.001, eps=1e-4
+                      ):
     ablation_splits = get_ablation_splits(isolated_classes.labels, n=runs, id_classes=id_classes,
                                           ood_classes=ood_classes)
 
@@ -232,11 +237,11 @@ def tip_image_decoder(clip_model,
         train_set, val_set = get_id_datasets(dataset, seen_labels, kshots=kshots)
         cache_keys, cache_values = get_train_features(train_set, clip_model)
 
-        adapter = WeightAdapter(model, cache_keys).to(device)
+        adapter = WeightAdapter(clip_model, cache_keys).to(device)
         adapter_weights = get_tip_adapter_weights(train_set, val_set,
-                                                  clip_model, kshots=16, train_epoch=2,
-                                                  alpha=1., beta=1.17,
-                                                  lr=0.001, eps=1e-4)
+                                                  clip_model, kshots=kshots, train_epoch=train_epoch,
+                                                  alpha=alpha, beta=beta,
+                                                  lr=lr, eps=eps)
         adapter.weights = adapter_weights
 
         unseen_labels = split[id_classes:]

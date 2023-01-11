@@ -22,8 +22,8 @@ from zoc.utils import image_decoder, tip_image_decoder
 _logger = logging.getLogger(__name__)
 splits = [(.4, .6), ]
 clearml_model = False
-MODEL_PATH = "/home/fmeyer/ZOC/trained_models/COCO/ViT-B32/"
-# MODEL_PATH = "/mnt/c/users/fmeyer/git/ood-detection/data/zoc/trained_models/COCO/"
+# MODEL_PATH = "/home/fmeyer/ZOC/trained_models/COCO/ViT-B32/"
+MODEL_PATH = "/mnt/c/users/fmeyer/git/ood-detection/data/zoc/trained_models/COCO/"
 
 
 def get_decoder():
@@ -47,7 +47,7 @@ def get_decoder():
 
 
 def run_single_dataset_ood_tip(isolated_classes, dataset, clip_model, clip_tokenizer, bert_tokenizer, bert_model,
-                               id_classes=.6, runs=5):
+                               id_classes=.6, runs=1):
     labels = isolated_classes.labels
     id_classes = int(len(labels) * id_classes)
     ood_classes = len(labels) - id_classes
@@ -113,7 +113,7 @@ def run_all(args):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--runs_ood', type=int, default=5)
+    parser.add_argument('--runs_ood', type=int, default=1)
 
     args = parser.parse_args()
     run_all(args)
