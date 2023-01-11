@@ -346,8 +346,15 @@ def zeroshot_tip_finetuned(train_set, model,
                 image_features /= image_features.norm(dim=-1, keepdim=True)
 
             affinity = adapter.linear1(image_features.to(torch.float32))
+            print(f"min max affinity: {affinity.min(), affinity.max()}")
             cache_logits = get_cache_logits(affinity, cache_values, beta)
+
+            print(f"min max cache_logits: {cache_logits.min(), cache_logits.max()}")
+
             clip_logits = 100. * image_features.to(torch.float32) @ label_features.t()
+
+            print(f"min max clip_logits: {clip_logits.min(), clip_logits.max()}")
+
             clip_logits = clip_logits + cache_logits * alpha
 
             loss = F.cross_entropy(clip_logits, targets)
