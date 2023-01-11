@@ -65,7 +65,8 @@ def get_ablation_splits(classnames, n, id_classes, ood_classes=None):
         leftover = [classname for classname in classnames if classname not in base]
         oods = random.sample(leftover, k=ood_classes)
         splits.append(base + oods)
-
+    for split in splits:
+        assert len(split) == len(set(split))
     return splits
 
 
