@@ -61,9 +61,9 @@ def get_ablation_splits(classnames, n, id_classes, ood_classes=None):
 
     splits = []
     for _ in range(n):
-        base = random.choices(classnames, k=id_classes)
+        base = random.sample(classnames, k=id_classes)
         leftover = [classname for classname in classnames if classname not in base]
-        oods = random.choices(leftover, k=ood_classes)
+        oods = random.sample(leftover, k=ood_classes)
         splits.append(base + oods)
 
     return splits
@@ -153,37 +153,12 @@ def image_decoder(clip_model,
 
                 id_probs_sum.append(1. - ood_prob_sum)
 
-        len_id_targets = sum([len(isolated_classes[lab].dataset) for lab in seen_labels])
-        len_ood_targets = sum([len(isolated_classes[lab].dataset) for lab in unseen_labels])
-        targets = torch.tensor(len_id_targets * [0] + len_ood_targets * [1])
+        targets = get_split_specific_targets(isolated_classes, seen_labels, unseen_labels)
+        fill_auc_lists(auc_list_max, auc_list_mean, auc_list_sum, ood_probs_mean, ood_probs_max, ood_probs_sum,
+                       targets)
+        fill_f_acc_lists(acc_probs_sum, f_probs_sum, id_probs_sum, ood_probs_sum, targets)
 
-
-        auc_mean = roc_auc_score(np.array(targets), np.squeeze(ood_prob_mean))
-        auc_list_mean.append(auc_mean)
-
-        auc_max = roc_auc_score(np.array(targets), np.squeeze(ood_probs_max))
-        auc_list_max.append(auc_max)
-
-        auc_sum = roc_auc_score(np.array(targets), np.squeeze(ood_probs_sum))
-        auc_list_sum.append(auc_sum)
-
-        f_score = get_fscore(targets, np.squeeze(id_probs_sum), np.squeeze(ood_probs_sum))
-        accuracy = get_accuracy_score(np.array(targets), np.squeeze(id_probs_sum), np.squeeze(ood_probs_sum))
-        f_probs_sum.append(f_score)
-        acc_probs_sum.append(accuracy)
-
-    sum_mean_f1, sum_std_f1 = get_mean_std(f_probs_sum)
-    sum_mean_acc, sum_std_acc = get_mean_std(acc_probs_sum)
-
-    sum_mean_auc, sum_std_auc = get_mean_std(auc_list_sum)
-    mean_mean_auc, mean_std_auc = get_mean_std(auc_list_mean)
-    max_mean_auc, max_std_auc = get_mean_std(auc_list_max)
-
-    metrics = {'auc-mean': mean_mean_auc,
-               'auc-max': max_mean_auc,
-               'auc-sum:': sum_mean_auc,
-               'f1_mean': sum_mean_f1,
-               'acc_mean': sum_mean_acc}
+    metrics = get_result_mean_dict(acc_probs_sum, auc_list_max, auc_list_mean, auc_list_sum, f_probs_sum)
 
     return metrics
 
@@ -246,7 +221,7 @@ def tip_image_decoder(clip_model,
     ablation_splits = get_ablation_splits(isolated_classes.labels, n=runs, id_classes=id_classes,
                                           ood_classes=ood_classes)
 
-    auc_list_sum = []
+    auc_list_sum, auc_list_mean, auc_list_max = [], [], []
     for split in ablation_splits:
 
         seen_labels = split[:id_classes]
@@ -265,7 +240,8 @@ def tip_image_decoder(clip_model,
         _logger.debug(f"Seen labels: {seen_labels}\nOOD Labels: {split[id_classes:]}")
         seen_descriptions = [f"This is a photo of a {label}" for label in seen_labels]
 
-        ood_probs_sum, f_probs_sum, acc_probs_sum, id_probs_sum = [], [], [], []
+        ood_probs_sum, ood_probs_mean, ood_probs_max = [], [], []
+        f_probs_sum, acc_probs_sum, id_probs_sum = [], [], []
 
         for i, semantic_label in enumerate(split):
             _logger.info(f"Encoding images for label {semantic_label}")
@@ -296,9 +272,10 @@ def tip_image_decoder(clip_model,
                     text_features = clip_model.encode_text(all_desc_ids.to(device)).float()
                     text_features /= text_features.norm(dim=-1, keepdim=True)
 
-                affinity = adapter(image_feature)
+                    affinity = adapter(image_feature)
+
                 print(f"affinity: {affinity.shape}")
-                cache_logits = ((-1) * (beta - beta * affinity)).exp() @ cache_values
+                cache_logits = get_cache_logits(affinity, cache_values, beta)
                 print(f"cache_logits: {cache_logits.shape}")
 
                 print(f"image_feature: {image_feature.shape}")
@@ -309,39 +286,62 @@ def tip_image_decoder(clip_model,
                 tip_logits = clip_logits + cache_logits * alpha  # will fal
                 zeroshot_probs_clip = clip_logits.softmax(dim=-1).squeeze()
                 zeroshot_probs_tip = tip_logits.softmax(dim=-1).squeeze
-                # detection score is accumulative sum of probs of generated entities
-                ood_prob_sum_clip = np.sum(zeroshot_probs_clip[id_classes:].detach().cpu().numpy())
-                ood_prob_sum_tip = np.sum(zeroshot_probs_tip[id_classes:].detach().cpu().numpy())
-
-                print(f"clip:{ood_prob_sum_clip}")
-                print(f"tip:{ood_prob_sum_tip}")
                 raise ValueError
+                # detection score is accumulative sum of probs of generated entities
+                ood_prob_sum = np.sum(zeroshot_probs_clip[id_classes:].detach().cpu().numpy())
+                ood_probs_sum.append(ood_prob_sum)
 
-                ood_probs_sum.append(ood_prob_sum_clip)
+                ood_prob_mean = np.mean(zeroshot_probs_clip[id_classes:].detach().cpu().numpy())
+                ood_probs_mean.append(ood_prob_mean)
 
-                id_probs_sum.append(1. - ood_prob_sum_clip)
+                top_prob, _ = zeroshot_probs_clip.cpu().topk(1, dim=-1)
+                ood_probs_max.append(top_prob.detach().numpy())
 
-        len_id_targets = sum([len(isolated_classes[lab].dataset) for lab in seen_labels])
-        len_ood_targets = sum([len(isolated_classes[lab].dataset) for lab in unseen_labels])
-        targets = torch.tensor(len_id_targets * [0] + len_ood_targets * [1])
+                id_probs_sum.append(1. - ood_prob_sum)
 
-        auc_sum = roc_auc_score(np.array(targets), np.squeeze(ood_probs_sum))
-        f_score = get_fscore(targets, np.squeeze(id_probs_sum), np.squeeze(ood_probs_sum))
-        accuracy = get_accuracy_score(np.array(targets), np.squeeze(id_probs_sum), np.squeeze(ood_probs_sum))
+            targets = get_split_specific_targets(isolated_classes, seen_labels, unseen_labels)
+            fill_auc_lists(auc_list_max, auc_list_mean, auc_list_sum, ood_probs_mean, ood_probs_max, ood_probs_sum,
+                           targets)
+            fill_f_acc_lists(acc_probs_sum, f_probs_sum, id_probs_sum, ood_probs_sum, targets)
 
-        auc_list_sum.append(auc_sum)
-        f_probs_sum.append(f_score)
-        acc_probs_sum.append(accuracy)
+        metrics = get_result_mean_dict(acc_probs_sum, auc_list_max, auc_list_mean, auc_list_sum, f_probs_sum)
 
-    mean_auc, std_auc = get_mean_std(auc_list_sum)
-    mean_f1, std_f1 = get_mean_std(f_probs_sum)
-    mean_acc, std_acc = get_mean_std(acc_probs_sum)
+        return metrics
 
-    metrics = {'auc_mean': mean_auc,
-               'auc_std': std_auc,
-               'f1_std': std_f1,
-               'f1_mean': mean_f1,
-               'acc_std': std_acc,
-               'acc_mean': mean_acc}
 
+def fill_f_acc_lists(acc_probs_sum, f_probs_sum, id_probs_sum, ood_probs_sum, targets):
+    f_score = get_fscore(targets, np.squeeze(id_probs_sum), np.squeeze(ood_probs_sum))
+    accuracy = get_accuracy_score(np.array(targets), np.squeeze(id_probs_sum), np.squeeze(ood_probs_sum))
+    f_probs_sum.append(f_score)
+    acc_probs_sum.append(accuracy)
+
+
+def fill_auc_lists(auc_list_max, auc_list_mean, auc_list_sum, ood_prob_mean, ood_probs_max, ood_probs_sum, targets):
+    auc_list_mean.append(get_auroc_for_ood_probs(targets, ood_prob_mean))
+    auc_list_max.append(get_auroc_for_ood_probs(targets, ood_probs_max))
+    auc_list_sum.append(get_auroc_for_ood_probs(targets, ood_probs_sum))
+
+
+def get_auroc_for_ood_probs(targets, means):
+    return roc_auc_score(np.array(targets), np.squeeze(means))
+
+
+def get_split_specific_targets(isolated_classes, seen_labels, unseen_labels):
+    len_id_targets = sum([len(isolated_classes[lab].dataset) for lab in seen_labels])
+    len_ood_targets = sum([len(isolated_classes[lab].dataset) for lab in unseen_labels])
+    targets = torch.tensor(len_id_targets * [0] + len_ood_targets * [1])
+    return targets
+
+
+def get_result_mean_dict(acc_probs_sum, auc_list_max, auc_list_mean, auc_list_sum, f_probs_sum):
+    sum_mean_f1, sum_std_f1 = get_mean_std(f_probs_sum)
+    sum_mean_acc, sum_std_acc = get_mean_std(acc_probs_sum)
+    sum_mean_auc, sum_std_auc = get_mean_std(auc_list_sum)
+    mean_mean_auc, mean_std_auc = get_mean_std(auc_list_mean)
+    max_mean_auc, max_std_auc = get_mean_std(auc_list_max)
+    metrics = {'auc-mean': mean_mean_auc,
+               'auc-max': max_mean_auc,
+               'auc-sum:': sum_mean_auc,
+               'f1_mean': sum_mean_f1,
+               'acc_mean': sum_mean_acc}
     return metrics
