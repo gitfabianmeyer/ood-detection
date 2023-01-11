@@ -12,7 +12,7 @@ from clip.simple_tokenizer import SimpleTokenizer
 import torch
 import wandb
 from clearml import Task
-from datasets.config import DATASETS_DICT, HalfTwoDict
+from datasets.config import DATASETS_DICT, HalfOneDict
 from datasets.zoc_loader import IsolatedClasses
 from metrics.metrics_logging import wandb_log
 from ood_detection.config import Config
@@ -71,7 +71,7 @@ def run_all(args):
     clip_tokenizer = SimpleTokenizer()
     bert_model = get_decoder()
 
-    for dname, dset in HalfTwoDict.items():
+    for dname, dset in HalfOneDict.items():
 
         # if dname == 'caltech101':
         #     print(f"Jumping over {dname}")
