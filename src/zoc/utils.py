@@ -11,8 +11,8 @@ from tqdm import tqdm
 
 from datasets.zoc_loader import IsolatedClasses
 from adapters.tip_adapter import get_train_features, WeightAdapter
-_logger = logging.getLogger()
 
+_logger = logging.getLogger()
 
 @torch.no_grad()
 def greedysearch_generation_topk(clip_embed, berttokenizer, bert_model, device):
@@ -99,18 +99,19 @@ def image_decoder(clip_model,
                   isolated_classes: IsolatedClasses = None,
                   id_classes=6,
                   ood_classes=4,
-                  runs=1):
+                  runs=1, ):
     ablation_splits = get_ablation_splits(isolated_classes.labels, n=runs, id_classes=id_classes,
                                           ood_classes=ood_classes)
 
-    auc_list_sum = []
+    auc_list_sum, auc_list_mean, auc_list_max = [], [], []
     for split in ablation_splits:
         seen_labels = split[:id_classes]
         unseen_labels = split[id_classes:]
         _logger.debug(f"Seen labels: {seen_labels}\nOOD Labels: {split[id_classes:]}")
         seen_descriptions = [f"This is a photo of a {label}" for label in seen_labels]
 
-        ood_probs_sum, f_probs_sum, acc_probs_sum, id_probs_sum = [], [], [], []
+        ood_probs_sum, ood_probs_mean, ood_probs_max = [], [], []
+        f_probs_sum, acc_probs_sum, id_probs_sum = [], [], []
 
         for i, semantic_label in enumerate(split):
             _logger.info(f"Encoding images for label {semantic_label}")
@@ -144,30 +145,45 @@ def image_decoder(clip_model,
                 ood_prob_sum = np.sum(zeroshot_probs[id_classes:].detach().cpu().numpy())
                 ood_probs_sum.append(ood_prob_sum)
 
+                ood_prob_mean = np.mean(zeroshot_probs[id_classes:].detach().cpu().numpy())
+                ood_probs_mean.append(ood_prob_mean)
+
+                top_prob, _ = zeroshot_probs.cpu().topk(1, dim=-1)
+                ood_probs_max.append(top_prob.detach().numpy())
+
                 id_probs_sum.append(1. - ood_prob_sum)
 
         len_id_targets = sum([len(isolated_classes[lab].dataset) for lab in seen_labels])
         len_ood_targets = sum([len(isolated_classes[lab].dataset) for lab in unseen_labels])
         targets = torch.tensor(len_id_targets * [0] + len_ood_targets * [1])
 
+
+        auc_mean = roc_auc_score(np.array(targets), np.squeeze(ood_prob_mean))
+        auc_list_mean.append(auc_mean)
+
+        auc_max = roc_auc_score(np.array(targets), np.squeeze(ood_probs_max))
+        auc_list_max.append(auc_max)
+
         auc_sum = roc_auc_score(np.array(targets), np.squeeze(ood_probs_sum))
+        auc_list_sum.append(auc_sum)
+
         f_score = get_fscore(targets, np.squeeze(id_probs_sum), np.squeeze(ood_probs_sum))
         accuracy = get_accuracy_score(np.array(targets), np.squeeze(id_probs_sum), np.squeeze(ood_probs_sum))
-
-        auc_list_sum.append(auc_sum)
         f_probs_sum.append(f_score)
         acc_probs_sum.append(accuracy)
 
-    mean_auc, std_auc = get_mean_std(auc_list_sum)
-    mean_f1, std_f1 = get_mean_std(f_probs_sum)
-    mean_acc, std_acc = get_mean_std(acc_probs_sum)
+    sum_mean_f1, sum_std_f1 = get_mean_std(f_probs_sum)
+    sum_mean_acc, sum_std_acc = get_mean_std(acc_probs_sum)
 
-    metrics = {'auc_mean': mean_auc,
-               'auc_std': std_auc,
-               'f1_std': std_f1,
-               'f1_mean': mean_f1,
-               'acc_std': std_acc,
-               'acc_mean': mean_acc}
+    sum_mean_auc, sum_std_auc = get_mean_std(auc_list_sum)
+    mean_mean_auc, mean_std_auc = get_mean_std(auc_list_mean)
+    max_mean_auc, max_std_auc = get_mean_std(auc_list_max)
+
+    metrics = {'auc-mean': mean_mean_auc,
+               'auc-max': max_mean_auc,
+               'auc-sum:': sum_mean_auc,
+               'f1_mean': sum_mean_f1,
+               'acc_mean': sum_mean_acc}
 
     return metrics
 
@@ -176,11 +192,11 @@ def get_id_datasets(dataset, id_classes, kshots=16):
     _logger.info("Creating train set")
     train_transform = get_train_transform()
     train_dataset = dataset(data_path=Config.DATAPATH,
-                                  train=True,
-                                  transform=train_transform)
+                            train=True,
+                            transform=train_transform)
 
     id_classes_idxs = [train_dataset.class_to_idx[id_class] for id_class in id_classes]
-    imgs, targets = [],[]
+    imgs, targets = [], []
     for img, targ in zip(train_dataset.data, train_dataset.targets):
         if targ in id_classes_idxs:
             imgs.append(img)
@@ -208,7 +224,8 @@ def get_tip_adapter_weights(train_set, val_set,
                             lr=0.001, eps=1e-4):
     # only for the id classes
 
-    return get_adapter_weights(train_set, val_set, clip_model, train_epoch=train_epoch, alpha=alpha, beta=beta, lr=lr, eps=eps)
+    return get_adapter_weights(train_set, val_set, clip_model, train_epoch=train_epoch, alpha=alpha, beta=beta, lr=lr,
+                               eps=eps)
 
 
 def tip_image_decoder(clip_model,
@@ -254,7 +271,6 @@ def tip_image_decoder(clip_model,
             _logger.info(f"Encoding images for label {semantic_label}")
             loader = isolated_classes[semantic_label]
             for idx, image in enumerate(tqdm(loader)):
-
                 with torch.no_grad():
                     clip_out = clip_model.encode_image(image.to(device)).float()
                     clip_extended_embed = clip_out.repeat(1, 2).type(torch.FloatTensor)
@@ -287,10 +303,10 @@ def tip_image_decoder(clip_model,
 
                 print(f"image_feature: {image_feature.shape}")
                 print(f"text_feature: {text_features.T.shape}")
-                clip_logits = 100. * image_feature @ text_features.T # should work
+                clip_logits = 100. * image_feature @ text_features.T  # should work
                 print(f"clip_logits: {clip_logits.shape}")
 
-                tip_logits = clip_logits + cache_logits * alpha # will fal
+                tip_logits = clip_logits + cache_logits * alpha  # will fal
                 zeroshot_probs_clip = clip_logits.softmax(dim=-1).squeeze()
                 zeroshot_probs_tip = tip_logits.softmax(dim=-1).squeeze
                 # detection score is accumulative sum of probs of generated entities
