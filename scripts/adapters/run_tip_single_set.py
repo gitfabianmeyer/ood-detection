@@ -28,26 +28,26 @@ def main():
     failed = []
     for dname, dset in DATASETS_DICT.items():
 
-        if dname in ['mnist']:
+        if dname == 'lsun':
+            _logger.info(f"Jumping over {dname}")
+            continue
 
-            _logger.info(f"\t\tStarting {dname} run...")
+        _logger.info(f"\t\tStarting {dname} run...")
 
+        try:
+            results = clip_tip_adapter(dataset=dset)
+            print(results)
+        except Exception as e:
+            failed.append(dname)
+            raise e
+            break
+        name = "-".join([dname, 'adapter', datetime.today().strftime('%Y/%m/%d')])
+        run = wandb.init(project="thesis-tip-adapters-original_logits",
+                         entity="wandbefab",
+                         name=name)
+        run.log(results)
+        run.finish()
 
-            try:
-                results = clip_tip_adapter(dataset=dset)
-                print(results)
-            except Exception as e:
-                failed.append(dname)
-                raise e
-                break
-            name = "-".join([dname, 'adapter', datetime.today().strftime('%Y/%m/%d')])
-            # run = wandb.init(project="thesis-tip-adapters",
-            #                  entity="wandbefab",
-            #                  name=name)
-            # run.log(results)
-            # run.finish()
-        else:
-            print(f"Jumping over {dname}, already exists")
     print(f"Failed: {failed}")
 
 
