@@ -41,11 +41,11 @@ def main():
                 raise e
                 break
             name = "-".join([dname, 'adapter', datetime.today().strftime('%Y/%m/%d')])
-            run = wandb.init(project="thesis-tip-adapters",
-                             entity="wandbefab",
-                             name=name)
-            run.log(results)
-            run.finish()
+            # run = wandb.init(project="thesis-tip-adapters",
+            #                  entity="wandbefab",
+            #                  name=name)
+            # run.log(results)
+            # run.finish()
         else:
             print(f"Jumping over {dname}, already exists")
     print(f"Failed: {failed}")
