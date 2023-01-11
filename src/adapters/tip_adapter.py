@@ -32,14 +32,13 @@ def zeroshot(clip_logits, test_labels):
     return get_acc_f1(clip_logits, test_labels)
 
 
-def get_adapter_weights(dataset, model, kshots=16, train_epoch=20, alpha=1., beta=1.17, lr=0.001, eps=1e-4):
+def get_adapter_weights(train_set, test_set, model, train_epoch=20, alpha=1., beta=1.17, lr=0.001, eps=1e-4):
     _logger.info("Initializing everything...")
     clip_model, clip_transform = clip.load(Config.VISION_MODEL)
     clip_model.eval()
-    train_set = get_train_set(dataset, kshots)
     cache_keys, cache_values = get_train_features(train_set, clip_model)
 
-    test_features, test_labels, label_features, classes = get_test_features(dataset, clip_model, clip_transform)
+    test_features, test_labels, label_features, classes = get_test_features_tip(test_set, clip_model, clip_transform)
     _logger.info(f"Running TIP Adapter - FINETUNING")
 
     train_loader_shuffle = DataLoader(train_set,
@@ -82,9 +81,10 @@ def get_adapter_weights(dataset, model, kshots=16, train_epoch=20, alpha=1., bet
         current_lr = scheduler.get_last_lr()[0]
         learning_rates.append(current_lr)
         _logger.info(f"LOSS: {sum(batch_losses)}, LR: {current_lr}")
+
+
         # eval
         adapter.eval()
-
         affinity = adapter.linear1(test_features)
         cache_logits = get_cache_logits(affinity,
                                         cache_values,
@@ -96,7 +96,7 @@ def get_adapter_weights(dataset, model, kshots=16, train_epoch=20, alpha=1., bet
             best_acc = acc
             _logger.info(f"New best acc: {acc:.3f} (f1: {f1:.3f})")
             # best_epoch = epoch
-            finetuned_adapter_weights = adapter.weight # maybe return them
+            finetuned_adapter_weights = adapter.weight  # maybe return them
 
     return finetuned_adapter_weights
 
@@ -230,6 +230,31 @@ def get_train_transform():
         transforms.ToTensor(),
         transforms.Normalize(mean=(0.48145466, 0.4578275, 0.40821073), std=(0.26862954, 0.26130258, 0.27577711))
     ])
+
+
+@torch.no_grad()
+def get_test_features_tip(dataset, model, transform):
+    dataloader = DataLoader(dataset, batch_size=16, shuffle=False, num_workers=1)
+    test_features, test_labels = [], []
+
+    _logger.info("Getting test features...")
+    for idx, (images, targets) in enumerate(tqdm(dataloader)):
+        images = images.to(device)
+        targets = targets.to(device)
+
+        image_features = model.encode_image(images)
+        image_features /= image_features.norm(dim=-1, keepdim=True)
+        test_features.append(image_features)
+        test_labels.append(targets)
+    test_features = torch.cat(test_features)
+    test_labels = torch.cat(test_labels)
+
+    test_features = test_features.to(torch.float32)
+    test_labels = test_labels.to(torch.float32)
+    label_features = zeroshot_classifier(dataset.classes, dataset.templates, model).to(torch.float32)
+    classes = dataset.classes
+
+    return test_features, test_labels, label_features, classes
 
 
 @torch.no_grad()

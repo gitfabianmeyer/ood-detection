@@ -3,7 +3,10 @@ import random
 
 import numpy as np
 import torch
+from adapters.tip_adapter import get_train_transform, get_kshot_train_set, get_adapter_weights
+from ood_detection.config import Config
 from sklearn.metrics import roc_auc_score, f1_score, accuracy_score
+from sklearn.model_selection import train_test_split
 from tqdm import tqdm
 
 from datasets.zoc_loader import IsolatedClasses
@@ -142,6 +145,160 @@ def image_decoder(clip_model,
                 ood_probs_sum.append(ood_prob_sum)
 
                 id_probs_sum.append(1. - ood_prob_sum)
+
+        len_id_targets = sum([len(isolated_classes[lab].dataset) for lab in seen_labels])
+        len_ood_targets = sum([len(isolated_classes[lab].dataset) for lab in unseen_labels])
+        targets = torch.tensor(len_id_targets * [0] + len_ood_targets * [1])
+
+        auc_sum = roc_auc_score(np.array(targets), np.squeeze(ood_probs_sum))
+        f_score = get_fscore(targets, np.squeeze(id_probs_sum), np.squeeze(ood_probs_sum))
+        accuracy = get_accuracy_score(np.array(targets), np.squeeze(id_probs_sum), np.squeeze(ood_probs_sum))
+
+        auc_list_sum.append(auc_sum)
+        f_probs_sum.append(f_score)
+        acc_probs_sum.append(accuracy)
+
+    mean_auc, std_auc = get_mean_std(auc_list_sum)
+    mean_f1, std_f1 = get_mean_std(f_probs_sum)
+    mean_acc, std_acc = get_mean_std(acc_probs_sum)
+
+    metrics = {'auc_mean': mean_auc,
+               'auc_std': std_auc,
+               'f1_std': std_f1,
+               'f1_mean': mean_f1,
+               'acc_std': std_acc,
+               'acc_mean': mean_acc}
+
+    return metrics
+
+
+def get_id_datasets(dataset, id_classes, kshots=16):
+    _logger.info("Creating train set")
+    train_transform = get_train_transform()
+    train_dataset = dataset(data_path=Config.DATAPATH,
+                                  train=True,
+                                  transform=train_transform)
+
+    id_classes_idxs = [train_dataset.class_to_idx[id_class] for id_class in id_classes]
+    imgs, targets = [],[]
+    for img, targ in zip(train_dataset.data, train_dataset.targets):
+        if targ in id_classes_idxs:
+            imgs.append(img)
+            targets.append(targ)
+
+    train_imgs, val_imgs, train_targets, val_targets = train_test_split(imgs, targets, test_size=.5)
+    train_dataset.data = train_imgs
+    train_dataset.targets = train_targets
+    train_dataset.classes = id_classes
+
+    val_dataset = dataset(data_path=Config.DATAPATH,
+                          train=True,
+                          transform=train_transform)
+    val_dataset.data = val_imgs
+    val_dataset.targets = val_targets
+    val_dataset.classes = id_classes
+
+    return get_kshot_train_set(train_dataset, kshots), val_dataset
+
+
+def get_tip_adapter_weights(train_set, val_set,
+                            clip_model,
+                            train_epoch=20,
+                            alpha=1., beta=1.17,
+                            lr=0.001, eps=1e-4):
+    # only for the id classes
+
+    return get_adapter_weights(train_set, val_set, clip_model, train_epoch=train_epoch, alpha=alpha, beta=beta, lr=lr, eps=eps)
+
+
+def tip_image_decoder(clip_model,
+                      clip_tokenizer,
+                      bert_tokenizer,
+                      bert_model,
+                      device,
+                      dataset,
+                      isolated_classes: IsolatedClasses,
+                      id_classes,
+                      ood_classes,
+                      runs):
+    ablation_splits = get_ablation_splits(isolated_classes.labels, n=runs, id_classes=id_classes,
+                                          ood_classes=ood_classes)
+
+    auc_list_sum = []
+    for split in ablation_splits:
+
+        seen_labels = split[:id_classes]
+
+        train_set, val_set = get_id_datasets(dataset, seen_labels, kshots=kshots)
+        cache_keys, cache_values = get_train_features(train_set, clip_model)
+
+        adapter = WeightAdapter(model, cache_keys).to(device)
+        adapter_weights = get_tip_adapter_weights(train_set, val_set,
+                                                  clip_model, kshots=16, train_epoch=2,
+                                                  alpha=1., beta=1.17,
+                                                  lr=0.001, eps=1e-4)
+        adapter.weights = adapter_weights
+
+        unseen_labels = split[id_classes:]
+        _logger.debug(f"Seen labels: {seen_labels}\nOOD Labels: {split[id_classes:]}")
+        seen_descriptions = [f"This is a photo of a {label}" for label in seen_labels]
+
+        ood_probs_sum, f_probs_sum, acc_probs_sum, id_probs_sum = [], [], [], []
+
+        for i, semantic_label in enumerate(split):
+            _logger.info(f"Encoding images for label {semantic_label}")
+            loader = isolated_classes[semantic_label]
+            for idx, image in enumerate(tqdm(loader)):
+
+                with torch.no_grad():
+                    clip_out = clip_model.encode_image(image.to(device)).float()
+                    clip_extended_embed = clip_out.repeat(1, 2).type(torch.FloatTensor)
+
+                # greedy generation
+                target_list, topk_list = greedysearch_generation_topk(clip_extended_embed,
+                                                                      bert_tokenizer,
+                                                                      bert_model,
+                                                                      device)
+
+                topk_tokens = [bert_tokenizer.decode(int(pred_idx.cpu().numpy())) for pred_idx in topk_list]
+
+                unique_entities = list(set(topk_tokens) - {semantic_label})
+                _logger.debug("Semantic label: {semantic_label}Unique Entities: {unique_entities}")
+
+                all_desc = seen_descriptions + [f"This is a photo of a {label}" for label in unique_entities]
+                all_desc_ids = tokenize_for_clip(all_desc, clip_tokenizer)
+
+                image_feature = clip_out
+                image_feature /= image_feature.norm(dim=-1, keepdim=True)
+
+                with torch.no_grad():
+                    text_features = clip_model.encode_text(all_desc_ids.to(device)).float()
+                    text_features /= text_features.norm(dim=-1, keepdim=True)
+
+                affinity = adapter(image_feature)
+                print(f"affinity: {affinity.shape}")
+                cache_logits = ((-1) * (beta - beta * affinity)).exp() @ cache_values
+                print(f"cache_logits: {cache_logits.shape}")
+
+                print(f"image_feature: {image_feature.shape}")
+                print(f"text_feature: {text_features.T.shape}")
+                clip_logits = 100. * image_feature @ text_features.T # should work
+                print(f"clip_logits: {clip_logits.shape}")
+
+                tip_logits = clip_logits + cache_logits * alpha # will fal
+                zeroshot_probs_clip = clip_logits.softmax(dim=-1).squeeze()
+                zeroshot_probs_tip = tip_logits.softmax(dim=-1).squeeze
+                # detection score is accumulative sum of probs of generated entities
+                ood_prob_sum_clip = np.sum(zeroshot_probs_clip[id_classes:].detach().cpu().numpy())
+                ood_prob_sum_tip = np.sum(zeroshot_probs_tip[id_classes:].detach().cpu().numpy())
+
+                print(f"clip:{ood_prob_sum_clip}")
+                print(f"tip:{ood_prob_sum_tip}")
+                raise ValueError
+
+                ood_probs_sum.append(ood_prob_sum_clip)
+
+                id_probs_sum.append(1. - ood_prob_sum_clip)
 
         len_id_targets = sum([len(isolated_classes[lab].dataset) for lab in seen_labels])
         len_ood_targets = sum([len(isolated_classes[lab].dataset) for lab in unseen_labels])
