@@ -345,11 +345,14 @@ def zeroshot_tip_finetuned(train_set, model,
                 image_features = model.encode_image(images)
                 image_features /= image_features.norm(dim=-1, keepdim=True)
 
+            print(f"min max image_features: {image_features.min(), image_features.max(), image_features.mean()}")
+
             affinity = adapter.linear1(image_features.to(torch.float32))
             cache_logits = get_cache_logits(affinity, cache_values, beta)
 
-            clip_logits = 100. * image_features.to(torch.float32) @ label_features.t()
-
+            # here the 100s
+            # clip_logits = 100. * image_features.to(torch.float32) @ label_features.t()
+            clip_logits = image_features.to(torch.float32) @ label_features.t()
             print(f"min max cache_logits: {cache_logits.min(), cache_logits.max()}")
             print(f"min max affinity: {affinity.min(), affinity.max()}")
             print(f"min max clip_logits: {clip_logits.min(), clip_logits.max()}")
@@ -381,7 +384,7 @@ def zeroshot_tip_finetuned(train_set, model,
         if acc > best_acc:
             best_acc = acc
             best_f1 = f1
-            _logger.info(f"New best acc: {acc:.3f} (f1: {f1:.3f}")
+            _logger.info(f"New best acc: {acc:.3f} (f1: {f1:.3f})")
             # best_epoch = epoch
             # finetuned_adapter_weights = adapter.weight # maybe return them
 
