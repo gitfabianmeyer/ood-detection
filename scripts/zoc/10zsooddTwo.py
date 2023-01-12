@@ -74,9 +74,10 @@ def run_all(args):
 
     for dname, dset in HalfTwoDict.items():
 
-        # if dname == 'caltech101':
-        #     print(f"Jumping over {dname}")
-        #     continue
+
+        if dname == 'flowers' or dname == 'gtsrb' or dname == 'imagenet' or dname == 'lsun':
+            print(f"Jumping over {dname}")
+            continue
 
         _logger.info(f"Running {dname}...")
 

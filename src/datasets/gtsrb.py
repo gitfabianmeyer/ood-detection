@@ -29,6 +29,9 @@ class OodGTSRB(torchvision.datasets.GTSRB):
         self.data, self.targets = zip(*self._samples)
         self.targets = np.array(self.targets)
 
+    def __len__(self) -> int:
+        return len(self.targets)
+
 
 def main():
     name = "gtrsb"
