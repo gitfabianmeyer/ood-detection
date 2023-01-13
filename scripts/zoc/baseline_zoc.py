@@ -54,7 +54,7 @@ def run_all(args):
             print(f"Jumping over {dname}")
             continue
 
-        _logger.info(f"Running {dname}...")
+        _logger.info(f"---------------Running {dname}--------------")
 
         if dname == 'lsun':
             lsun = True

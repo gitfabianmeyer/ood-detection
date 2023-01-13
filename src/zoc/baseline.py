@@ -81,7 +81,7 @@ def baseline_detector(clip_model,
                 _logger.info(f"Getting stats for label {semantic_label}")
 
                 image_features_for_label = feature_weight_dict[semantic_label]
-                zeroshot_probs = (temperature * image_features_for_label @ zeroshot_weights.T).softmax(dim=-1).squeeze()
+                zeroshot_probs = (temperature * image_features_for_label.to(torch.float32) @ zeroshot_weights.T.to(torch.float32)).softmax(dim=-1).squeeze()
 
                 # detection score is accumulative sum of probs of generated entities
                 ood_prob_sum = np.sum(zeroshot_probs[id_classes:].detach().cpu().numpy())
