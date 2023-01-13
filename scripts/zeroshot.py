@@ -38,8 +38,6 @@ def clip_zeroshot(features, targets, zeroshot_weights, temperature):
     top1_acc = accuracy(logits, targets)[0] / len(targets)
 
     softmaxs = torch.softmax(logits, dim=-1)
-    print(F"Softmax shape: {softmaxs.shape}")
-
     confidences, correct = conf_scores(softmaxs, targets)
 
     results["confidences_std"], results["confidences"] = torch.std_mean(confidences)
@@ -78,10 +76,8 @@ def conf_scores(softmax_scores=None, targets=None):
 def main():
     clip_model, clip_transform = clip.load(Config.VISION_MODEL)
     clip_model.eval()
-
     for dname, dset in DATASETS_DICT.items():
-        if dname != 'cifar10':
-            continue
+        print(f"\n\n----------------------------------- {dname}----------------------------------- ")
         dataset = dset(Config.DATAPATH,
                        train=False,
                        transform=clip_transform)
