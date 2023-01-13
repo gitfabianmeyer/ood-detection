@@ -16,7 +16,7 @@ _logger = logging.getLogger(__name__)
 @torch.no_grad()
 def get_feature_weight_dict(isolated_classes, clip_model, device):
     weights_dict = {}
-    for cls in isolated_classes.classes:
+    for cls in isolated_classes.labels:
         loader = isolated_classes[cls]
         loader.batch_size = 512
         image_feature_list = []
@@ -33,9 +33,9 @@ def get_feature_weight_dict(isolated_classes, clip_model, device):
 
 def get_zeroshot_weight_dict(isolated_classes, clip_model):
     weights_dict = {}
-    weights = zeroshot_classifier(isolated_classes.classes, isolated_classes.templates, clip_model)
+    weights = zeroshot_classifier(isolated_classes.labels, isolated_classes.templates, clip_model)
 
-    for classname, weight in zip(isolated_classes.classes, weights):
+    for classname, weight in zip(isolated_classes.labels, weights):
         weights_dict[classname] = weight
 
     return weights_dict
