@@ -1,4 +1,5 @@
 import os
+from collections import defaultdict
 
 os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
 os.environ["CUDA_VISIBLE_DEVICES"] = "0"
@@ -78,6 +79,7 @@ def main():
     clip_model.eval()
     for dname, dset in DATASETS_DICT.items():
         print(f"\n\n----------------------------------- {dname}----------------------------------- ")
+        results = []
         dataset = dset(Config.DATAPATH,
                        train=False,
                        transform=clip_transform)
@@ -102,8 +104,13 @@ def main():
         for temperature in np.logspace(-7.158429362604483, 6.643856189774724, num=10,
                                        base=2.0):  # 10 values between .007 and 100
             print(f"Running {dname} with temperatur {temperature}")
-            results = clip_zeroshot(features, targets, zeroshot_weights=zsw, temperature=temperature)
-            wandb.log(results)
+            results.append(clip_zeroshot(features, targets, zeroshot_weights=zsw, temperature=temperature))
+
+        full_results = defaultdict(list)
+        for d in results:
+            for key, value in d.items():
+                full_results[key].append(value)
+        wandb.log(full_results)
         run.finish
 
 
