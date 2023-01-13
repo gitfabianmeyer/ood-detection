@@ -19,12 +19,17 @@ def get_feature_weight_dict(isolated_classes, clip_model, device):
     for cls in isolated_classes.labels:
         loader = isolated_classes[cls]
         image_feature_list = []
+        i = 0
         for images in tqdm(loader):
+            i += 1
             images = images.to(device)
             image_features = clip_model.encode_image(images)
             image_features /= image_features.norm(dim=-1, keepdim=True)
 
             image_feature_list.append(image_features)
+
+            if i == 3:
+                break
         weights_dict[cls] = torch.cat(image_feature_list).half()
 
     return weights_dict
@@ -77,23 +82,27 @@ def baseline_detector(clip_model,
             ood_probs_sum, ood_probs_mean, ood_probs_max = [], [], []
             f_probs_sum, acc_probs_sum, id_probs_sum = [], [], []
 
+            # do 10 times
             for i, semantic_label in enumerate(split):
                 _logger.info(f"Getting stats for label {semantic_label}")
-
+                # get features
                 image_features_for_label = feature_weight_dict[semantic_label]
-                zeroshot_probs = (temperature * image_features_for_label.to(torch.float32) @ zeroshot_weights.T.to(torch.float32)).softmax(dim=-1).squeeze()
+                # calc the logits and softmaxs
+                zeroshot_probs = (temperature * image_features_for_label.to(torch.float32) @ zeroshot_weights.T.to(
+                    torch.float32)).softmax(dim=-1).squeeze()
 
                 # detection score is accumulative sum of probs of generated entities
-                ood_prob_sum = np.sum(zeroshot_probs[id_classes:].detach().cpu().numpy())
-                ood_probs_sum.append(ood_prob_sum)
+                # careful, only for this setting axis=1
+                ood_prob_sum = np.sum(zeroshot_probs[:, id_classes:].detach().cpu().numpy(), axis=1)
+                ood_probs_sum.extend(ood_prob_sum)
 
-                ood_prob_mean = np.mean(zeroshot_probs[id_classes:].detach().cpu().numpy())
-                ood_probs_mean.append(ood_prob_mean)
+                ood_prob_mean = np.mean(zeroshot_probs[:, id_classes:].detach().cpu().numpy(), axis=1)
+                ood_probs_mean.extend(ood_prob_mean)
 
                 top_prob, _ = zeroshot_probs.cpu().topk(1, dim=-1)
-                ood_probs_max.append(top_prob.detach().numpy())
+                ood_probs_max.extend(top_prob.detach().numpy())
 
-                id_probs_sum.append(1. - ood_prob_sum)
+                id_probs_sum.extend(1. - ood_prob_sum)
 
             targets = get_split_specific_targets(isolated_classes, seen_labels, unseen_labels)
             fill_auc_lists(auc_list_max, auc_list_mean, auc_list_sum, ood_probs_mean, ood_probs_max, ood_probs_sum,
