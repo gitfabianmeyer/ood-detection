@@ -78,8 +78,15 @@ def main():
     clip_model, clip_transform = clip.load(Config.VISION_MODEL)
     clip_model.eval()
     for dname, dset in DATASETS_DICT.items():
+
         print(f"\n\n----------------------------------- {dname}----------------------------------- ")
-        results = []
+        run = wandb.init(project="thesis-temperatures",
+                         entity="wandbefab",
+                         name=dname,
+                         tags=['zeroshot',
+                               'zsa',
+                               'confidence'])
+
         dataset = dset(Config.DATAPATH,
                        train=False,
                        transform=clip_transform)
@@ -94,24 +101,12 @@ def main():
                                   dataset.templates,
                                   clip_model)
 
-        run = wandb.init(project="thesis-temperatures",
-                         entity="wandbefab",
-                         name=dname,
-                         tags=['zeroshot',
-                               'zsa',
-                               'confidence'])
-
-        for temperature in np.logspace(-7.158429362604483, 6.643856189774724, num=10,
+        for temperature in np.logspace(-7.158429362604483, 6.643856189774724, num=50,
                                        base=2.0):  # 10 values between .007 and 100
-            print(f"Running {dname} with temperatur {temperature}")
-            results.append(clip_zeroshot(features, targets, zeroshot_weights=zsw, temperature=temperature))
+            results = clip_zeroshot(features, targets, zeroshot_weights=zsw, temperature=temperature)
+            wandb.log(results)
 
-        full_results = defaultdict(list)
-        for d in results:
-            for key, value in d.items():
-                full_results[key].append(value)
-        wandb.log(full_results)
-        run.finish
+        run.finish()
 
 
 if __name__ == '__main__':
