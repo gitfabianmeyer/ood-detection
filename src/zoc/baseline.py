@@ -44,7 +44,7 @@ def sorted_zeroshot_weights(weights, split):
     sorted_weights = []
     for classname in split:
         sorted_weights.append(weights[classname])
-    return torch.cat(sorted_weights)
+    return torch.stack(sorted_weights)
 
 
 @torch.no_grad()
