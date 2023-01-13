@@ -1,4 +1,5 @@
 import os
+import random
 
 os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
 os.environ["CUDA_VISIBLE_DEVICES"] = "0"
@@ -85,9 +86,13 @@ def run_all(args):
         else:
             lsun = False
 
-        isolated_classes = IsolatedClasses(dataset=dset(data_path=Config.DATAPATH,
-                                                        train=False,
-                                                        transform=clip_transform),
+        dataset = dset(data_path=Config.DATAPATH,
+                       train=False,
+                       transform=clip_transform)
+
+        shorted_classes = random.sample(dataset.classes, 10)
+        dataset.classes = shorted_classes
+        isolated_classes = IsolatedClasses(dataset,
                                            lsun=lsun)
 
         for split in splits:
@@ -99,20 +104,18 @@ def run_all(args):
                                                   bert_model=bert_model,
                                                   id_classes=split[0],
                                                   runs=args.runs_ood)
-            metrics_dict['dataset'] = dname
-            metrics_dict['model'] = Config.VISION_MODEL
             metrics_dict['id split'] = split[0]
-            # run = wandb.init(project="thesis-zsoodd_test",
-            #                  entity="wandbefab",
-            #                  name=dname+' split-'+str(split))
-            # wandb.log(metrics_dict)
-            # run.finish()
-            print(metrics_dict)
+            run = wandb.init(project="thesis-zsoodd_ten_labels_five_runs",
+                             entity="wandbefab",
+                             name=dname + ' split-' + str(split))
+            wandb.log(metrics_dict)
+            run.finish()
+            # print(metrics_dict)
 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--runs_ood', type=int, default=1)
+    parser.add_argument('--runs_ood', type=int, default=5)
 
     args = parser.parse_args()
     run_all(args)
