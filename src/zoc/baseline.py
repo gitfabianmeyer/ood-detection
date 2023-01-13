@@ -27,9 +27,6 @@ def get_feature_weight_dict(isolated_classes, clip_model, device):
             image_features /= image_features.norm(dim=-1, keepdim=True)
 
             image_feature_list.append(image_features)
-
-            if i == 3:
-                break
         weights_dict[cls] = torch.cat(image_feature_list).half()
 
     return weights_dict
@@ -77,7 +74,7 @@ def baseline_detector(clip_model,
             unseen_labels = split[id_classes:]
             _logger.debug(f"Seen labels: {seen_labels}\nOOD Labels: {split[id_classes:]}")
 
-            zeroshot_weights = sorted_zeroshot_weights(classes_weight_dict, split)
+            zeroshot_weights = sorted_zeroshot_weights(classes_weight_dict, seen_labels)
 
             ood_probs_sum, ood_probs_mean, ood_probs_max = [], [], []
             f_probs_sum, acc_probs_sum, id_probs_sum = [], [], []
@@ -91,12 +88,13 @@ def baseline_detector(clip_model,
                 zeroshot_probs = (temperature * image_features_for_label.to(torch.float32) @ zeroshot_weights.T.to(
                     torch.float32)).softmax(dim=-1).squeeze()
 
+                assert zeroshot_probs.shape[1] == id_classes
                 # detection score is accumulative sum of probs of generated entities
                 # careful, only for this setting axis=1
-                ood_prob_sum = np.sum(zeroshot_probs[:, id_classes:].detach().cpu().numpy(), axis=1)
+                ood_prob_sum = np.sum(zeroshot_probs.detach().cpu().numpy(), axis=1)
                 ood_probs_sum.extend(ood_prob_sum)
 
-                ood_prob_mean = np.mean(zeroshot_probs[:, id_classes:].detach().cpu().numpy(), axis=1)
+                ood_prob_mean = np.mean(zeroshot_probs.detach().cpu().numpy(), axis=1)
                 ood_probs_mean.extend(ood_prob_mean)
 
                 top_prob, _ = zeroshot_probs.cpu().topk(1, dim=-1)
