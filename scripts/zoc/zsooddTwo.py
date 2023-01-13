@@ -71,11 +71,13 @@ def run_all(args):
     clip_tokenizer = SimpleTokenizer()
     bert_model = get_decoder()
 
-    for dname, dset in HalfTwoDict.items():
+    passing = True
 
-        # if dname == 'caltech101':
-        #     print(f"Jumping over {dname}")
-        #     continue
+    for dname, dset in HalfTwoDict.items():
+        if dname=='lsun':
+            passing = False
+        if passing:
+            continue
 
         _logger.info(f"Running {dname}...")
 
