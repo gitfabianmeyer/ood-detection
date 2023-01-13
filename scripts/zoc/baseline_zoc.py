@@ -52,7 +52,7 @@ def run_single_dataset_ood(isolated_classes, name, clip_model, id_classes=.6, ru
     id_classes = int(len(labels) * id_classes)
     ood_classes = len(labels) - id_classes
 
-    run = wandb.init(project="thesis-zoc_baseline",
+    run = wandb.init(project="thesis-zoc_baseline_full_classes",
                      entity="wandbefab",
                      name=name,
                      config={"runs": runs,
