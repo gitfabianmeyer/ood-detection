@@ -32,31 +32,22 @@ def get_std_mean(list_of_tensors):
 @torch.no_grad()
 def clip_zeroshot(features, targets, zeroshot_weights, temperature):
     results = {}
-    top1_accs = []
-    logit_means = []
-    all_confidences, confidences_true, confidences_wrong = [], [], []
+
     logits = temperature * features.to(torch.float32) @ zeroshot_weights.T.to(torch.float32)
-    logit_means.append(torch.mean(logits))
+
+    top1_acc = accuracy(logits, targets)[0] / len(targets)
+
     softmaxs = torch.softmax(logits, dim=-1)
-    top1_accs.append(accuracy(logits, targets)[0] / len(targets))
+    print(F"Softmax shape: {softmaxs.shape}")
 
     confidences, correct = conf_scores(softmaxs, targets)
-    all_confidences.extend(confidences)
-    confidences_true.extend(confidences[correct.T])
-    confidences_wrong.extend(confidences[~correct.T])
 
-    all_confidences = get_std_mean(all_confidences)
-    confidences_true = get_std_mean(confidences_true)
-    confidences_wrong = get_std_mean(confidences_wrong)
-    logits = get_std_mean(logit_means)
-    accuracies = np.mean(top1_accs) if len(top1_accs) > 0 else 0
-
-    results["confidences_std"], results["confidences"] = all_confidences
-    results["correct_std"], results["correct"] = confidences_true
-    results["false_std"], results["false"] = confidences_wrong
+    results["confidences_std"], results["confidences"] = torch.std_mean(confidences)
+    results["correct_std"], results["correct"] = torch.std_mean(confidences[correct.T])
+    results["false_std"], results["false"] = torch.std_mean(confidences[~correct.T])
     results['temperature'] = temperature
-    results["logits_std"], results["logits"] = logits
-    results["accuracy"] = accuracies
+    results["logits_std"], results["logits"] = torch.std_mean(logits)
+    results["accuracy"] = top1_acc
     return results
 
 
