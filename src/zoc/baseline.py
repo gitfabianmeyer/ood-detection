@@ -18,7 +18,6 @@ def get_feature_weight_dict(isolated_classes, clip_model, device):
     weights_dict = {}
     for cls in isolated_classes.labels:
         loader = isolated_classes[cls]
-        loader.batch_size = 512
         image_feature_list = []
         for images in tqdm(loader):
             images = images.to(device)

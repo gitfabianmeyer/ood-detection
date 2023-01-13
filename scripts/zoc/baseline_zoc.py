@@ -70,6 +70,7 @@ def run_all(args):
         # dataset.classes = shorted_classes
 
         isolated_classes = IsolatedClasses(dataset,
+                                           batch_size=512,
                                            lsun=lsun)
 
         for split in splits:
