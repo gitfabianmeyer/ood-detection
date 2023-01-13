@@ -35,7 +35,7 @@ def clip_zeroshot(features, targets, zeroshot_weights, temperature):
     top1_accs = []
     logit_means = []
     all_confidences, confidences_true, confidences_wrong = [], [], []
-    logits = temperature * features @ zeroshot_weights.T
+    logits = temperature * features.to(torch.float32) @ zeroshot_weights.T.to(torch.float32)
     logit_means.append(torch.mean(logits))
     softmaxs = torch.softmax(logits, dim=-1)
     top1_accs.append(accuracy(logits, targets)[0] / len(targets))
@@ -70,8 +70,8 @@ def get_dataset_features(clip_model, dataloader):
         image_features /= image_features.norm(dim=-1, keepdim=True)
         features.append(image_features)
         targets.append(targs)
-    features = torch.cat(features)
-    targets = torch.cat(targets)
+    features = torch.cat(features).half()
+    targets = torch.cat(targets).half()
     return features, targets
 
 
