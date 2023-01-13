@@ -60,6 +60,7 @@ def clip_zeroshot(features, targets, zeroshot_weights, temperature):
     return results
 
 
+@torch.no_grad()
 def get_dataset_features(clip_model, dataloader):
     features, targets = [], []
     for num_batches, (images, targs) in enumerate(tqdm(dataloader)):
