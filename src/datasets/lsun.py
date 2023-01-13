@@ -83,7 +83,7 @@ class LSUNClass(VisionDataset):
         return img, target
 
     def __len__(self) -> int:
-        return len(self.data)
+        return self.length
 
 
 class LSUN(VisionDataset):
