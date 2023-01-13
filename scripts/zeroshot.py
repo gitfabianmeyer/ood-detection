@@ -71,7 +71,7 @@ def get_dataset_features(clip_model, dataloader):
         features.append(image_features)
         targets.append(targs)
     features = torch.cat(features)
-    targets = torch.stack(targets)
+    targets = torch.cat(targets)
     return features, targets
 
 
