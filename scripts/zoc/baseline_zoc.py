@@ -50,9 +50,9 @@ def run_all(args):
     clip_model, clip_transform = clip.load(Config.VISION_MODEL)
     for dname, dset in DATASETS_DICT.items():
 
-        if dname != 'cifar10':
-            print(f"Jumping over {dname}")
-            continue
+        # if dname != 'cifar10':
+        #     print(f"Jumping over {dname}")
+        #     continue
 
         _logger.info(f"---------------Running {dname}--------------")
 
