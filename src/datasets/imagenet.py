@@ -196,7 +196,7 @@ class TinyImageNetDataset(Dataset):
 
 
 class TinyImageNetImageFolder(ImageFolder):
-    def __init__(self, root, transform, train, download=True):
+    def __init__(self, root, transform, split, download=True):
 
         self.words_to_nid = {}
         self.nid_to_words = {}
@@ -207,10 +207,7 @@ class TinyImageNetImageFolder(ImageFolder):
             else:
                 download_and_unzip(os.path.dirname(self.dataset_root))
 
-        if train:
-            super(TinyImageNetImageFolder, self).__init__(os.path.join(self.dataset_root, 'train'), transform)
-        else:
-            super(TinyImageNetImageFolder, self).__init__(os.path.join(self.dataset_root, 'val'))
+        super(TinyImageNetImageFolder, self).__init__(os.path.join(self.dataset_root, split), transform)
 
         self.data, _ = zip(*self.samples)
         self.targets = np.array(self.targets)
@@ -231,10 +228,10 @@ class TinyImageNetImageFolder(ImageFolder):
 
 
 class OodTinyImageNet(TinyImageNetImageFolder):
-    def __init__(self, data_path, transform, train, templates=None):
+    def __init__(self, data_path, transform, split, templates=None):
         super(OodTinyImageNet, self).__init__(root=os.path.join(data_path, 'tinyimagenet/tiny-imagenet-200'),
                                               transform=transform,
-                                              train=train,
+                                              split=split,
                                               download=True
                                               )
         self.transform = transform

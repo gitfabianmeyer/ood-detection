@@ -42,7 +42,7 @@ def main():
             raise e
             break
         name = "-".join([dname, 'adapter', datetime.today().strftime('%Y/%m/%d')])
-        run = wandb.init(project="thesis-tip-adapters-original_logits",
+        run = wandb.init(project="thesis-tip-adapters",
                          entity="wandbefab",
                          name=name)
         run.log(results)

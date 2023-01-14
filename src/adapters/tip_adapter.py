@@ -88,13 +88,10 @@ def get_adapter_weights(train_set, test_set, model, train_epoch=20, alpha=1., be
         learning_rates.append(current_lr)
         _logger.info(f"LOSS: {sum(batch_losses)}, LR: {current_lr}")
 
-
         # eval
         adapter.eval()
         affinity = adapter.linear1(test_features)
-        cache_logits = get_cache_logits(affinity,
-                                        cache_values,
-                                        beta)
+        cache_logits = get_cache_logits(affinity, cache_values, beta)
         clip_logits = 100. * test_features @ label_features.t()
         tip_logits = clip_logits + cache_logits * alpha
         acc, f1 = get_acc_f1(tip_logits, test_labels)
@@ -199,14 +196,14 @@ def get_train_features(train_set, model, augment_epochs=1):
         _logger.info(f"Augmenting features {augment_idx}/{augment_epochs}")
         train_images_features = []
 
-        for i, (images, target) in enumerate(tqdm(train_loader)):
+        for i, (images, targets) in enumerate(tqdm(train_loader)):
             images = images.to(device)
             images_features = model.encode_image(images)
             train_images_features.append(images_features)
 
             if augment_idx == 0:
-                target = target.to(device)
-                cache_values.append(target)
+                targets = targets.to(device)
+                cache_values.append(targets)
 
         images_features_cat = torch.cat(train_images_features, dim=0).unsqueeze(0)
         train_images_features_agg.append(images_features_cat)
@@ -291,8 +288,8 @@ def get_test_features(dataset, model, transform):
     return test_features, test_labels, label_features, classes
 
 
-def get_cache_logits(new_knowledge, train_images_targets, beta):
-    return ((-1) * (beta * new_knowledge.to(torch.float32))).exp() @ train_images_targets
+def get_cache_logits(affinity, train_images_targets, beta):
+    return ((-1) * (beta * affinity.to(torch.float32))).exp() @ train_images_targets
 
 
 def get_acc_f1(logits, test_labels):
@@ -345,17 +342,17 @@ def zeroshot_tip_finetuned(train_set, model,
                 image_features = model.encode_image(images)
                 image_features /= image_features.norm(dim=-1, keepdim=True)
 
-            print(f"min max image_features: {image_features.min(), image_features.max(), image_features.mean()}")
+            # print(f"min max image_features: {image_features.min(), image_features.max(), image_features.mean()}")
 
             affinity = adapter.linear1(image_features.to(torch.float32))
             cache_logits = get_cache_logits(affinity, cache_values, beta)
 
             # here the 100s
-            # clip_logits = 100. * image_features.to(torch.float32) @ label_features.t()
-            clip_logits = image_features.to(torch.float32) @ label_features.t()
-            print(f"min max cache_logits: {cache_logits.min(), cache_logits.max()}")
-            print(f"min max affinity: {affinity.min(), affinity.max()}")
-            print(f"min max clip_logits: {clip_logits.min(), clip_logits.max()}")
+            clip_logits = 100. * image_features.to(torch.float32) @ label_features.t()
+            # clip_logits = image_features.to(torch.float32) @ label_features.t()
+            # print(f"min max cache_logits: {cache_logits.min(), cache_logits.max()}")
+            # print(f"min max affinity: {affinity.min(), affinity.max()}")
+            # print(f"min max clip_logits: {clip_logits.min(), clip_logits.max()}")
 
             clip_logits = clip_logits + cache_logits * alpha
 

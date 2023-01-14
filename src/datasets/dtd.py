@@ -13,11 +13,11 @@ logging.basicConfig(level=logging.INFO)
 
 
 class OodDTD(torchvision.datasets.DTD):
-    def __init__(self, data_path, transform, train, templates=None):
+    def __init__(self, data_path, transform, split, templates=None):
         super().__init__(data_path,
                          transform=transform,
                          download=True,
-                         split='train' if train else 'val')
+                         split=split)
         self.data = self._image_files
         self.targets = np.array(self._labels)
         self.templates = templates if templates else dtd_templates

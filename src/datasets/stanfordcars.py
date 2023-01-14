@@ -14,11 +14,11 @@ logging.basicConfig(level=logging.INFO)
 
 
 class OodStanfordCars(torchvision.datasets.StanfordCars):
-    def __init__(self, data_path, transform, train, templates=None):
+    def __init__(self, data_path, transform, split, templates=None):
         super().__init__(data_path,
                          transform=transform,
                          download=True,
-                         split='train' if train else 'test')
+                         split='train' if split=='val' else split)
         self.data, self.targets = zip(*self._samples)
         self.targets = np.array(self.targets)
         self.templates = templates if templates else stanfordcars_templates

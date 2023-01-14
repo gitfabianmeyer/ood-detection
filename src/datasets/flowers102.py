@@ -17,10 +17,10 @@ logging.basicConfig(level=logging.INFO)
 
 
 class OodFlowers102(torchvision.datasets.Flowers102):
-    def __init__(self, data_path, transform, train, templates=None):
+    def __init__(self, data_path, transform, split, templates=None):
         super().__init__(data_path,
                          transform=transform,
-                         split='train' if train else 'val',
+                         split=split,
                          download=True)
         self.classes = flowers102_classes
         self.templates = templates if templates else flowers102_templates

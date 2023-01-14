@@ -1,4 +1,5 @@
 import os
+import random
 
 os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
 os.environ["CUDA_VISIBLE_DEVICES"] = "0"
@@ -57,11 +58,13 @@ def run_single_dataset_ood_tip(isolated_classes, dataset, clip_model, clip_token
                                 bert_model=bert_model,
                                 device=Config.DEVICE,
                                 isolated_classes=isolated_classes,
-                                dataset= dataset,
+                                dataset=dataset,
                                 id_classes=id_classes,
                                 ood_classes=ood_classes,
                                 runs=runs)
     metrics['num_runs'] = runs
+    metrics['id_classes'] = id_classes
+    metrics['ood_classes'] = ood_classes
 
     return metrics
 
@@ -75,8 +78,8 @@ def run_all(args):
 
     for dname, dset in DATASETS_DICT.items():
 
-        if dname != 'mnist':
-            print(f"Jumping over {dname}")
+        if dname != 'gtsrb':
+            _logger.info(f"Jumping over {dname}")
             continue
 
         _logger.info(f"Running {dname}...")
@@ -87,9 +90,11 @@ def run_all(args):
         else:
             lsun = False
 
-        isolated_classes = IsolatedClasses(dataset=dset(data_path=Config.DATAPATH,
-                                                        train=False,
-                                                        transform=clip_transform),
+        dataset = dset(data_path=Config.DATAPATH,
+                       train=False,
+                       transform=clip_transform)
+
+        isolated_classes = IsolatedClasses(dataset,
                                            lsun=lsun)
 
         for split in splits:

@@ -2,13 +2,14 @@ from collections import defaultdict
 
 import numpy as np
 from datasets.caltech_cub import OodCub2011
+from datasets.gtsrb import OodGTSRB
 from datasets.svhn import OodSVHN
 from torch.utils.data import DataLoader
 from torchvision.transforms import ToTensor
 
 from src.ood_detection.config import Config
 
-dset = OodSVHN
+dset = OodGTSRB
 
 min_size, max_size = 10000, 0
 counts = defaultdict(int)

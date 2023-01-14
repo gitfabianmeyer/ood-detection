@@ -17,9 +17,9 @@ logging.basicConfig(level=logging.INFO)
 
 
 class OodGTSRB(torchvision.datasets.GTSRB):
-    def __init__(self, data_path, transform, train, templates=None):
+    def __init__(self, data_path, transform, split, templates=None):
         super().__init__(data_path,
-                         split="train" if train else "test",
+                         split=split,
                          download=True,
                          transform=transform)
         self.classes = gtsrb_classes

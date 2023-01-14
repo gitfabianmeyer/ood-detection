@@ -14,10 +14,9 @@ logging.basicConfig(level=logging.INFO)
 
 
 class OodCaltech101(torchvision.datasets.Caltech101):
-    def __init__(self, data_path, transform, train, templates=None):
+    def __init__(self, data_path, transform, split, templates=None):
         super().__init__(data_path,
                          transform=transform,
-                         # train=train,
                          download=True)
         self.targets = np.array(self.y)
         self.data = self.transform_to_image_list()
@@ -25,7 +24,7 @@ class OodCaltech101(torchvision.datasets.Caltech101):
         self.idx_to_class = {i: cls for (i, cls) in enumerate(self.classes)}
         self.class_to_idx = {value: key for (key, value) in self.idx_to_class.items()}
         self.templates = templates if templates else caltech101_templates
-        self.data, self.targets = self.get_split(train)
+        self.data, self.targets = self.get_split(split)
 
     def __getitem__(self, idx):
         img = Image.open(self.data[idx])
@@ -51,17 +50,27 @@ class OodCaltech101(torchvision.datasets.Caltech101):
             file_list.append(path)
         return file_list
 
-    def get_split(self, train):
+    def get_split(self, split):
 
         x_train, x_test, y_train, y_test = train_test_split(self.data,
                                                             self.targets,
-                                                            test_size=.3,
+                                                            test_size=.4,
                                                             stratify=self.targets,
                                                             random_state=42)
-        if train:
+
+        x_train, x_val, y_train, y_val = train_test_split(x_train, y_train,
+                                                          test_size=.3,
+                                                          stratify=y_train,
+                                                          random_state=42)
+        if split == 'train':
             return x_train, y_train
-        else:
+        elif split == 'val':
+            return x_val, y_val
+        elif split == 'test':
             return x_test, y_test
+
+        else:
+            raise ValueError(f'Split {split} not in [train, test, val]')
 
 
 def main():

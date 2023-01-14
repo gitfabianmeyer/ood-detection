@@ -4,6 +4,7 @@ import os
 import numpy as np
 from PIL import Image
 from datasets.classnames import imagenet_templates
+from sklearn.model_selection import train_test_split
 from torchvision.datasets.utils import download_url
 from torch.utils.data import Dataset
 
@@ -66,13 +67,16 @@ class OodCub2011(Dataset):
         self.targets = np.array(labels) - 1
         is_training = np.array(is_training, dtype=bool)
 
-        if self.train:
+        if self.train == 'train' or self.train == 'val':
             self.data = self.data[is_training]
             self.targets = self.targets[is_training]
-        else:
-            is_val = np.invert(is_training)
-            self.data = self.data[is_val]
-            self.targets = self.targets[is_val]
+            if self.train == 'val':
+                _, self.data, _, self.targets = train_test_split(self.data, self.targets,
+                                                                 random_state=42, stratify=self.targets)
+        elif self.train == 'test':
+            is_test = np.invert(is_training)
+            self.data = self.data[is_test]
+            self.targets = self.targets[is_test]
 
     def _check_integrity(self):
         try:

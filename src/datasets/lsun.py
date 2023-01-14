@@ -203,7 +203,7 @@ class LSUN(VisionDataset):
 
 
 class OodLSUN(LSUN):
-    def __init__(self, data_path, transform, train, templates=None):
+    def __init__(self, data_path, transform, split, templates=None):
 
         self.download = True
         self.root = os.path.join(data_path, 'lsun')
@@ -213,7 +213,7 @@ class OodLSUN(LSUN):
             else:
                 _logger.info("LSUN already downloaded")
         super(OodLSUN, self).__init__(root=os.path.join(data_path, 'lsun'),
-                                      classes='train' if train else 'val',
+                                      classes=split,
                                       transform=transform)
 
         self.templates = templates if templates else imagenet_templates

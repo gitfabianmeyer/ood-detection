@@ -130,7 +130,7 @@ def image_decoder(clip_model,
                 topk_tokens = [bert_tokenizer.decode(int(pred_idx.cpu().numpy())) for pred_idx in topk_list]
 
                 unique_entities = list(set(topk_tokens) - {semantic_label})
-                _logger.debug("Semantic label: {semantic_label}Unique Entities: {unique_entities}")
+                _logger.debug(f"Semantic label: {semantic_label}Unique Entities: {unique_entities}")
 
                 all_desc = seen_descriptions + [f"This is a photo of a {label}" for label in unique_entities]
                 all_desc_ids = tokenize_for_clip(all_desc, clip_tokenizer)
@@ -193,7 +193,8 @@ def get_id_datasets(dataset, id_classes, kshots=16):
     return get_kshot_train_set(train_dataset, kshots), val_dataset
 
 
-def get_tip_adapter_weights(train_set, val_set,
+def get_tip_adapter_weights(train_set,
+                            val_set,
                             clip_model,
                             train_epoch=20,
                             alpha=1., beta=1.17,
@@ -317,8 +318,8 @@ def fill_f_acc_lists(acc_probs_sum, f_probs_sum, id_probs_sum, ood_probs_sum, ta
     acc_probs_sum.append(accuracy)
 
 
-def fill_auc_lists(auc_list_max, auc_list_mean, auc_list_sum, ood_prob_mean, ood_probs_max, ood_probs_sum, targets):
-    auc_list_mean.append(get_auroc_for_ood_probs(targets, ood_prob_mean))
+def fill_auc_lists(auc_list_max, auc_list_mean, auc_list_sum, ood_probs_mean, ood_probs_max, ood_probs_sum, targets):
+    auc_list_mean.append(get_auroc_for_ood_probs(targets, ood_probs_mean))
     auc_list_max.append(get_auroc_for_ood_probs(targets, ood_probs_max))
     auc_list_sum.append(get_auroc_for_ood_probs(targets, ood_probs_sum))
 
