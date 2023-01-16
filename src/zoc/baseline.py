@@ -6,6 +6,10 @@ import torch
 import wandb
 from datasets.zoc_loader import IsolatedClasses
 from ood_detection.classification_utils import zeroshot_classifier
+from sklearn.metrics import accuracy_score
+from torch.nn import CrossEntropyLoss
+from torch.optim import Adam, AdamW
+from torch.utils.data import Dataset, DataLoader
 from tqdm import tqdm
 from zoc.utils import get_ablation_splits, get_split_specific_targets, fill_auc_lists, fill_f_acc_lists, \
     get_result_mean_dict
@@ -111,5 +115,100 @@ def baseline_detector(clip_model,
 
     return metrics_list
 
-def log_reg_detector(dataset, clip_model):
-    train_features, train_targets = get_features(dataset,)
+
+class LinearClassifier(torch.nn.Module):
+    def __init__(self, input_dim, output_dim):
+        super(LinearClassifier, self).__init__()
+        self.linear = torch.nn.Linear(input_dim, output_dim)
+
+    def forward(self, x):
+        x = self.linear(x)
+        return x
+
+
+def train_id_classifier(train_set, eval_set, id_classes):
+    classifier = LinearClassifier(train_set.features_dim, len(train_set.labels))
+
+    train_loader = DataLoader(train_set,
+                              batch_size=512,
+                              shuffle=True)
+    eval_loader = DataLoader(eval_set,
+                             batch_size=512,
+                             shuffle=True)
+
+    epochs = 10
+    learning_rate = 0.0001
+    optimizer = AdamW(params=classifier.parameters(), lr=learning_rate)
+    loss = CrossEntropyLoss()
+
+
+    for epoch in tqdm(epochs):
+
+        epoch_results = {}
+        epoch_loss = 0.
+        # train
+        for image_features, targets in tqdm(train_loader):
+
+            preds = classifier(image_features)
+
+            optimizer.zero_grad()
+            output = loss(preds, targets)
+            output.backward()
+            optimizer.step()
+            epoch_loss += output
+
+        epoch_results["train loss"] = epoch_loss
+        epoch_results["train loss per image"] = epoch_loss / len(train_loader)
+
+        # eval
+
+        epoch_val_loss = 0.
+        for eval_features, eval_targets in tqdm(eval_loader):
+            with torch.no_grad():
+                eval_preds = classifier(eval_features)
+                eval_loss = loss(eval_preds, eval_targets).detach().item()
+                epoch_val_loss += eval_loss
+                _, indices = torch.topk(torch.softmax(eval_preds, dim=-1))
+                accuracy = accuracy_score(eval_targets, indices)
+                _logger.info(f"Epoch {epoch+1} Eval Acc: {accuracy}")
+
+            epoch_results["vall loss"] = epoch_val_loss
+            epoch_results["train loss per image"] = epoch_val_loss / len(eval_loader)
+            epoch_results["epoch"] = epoch+1
+
+
+
+def linear_layer_detector(dataset, clip_model, id_classes, ood_classes, runs):
+    feature_weight_dict_train = get_feature_weight_dict(isolated_classes, clip_model, device)
+    feature_weight_dict_val = get_feature_weight_dict(isolated_classes, clip_model)
+    ablation_splits = get_ablation_splits(dataset.labels, n=runs, id_classes=id_classes,
+                                          ood_classes=ood_classes)
+    for ablation_split in ablation_splits:
+        # train classifier to classify id set
+        train_set = FeatureSet(feature_weight_dict_train, ablation_split[:id_classes])
+        val_set = FeatureSet(feature_weight_dict_val, ablation_split[:id_classes])
+        classifier = train_id_classifier(train_set, val_set)
+
+        # eval for ood detection
+
+
+class FeatureSet(Dataset):
+    def __init__(self, feature_dict, labels, dataset):
+        self.labels = labels
+        self.dataset = dataset
+        self.features, self.targets = self.get_features_labels(feature_dict)
+        self.features_dim = self.features[0].shape[0]
+
+    def __len__(self):
+        return len(self.targets)
+
+    def __getitem__(self, idx):
+        return self.features[idx], int(self.targets[idx])
+
+    def get_features_labels(self, feature_dict):
+        features, targets = [], []
+        for label in self.labels:
+            feats = feature_dict[label]
+            targets.extend([self.dataset.class_to_idx] * len(feats))
+            features.append(feats)
+        return torch.cat(features), torch.Tensor(targets)
