@@ -9,6 +9,7 @@ import os
 import subprocess
 
 from datasets.classnames import imagenet_templates
+from sklearn.model_selection import train_test_split
 from torch.utils.data import Dataset
 from torchvision.datasets import ImageFolder
 
@@ -189,7 +190,6 @@ class TinyImageNetDataset(Dataset):
             img = _add_channels(img)
             lbl = None if self.mode == 'test' else s[self.label_idx]
         sample = {'image': img, 'label': lbl}
-        raise ValueError
         if self.transform:
             sample = self.transform(sample)
         return sample
@@ -214,6 +214,7 @@ class TinyImageNetImageFolder(ImageFolder):
         self.init_semantic_labels()
 
     def init_semantic_labels(self):
+        print(f"init semantic label, root {self.dataset_root}")
         with open(os.path.join(self.dataset_root, 'words.txt'), 'r') as wf:
             for line in wf:
                 nid, labels = line.split('\t')
@@ -231,11 +232,18 @@ class OodTinyImageNet(TinyImageNetImageFolder):
     def __init__(self, data_path, transform, split, templates=None):
         super(OodTinyImageNet, self).__init__(root=os.path.join(data_path, 'tinyimagenet/tiny-imagenet-200'),
                                               transform=transform,
-                                              split=split,
+                                              split='train' if split == 'train' or split == 'val' else 'val',
                                               download=True
                                               )
         self.transform = transform
         self.templates = templates if templates else imagenet_templates
+        self.split = split
+        self.set_split()
+
+    def set_split(self):
+        if self.split == 'val':
+            _, self.data, _, self.targets = train_test_split(self.data, self.targets, test_size=.4,
+                                                             random_state=42, stratify=self.targets)
 
     def __len__(self):
         return len(self.data)

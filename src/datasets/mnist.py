@@ -18,6 +18,7 @@ class OodMNIST(torchvision.datasets.MNIST):
                                        download=True,
                                        train=True if split == 'train' or split == 'val' else False, )
 
+        self.split = split
         self.templates = templates if templates else mnist_templates
         self.classes = [
             '0',

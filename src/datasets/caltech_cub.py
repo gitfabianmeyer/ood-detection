@@ -19,10 +19,10 @@ class OodCub2011(Dataset):
     filename = 'CUB_200_2011.tgz'
     tgz_md5 = '97eceeb196236b17998738112f37df78'
 
-    def __init__(self, data_path, transform=None, train=True, download=True, templates=None):
+    def __init__(self, data_path, transform=None, split=True, download=True, templates=None):
         self.data_path = os.path.expanduser(data_path)
         self.transform = transform
-        self.train = train
+        self.train = split
 
         if download:
             self._download()

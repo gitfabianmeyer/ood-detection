@@ -22,6 +22,7 @@ class OodFashionMNIST(torchvision.datasets.FashionMNIST):
                                               download=True,
                                               train=True if split == 'train' or split == 'val' else False,)
         self.templates = templates if templates else mnist_templates
+        self.split = split
         self.set_split()
 
     def set_split(self):

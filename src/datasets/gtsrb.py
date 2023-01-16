@@ -1,5 +1,7 @@
 import os
 
+from sklearn.model_selection import train_test_split
+
 os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
 os.environ["CUDA_VISIBLE_DEVICES"] = "1"
 
@@ -19,15 +21,22 @@ logging.basicConfig(level=logging.INFO)
 class OodGTSRB(torchvision.datasets.GTSRB):
     def __init__(self, data_path, transform, split, templates=None):
         super().__init__(data_path,
-                         split=split,
+                         split='train' if split == 'train' or split == 'val' else 'test',
                          download=True,
                          transform=transform)
+        self.split = split
         self.classes = gtsrb_classes
         self.templates = templates if templates else gtsrb_templates
         self.class_to_idx = dict(zip(self.classes, list(range(len(self.classes)))))
         self.idx_to_class = dict(zip(list(range(len(self.classes))), self.classes))
         self.data, self.targets = zip(*self._samples)
         self.targets = np.array(self.targets)
+        self.set_split()
+
+    def set_split(self):
+        if self.split == 'val':
+            _, self.data, _, self.targets = train_test_split(self.data, self.targets, test_size=.4,
+                                                             random_state=42, stratify=self.targets)
 
     def __len__(self) -> int:
         return len(self.targets)
