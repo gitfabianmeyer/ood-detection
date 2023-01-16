@@ -79,7 +79,6 @@ def baseline_detector(clip_model,
 
             # do 10 times
             for i, semantic_label in enumerate(split):
-                _logger.info(f"Getting stats for label {semantic_label}")
                 # get features
                 image_features_for_label = feature_weight_dict[semantic_label]
                 # calc the logits and softmaxs
