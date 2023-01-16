@@ -27,7 +27,7 @@ def run_single_dataset_ood(isolated_classes, name, clip_model, id_classes=.6, ru
     id_classes = int(len(labels) * id_classes)
     ood_classes = len(labels) - id_classes
 
-    run = wandb.init(project="thesis-zoc_baseline_full_classes",
+    run = wandb.init(project="thesis-zoc_baseline_full_classes_test_sets",
                      entity="wandbefab",
                      name=name,
                      config={"runs": runs,
@@ -63,7 +63,7 @@ def run_all(args):
             lsun = False
 
         dataset = dset(data_path=Config.DATAPATH,
-                       train=False,
+                       split='test',
                        transform=clip_transform)
 
         # shorted_classes = random.sample(dataset.classes, 10)

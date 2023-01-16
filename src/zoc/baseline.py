@@ -112,6 +112,5 @@ def baseline_detector(clip_model,
 
     return metrics_list
 
-def log_reg_detector(dataset, clip_model)
-
+def log_reg_detector(dataset, clip_model):
     train_features, train_targets = get_features(dataset,)

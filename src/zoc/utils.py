@@ -14,6 +14,7 @@ from adapters.tip_adapter import get_train_features, WeightAdapter
 
 _logger = logging.getLogger()
 
+
 @torch.no_grad()
 def greedysearch_generation_topk(clip_embed, berttokenizer, bert_model, device):
     N = 1  # batch has single sample
@@ -320,8 +321,13 @@ def fill_f_acc_lists(acc_probs_sum, f_probs_sum, id_probs_sum, ood_probs_sum, ta
 
 def fill_auc_lists(auc_list_max, auc_list_mean, auc_list_sum, ood_probs_mean, ood_probs_max, ood_probs_sum, targets):
     auc_list_mean.append(get_auroc_for_ood_probs(targets, ood_probs_mean))
-    auc_list_max.append(get_auroc_for_ood_probs(targets, ood_probs_max))
+    auc_list_max.append(get_auroc_for_max_probs(targets, ood_probs_max))
     auc_list_sum.append(get_auroc_for_ood_probs(targets, ood_probs_sum))
+
+
+# needed so we can flip the classifier to become > 50%
+def get_auroc_for_max_probs(targets, max_probs):
+    return roc_auc_score(np.logical_not(np.array(targets)).astype(int), max_probs)
 
 
 def get_auroc_for_ood_probs(targets, means):
