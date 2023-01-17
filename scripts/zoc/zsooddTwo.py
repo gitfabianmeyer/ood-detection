@@ -73,7 +73,7 @@ def run_all(args):
 
     passing = True
 
-    for dname, dset in HalfTwoDict.items():
+    for dname, dset in DATASETS_DICT.items():
         if dname=='lsun':
             passing = False
         if passing:
