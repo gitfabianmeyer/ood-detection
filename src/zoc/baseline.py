@@ -243,7 +243,7 @@ def linear_layer_detector(dataset, clip_model, clip_transform, id_classes, ood_c
                                       ])
         classifier = train_id_classifier(train_set, val_set)
         linear_layer_run.finish()
-        print("DONE")
+        _logger.info("Finished finetuning linear layer")
         # eval for ood detection
 
         isolated_classes = IsolatedClasses(dataset(Config.DATAPATH,
@@ -281,7 +281,6 @@ def linear_layer_detector(dataset, clip_model, clip_transform, id_classes, ood_c
 
     metrics = get_result_mean_dict(acc_probs_sum, auc_list_max, auc_list_mean, auc_list_sum, f_probs_sum)
 
-    print(metrics)
     return metrics
 
 

@@ -30,15 +30,14 @@ def run_single_dataset_ood(dataset, clip_model, clip_transform, id_classes=.6, r
     labels = dset.classes
     id_classes = int(len(labels) * id_classes)
     ood_classes = len(labels) - id_classes
-
-    # run = wandb.init(project="thesis-zoc_baseline_full_classes_val_sets",
-    #                  entity="wandbefab",
-    #                  name=name,
-    #                  config={"runs": runs,
-    #                          "id_split": splits[0][0]})
-
-    metrics = linear_layer_detector(dataset, clip_model, clip_transform, id_classes, ood_classes, runs)
-    print(metrics)
+    metrics = linear_layer_detector(dataset, clip_model, clip_transform, id_classes, ood_classes, 5)
+    run = wandb.init(project="thesis-zoc_baseline_full_classes_val_sets",
+                     entity="wandbefab",
+                     name=dataset.name,
+                     config={"runs": runs,
+                             "id_split": splits[0][0]})
+    wandb.log(metrics)
+    run.finish()
     return True
 
 
@@ -47,9 +46,9 @@ def run_all(args):
     clip_model, clip_transform = clip.load(Config.VISION_MODEL)
     for dname, dset in DATASETS_DICT.items():
 
-        if dname not in ['cifar10', 'caltech cub']:
-            print(f"Jumping over {dname}")
-            continue
+        # if dname not in ['cifar10', 'caltech cub']:
+        #     print(f"Jumping over {dname}")
+        #     continue
 
         _logger.info(f"---------------Running {dname}--------------")
 
