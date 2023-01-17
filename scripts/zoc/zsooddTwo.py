@@ -71,13 +71,8 @@ def run_all(args):
     clip_tokenizer = SimpleTokenizer()
     bert_model = get_decoder()
 
-    passing = True
-
     for dname, dset in DATASETS_DICT.items():
-        if dname=='lsun':
-            passing = False
-        if passing:
-            continue
+
 
         _logger.info(f"Running {dname}...")
 
