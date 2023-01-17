@@ -37,6 +37,11 @@ class OodDTD(torchvision.datasets.DTD):
     def __len__(self) -> int:
         return len(self.data)
 
+    @property
+    def name(self):
+        return 'dtd'
+
+
 def main():
     name = "dtd"
     dataset = OodDTD

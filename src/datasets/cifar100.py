@@ -31,6 +31,9 @@ class OodCifar100(torchvision.datasets.CIFAR100):
             _, self.data, _, self.targets = train_test_split(self.data, self.targets, test_size=.4,
                                                              random_state=42, stratify=self.targets)
 
+    @property
+    def name(self):
+        return 'cifar100'
 
 def main():
     name = "cifar100"

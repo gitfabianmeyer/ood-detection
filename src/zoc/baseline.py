@@ -6,6 +6,7 @@ import torch
 import wandb
 from datasets.zoc_loader import IsolatedClasses
 from ood_detection.classification_utils import zeroshot_classifier
+from ood_detection.config import Config
 from sklearn.metrics import accuracy_score
 from torch.nn import CrossEntropyLoss
 from torch.optim import Adam, AdamW
@@ -126,7 +127,7 @@ class LinearClassifier(torch.nn.Module):
         return x
 
 
-def train_id_classifier(train_set, eval_set, id_classes):
+def train_id_classifier(train_set, eval_set):
     classifier = LinearClassifier(train_set.features_dim, len(train_set.labels))
 
     train_loader = DataLoader(train_set,
@@ -137,26 +138,27 @@ def train_id_classifier(train_set, eval_set, id_classes):
                              shuffle=True)
 
     epochs = 10
-    learning_rate = 0.0001
+    learning_rate = 0.001
     optimizer = AdamW(params=classifier.parameters(), lr=learning_rate)
-    loss = CrossEntropyLoss()
+    criterion = CrossEntropyLoss()
 
-
-    for epoch in tqdm(epochs):
+    best_eval_loss = np.inf
+    for epoch in tqdm(range(1, epochs + 1)):
 
         epoch_results = {}
         epoch_loss = 0.
         # train
         for image_features, targets in tqdm(train_loader):
+            optimizer.zero_grad()
 
             preds = classifier(image_features)
-
-            optimizer.zero_grad()
-            output = loss(preds, targets)
+            output = criterion(preds, targets)
             output.backward()
-            optimizer.step()
             epoch_loss += output
 
+            optimizer.step()
+
+        epoch_results["epoch"] = epoch
         epoch_results["train loss"] = epoch_loss
         epoch_results["train loss per image"] = epoch_loss / len(train_loader)
 
@@ -166,20 +168,36 @@ def train_id_classifier(train_set, eval_set, id_classes):
         for eval_features, eval_targets in tqdm(eval_loader):
             with torch.no_grad():
                 eval_preds = classifier(eval_features)
-                eval_loss = loss(eval_preds, eval_targets).detach().item()
-                epoch_val_loss += eval_loss
-                _, indices = torch.topk(torch.softmax(eval_preds, dim=-1))
-                accuracy = accuracy_score(eval_targets, indices)
-                _logger.info(f"Epoch {epoch+1} Eval Acc: {accuracy}")
+                eval_loss = criterion(eval_preds, eval_targets).detach().item()
 
-            epoch_results["vall loss"] = epoch_val_loss
+            epoch_val_loss += eval_loss
+
+            if epoch_val_loss < best_eval_loss:
+                best_eval_loss = epoch_val_loss
+                best_classifier = LinearClassifier.weights
+
+            _, indices = torch.topk(torch.softmax(eval_preds, k=1, dim=-1))
+            accuracy = accuracy_score(eval_targets, indices)
+            _logger.info(f"Epoch {epoch} Eval Acc: {accuracy}")
+
+            epoch_results["val loss"] = epoch_val_loss
             epoch_results["train loss per image"] = epoch_val_loss / len(eval_loader)
-            epoch_results["epoch"] = epoch+1
+
+            wandb.log(epoch_results)
+    return best_classifier
 
 
+def linear_layer_detector(dataset, clip_model, clip_transform, id_classes, ood_classes, runs):
+    isolated_classes = IsolatedClasses(dataset(Config.DATAPATH,
+                                               split='train',
+                                               transform=clip_transform),
+                                       batch_size=512)
+    feature_weight_dict_train = get_feature_weight_dict(isolated_classes, clip_model, Config.DEVICE)
 
-def linear_layer_detector(dataset, clip_model, id_classes, ood_classes, runs):
-    feature_weight_dict_train = get_feature_weight_dict(isolated_classes, clip_model, device)
+    isolated_classes = IsolatedClasses(dataset(Config.DATAPATH,
+                                               split='val',
+                                               transform=clip_transform),
+                                       batch_size=512)
     feature_weight_dict_val = get_feature_weight_dict(isolated_classes, clip_model)
     ablation_splits = get_ablation_splits(dataset.labels, n=runs, id_classes=id_classes,
                                           ood_classes=ood_classes)
@@ -187,10 +205,19 @@ def linear_layer_detector(dataset, clip_model, id_classes, ood_classes, runs):
         # train classifier to classify id set
         train_set = FeatureSet(feature_weight_dict_train, ablation_split[:id_classes])
         val_set = FeatureSet(feature_weight_dict_val, ablation_split[:id_classes])
+
+        run = wandb.init(project="thesis-linear clip",
+                         entity="wandbefab",
+                         name=dataset.get_name(),
+                         tags=[
+                             'linear probe',
+                             'oodd',
+                         ])
         classifier = train_id_classifier(train_set, val_set)
-
+        run.finish()
+        print("DONE")
         # eval for ood detection
-
+        return "FINISH"
 
 class FeatureSet(Dataset):
     def __init__(self, feature_dict, labels, dataset):

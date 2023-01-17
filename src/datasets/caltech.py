@@ -26,6 +26,10 @@ class OodCaltech101(torchvision.datasets.Caltech101):
         self.templates = templates if templates else caltech101_templates
         self.data, self.targets = self.get_split(split)
 
+    @property
+    def name(self):
+        return 'caltech101'
+
     def __getitem__(self, idx):
         img = Image.open(self.data[idx])
         if self.transform is not None:

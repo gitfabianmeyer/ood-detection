@@ -23,6 +23,10 @@ class OodStanfordCars(torchvision.datasets.StanfordCars):
         self.targets = np.array(self.targets)
         self.templates = templates if templates else stanfordcars_templates
 
+    @property
+    def name(self):
+        return 'stanford cars'
+
     def __getitem__(self, idx):
 
         image, label = self.data[idx], self.targets[idx]

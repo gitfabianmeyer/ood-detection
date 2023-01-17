@@ -10,7 +10,6 @@ import os.path
 
 import torchvision.datasets
 
-
 from metrics.distances import run_full_distances
 from datasets.classnames import mnist_templates
 
@@ -36,10 +35,15 @@ class OodSVHN(torchvision.datasets.SVHN):
         self.templates = templates if templates else mnist_templates
         self.set_split()
 
+    @property
+    def name(self):
+        return 'svhn'
+
     def set_split(self):
         if self.split == 'val':
             _, self.data, _, self.targets = train_test_split(self.data, self.targets, test_size=.4,
                                                              random_state=42, stratify=self.targets)
+
 
 def main():
     name = "SVHN"
@@ -49,4 +53,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-

@@ -240,6 +240,10 @@ class OodTinyImageNet(TinyImageNetImageFolder):
         self.split = split
         self.set_split()
 
+    @property
+    def name(self):
+        return 'imagenet'
+
     def set_split(self):
         if self.split == 'val':
             _, self.data, _, self.targets = train_test_split(self.data, self.targets, test_size=.4,

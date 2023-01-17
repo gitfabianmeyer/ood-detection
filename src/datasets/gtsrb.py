@@ -41,6 +41,10 @@ class OodGTSRB(torchvision.datasets.GTSRB):
     def __len__(self) -> int:
         return len(self.targets)
 
+    @property
+    def name(self):
+        return 'gtsrb'
+
 
 def main():
     name = "gtrsb"

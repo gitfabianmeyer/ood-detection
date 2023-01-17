@@ -35,6 +35,10 @@ class OodMNIST(torchvision.datasets.MNIST):
         self.idx_to_class = {value: key for (key, value) in self.class_to_idx.items()}
         self.set_split()
 
+    @property
+    def name(self):
+        return 'mnist'
+
     def set_split(self):
         if self.split == 'val':
             _, self.data, _, self.targets = train_test_split(self.data, self.targets, test_size=.4,

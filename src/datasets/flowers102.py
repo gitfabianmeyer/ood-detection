@@ -32,6 +32,10 @@ class OodFlowers102(torchvision.datasets.Flowers102):
     def __len__(self) -> int:
         return len(self.data)
 
+    @property
+    def name(self):
+        return 'flowers102'
+
 
 def main():
     name = "Flowers102"
