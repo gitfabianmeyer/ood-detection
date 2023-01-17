@@ -174,19 +174,17 @@ def train_id_classifier(train_set, eval_set):
 
             if epoch_val_loss < best_eval_loss:
                 best_eval_loss = epoch_val_loss
-                best_classifier = LinearClassifier.weights
+                best_classifier = classifier.state_dict()
 
-            _, indices = torch.topk(torch.softmax(eval_preds, k=1, dim=-1))
+            _, indices = torch.topk(torch.softmax(eval_preds, dim=-1), k=1)
             accuracy = accuracy_score(eval_targets, indices)
             _logger.info(f"Epoch {epoch} Eval Acc: {accuracy}")
 
-            epoch_results["val loss"] = epoch_val_loss
-            epoch_results["train loss per image"] = epoch_val_loss / len(eval_loader)
+        epoch_results["val loss"] = epoch_val_loss
+        epoch_results["train loss per image"] = epoch_val_loss / len(eval_loader)
 
-            wandb.log(epoch_results)
+        wandb.log(epoch_results)
     return best_classifier
-
-
 def linear_layer_detector(dataset, clip_model, clip_transform, id_classes, ood_classes, runs):
     train_dataset = dataset(Config.DATAPATH,
                             split='train',
@@ -211,7 +209,7 @@ def linear_layer_detector(dataset, clip_model, clip_transform, id_classes, ood_c
 
         run = wandb.init(project="thesis-linear clip",
                          entity="wandbefab",
-                         name=dataset.get_name(),
+                         name=dataset.name,
                          tags=[
                              'linear probe',
                              'oodd',
