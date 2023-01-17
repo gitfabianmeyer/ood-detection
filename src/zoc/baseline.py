@@ -150,6 +150,9 @@ def train_id_classifier(train_set, eval_set):
         epoch_loss = 0.
         # train
         for image_features, targets in tqdm(train_loader):
+            image_features = image_features.to(torch.float32).to(device)
+            targets = targets.to(torch.float32).to(device)
+
             optimizer.zero_grad()
 
             preds = classifier(image_features.to(torch.float32).to(device))
@@ -169,8 +172,12 @@ def train_id_classifier(train_set, eval_set):
 
         epoch_val_loss = 0.
         for eval_features, eval_targets in tqdm(eval_loader):
+
+            eval_features = eval_features.to(torch.float32).to(device)
+            eval_targets = eval_targets.to(torch.float32).to(device)
+
             with torch.no_grad():
-                eval_preds = classifier(eval_features.to(torch.float32).to(device))
+                eval_preds = classifier(eval_features)
                 eval_loss = criterion(eval_preds, eval_targets).detach().item()
 
             epoch_val_loss += eval_loss
