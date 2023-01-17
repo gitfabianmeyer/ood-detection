@@ -207,13 +207,21 @@ def linear_layer_detector(dataset, clip_model, clip_transform, id_classes, ood_c
     ablation_splits = get_ablation_splits(isolated_classes.labels, n=runs, id_classes=id_classes,
                                           ood_classes=ood_classes)
     for ablation_split in ablation_splits:
+        _logger.info(f"Seen labels: {seen_labels}\nOOD Labels: {unseen_labels}")
+
+        seen_labels = ablation_split[:id_classes]
+        unseen_labels = ablation_split[id_classes:]
+
+
         # train classifier to classify id set
-        train_set = FeatureSet(feature_weight_dict_train, ablation_split[:id_classes], class_to_idx_mapping)
+        train_set = FeatureSet(feature_weight_dict_train, seen_labels, class_to_idx_mapping)
         val_set = FeatureSet(feature_weight_dict_val, ablation_split[:id_classes], class_to_idx_mapping)
 
-        linear_layer_run = wandb.init(project="thesis-linear clip",
+
+
+        linear_layer_run = wandb.init(project="thesis-linear_clip",
                                       entity="wandbefab",
-                                      name=dataset.name,
+                                      name=train_dataset.name,
                                       tags=[
                                           'linear probe',
                                           'oodd',
@@ -223,8 +231,47 @@ def linear_layer_detector(dataset, clip_model, clip_transform, id_classes, ood_c
         print("DONE")
         # eval for ood detection
 
-        return "FINISH"
 
+
+#         zeroshot_weights = sorted_zeroshot_weights(classes_weight_dict, seen_labels)
+#
+#         ood_probs_sum, ood_probs_mean, ood_probs_max = [], [], []
+#         f_probs_sum, acc_probs_sum, id_probs_sum = [], [], []
+#
+#         # do 10 times
+#         for i, semantic_label in enumerate(ablation_split):
+#             # get features
+#             image_features_for_label = feature_weight_dict[semantic_label]
+#             # calc the logits and softmaxs
+#             zeroshot_probs = (temperature * image_features_for_label.to(torch.float32) @ zeroshot_weights.T.to(
+#                 torch.float32)).softmax(dim=-1).squeeze()
+#
+#             assert zeroshot_probs.shape[1] == id_classes
+#             # detection score is accumulative sum of probs of generated entities
+#             # careful, only for this setting axis=1
+#             ood_prob_sum = np.sum(zeroshot_probs.detach().cpu().numpy(), axis=1)
+#             ood_probs_sum.extend(ood_prob_sum)
+#
+#             ood_prob_mean = np.mean(zeroshot_probs.detach().cpu().numpy(), axis=1)
+#             ood_probs_mean.extend(ood_prob_mean)
+#
+#             top_prob, _ = zeroshot_probs.cpu().topk(1, dim=-1)
+#             ood_probs_max.extend(top_prob.detach().numpy())
+#
+#             id_probs_sum.extend(1. - ood_prob_sum)
+#
+#         targets = get_split_specific_targets(isolated_classes, seen_labels, unseen_labels)
+#         fill_auc_lists(auc_list_max, auc_list_mean, auc_list_sum, ood_probs_mean, ood_probs_max, ood_probs_sum,
+#                        targets)
+#         fill_f_acc_lists(acc_probs_sum, f_probs_sum, id_probs_sum, ood_probs_sum, targets)
+#
+#     metrics = get_result_mean_dict(acc_probs_sum, auc_list_max, auc_list_mean, auc_list_sum, f_probs_sum)
+#     metrics["temperature"] = temperature
+#
+#     metrics_list.append(metrics)
+#
+#
+# return metrics_list
 
 class FeatureSet(Dataset):
     def __init__(self, feature_dict, labels, class_to_idx_mapping):
