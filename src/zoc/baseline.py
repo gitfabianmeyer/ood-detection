@@ -190,7 +190,7 @@ def train_id_classifier(train_set, eval_set):
                 best_classifier = classifier
 
             _, indices = torch.topk(torch.softmax(eval_preds, dim=-1), k=1)
-            accuracy = accuracy_score(eval_targets.to('cpu').numpy(), indices)
+            accuracy = accuracy_score(eval_targets.to('cpu').numpy(), indices.to('cpu').numpy())
             _logger.info(f"Epoch {epoch} Eval Acc: {accuracy}")
 
         epoch_results["val loss"] = epoch_val_loss
