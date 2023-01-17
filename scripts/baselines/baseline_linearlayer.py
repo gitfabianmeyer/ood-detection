@@ -1,6 +1,6 @@
 import os
 
-from src.zoc.baseline import linear_layer_detector
+from zoc.baseline import linear_layer_detector
 
 os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
 os.environ["CUDA_VISIBLE_DEVICES"] = "0"
