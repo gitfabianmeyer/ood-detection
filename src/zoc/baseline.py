@@ -40,7 +40,9 @@ def get_feature_weight_dict(isolated_classes, clip_model, device):
             image_features /= image_features.norm(dim=-1, keepdim=True)
 
             image_feature_list.append(image_features)
-        weights_dict[cls] = torch.cat(image_feature_list).half()
+        # for i in range(3):
+        #     image_feature_list.append(torch.rand(3, 512))
+        # weights_dict[cls] = torch.cat(image_feature_list).half()
 
     return weights_dict
 
@@ -203,7 +205,7 @@ def linear_layer_detector(dataset, clip_model, clip_transform, id_classes, ood_c
                             split='train',
                             transform=clip_transform)
 
-    class_to_idx_mapping = train_dataset.class_to_idx
+
     isolated_classes = IsolatedClasses(train_dataset,
                                        batch_size=512)
     feature_weight_dict_train = get_feature_weight_dict(isolated_classes, clip_model, device)
@@ -218,6 +220,8 @@ def linear_layer_detector(dataset, clip_model, clip_transform, id_classes, ood_c
 
     auc_list_sum, auc_list_mean, auc_list_max = [], [], []
     for ablation_split in ablation_splits:
+
+        class_to_idx_mapping = {label: i for (i, label) in enumerate(ablation_split)}
         seen_labels = ablation_split[:id_classes]
         unseen_labels = ablation_split[id_classes:]
 

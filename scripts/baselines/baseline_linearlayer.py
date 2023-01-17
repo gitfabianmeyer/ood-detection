@@ -1,11 +1,9 @@
 import os
 
-from zoc.baseline import linear_layer_detector
-
 os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
 os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 
-from zoc.baseline import baseline_detector
+from zoc.baseline import linear_layer_detector
 import argparse
 import logging
 
@@ -22,6 +20,7 @@ _logger = logging.getLogger(__name__)
 splits = [(.4, .6), ]
 clearml_model = False
 MODEL_PATH = "/home/fmeyer/ZOC/trained_models/COCO/ViT-B32/"
+# MODEL_PATH = "/mnt/c/users/fmeyer/git/ood-detection/data/zoc/trained_models/COCO/"
 
 
 def run_single_dataset_ood(dataset, clip_model, clip_transform, id_classes=.6, runs=5):
