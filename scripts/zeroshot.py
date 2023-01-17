@@ -80,7 +80,7 @@ def main():
     for dname, dset in DATASETS_DICT.items():
 
         print(f"\n\n----------------------------------- {dname}----------------------------------- ")
-        run = wandb.init(project="thesis-temperatures",
+        run = wandb.init(project="thesis-zsa-temperature",
                          entity="wandbefab",
                          name=dname,
                          tags=['zeroshot',
@@ -88,7 +88,7 @@ def main():
                                'confidence'])
 
         dataset = dset(Config.DATAPATH,
-                       train=False,
+                       split='val',
                        transform=clip_transform)
 
         dataloader = DataLoader(dataset,
