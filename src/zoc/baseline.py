@@ -188,9 +188,12 @@ def train_id_classifier(train_set, eval_set):
 
 
 def linear_layer_detector(dataset, clip_model, clip_transform, id_classes, ood_classes, runs):
-    isolated_classes = IsolatedClasses(dataset(Config.DATAPATH,
-                                               split='train',
-                                               transform=clip_transform),
+    train_dataset = dataset(Config.DATAPATH,
+                            split='train',
+                            transform=clip_transform)
+
+    class_to_idx_mapping = train_dataset.class_to_idx
+    isolated_classes = IsolatedClasses(train_dataset,
                                        batch_size=512)
     feature_weight_dict_train = get_feature_weight_dict(isolated_classes, clip_model, Config.DEVICE)
 
@@ -203,8 +206,8 @@ def linear_layer_detector(dataset, clip_model, clip_transform, id_classes, ood_c
                                           ood_classes=ood_classes)
     for ablation_split in ablation_splits:
         # train classifier to classify id set
-        train_set = FeatureSet(feature_weight_dict_train, ablation_split[:id_classes])
-        val_set = FeatureSet(feature_weight_dict_val, ablation_split[:id_classes])
+        train_set = FeatureSet(feature_weight_dict_train, ablation_split[:id_classes], class_to_idx_mapping)
+        val_set = FeatureSet(feature_weight_dict_val, ablation_split[:id_classes], class_to_idx_mapping)
 
         run = wandb.init(project="thesis-linear clip",
                          entity="wandbefab",
@@ -219,10 +222,11 @@ def linear_layer_detector(dataset, clip_model, clip_transform, id_classes, ood_c
         # eval for ood detection
         return "FINISH"
 
+
 class FeatureSet(Dataset):
-    def __init__(self, feature_dict, labels, dataset):
+    def __init__(self, feature_dict, labels, class_to_idx_mapping):
         self.labels = labels
-        self.dataset = dataset
+        self.class_to_idx_mapping = class_to_idx_mapping
         self.features, self.targets = self.get_features_labels(feature_dict)
         self.features_dim = self.features[0].shape[0]
 
@@ -236,6 +240,6 @@ class FeatureSet(Dataset):
         features, targets = [], []
         for label in self.labels:
             feats = feature_dict[label]
-            targets.extend([self.dataset.class_to_idx] * len(feats))
+            targets.extend([self.class_to_idx_mapping[label]] * len(feats))
             features.append(feats)
         return torch.cat(features), torch.Tensor(targets)
