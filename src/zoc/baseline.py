@@ -152,7 +152,7 @@ def train_id_classifier(train_set, eval_set):
         for image_features, targets in tqdm(train_loader):
             optimizer.zero_grad()
 
-            preds = classifier(image_features.to(device))
+            preds = classifier(image_features.to(torch.float32).to(device))
             output = criterion(preds, targets)
             output.backward()
 
@@ -170,7 +170,7 @@ def train_id_classifier(train_set, eval_set):
         epoch_val_loss = 0.
         for eval_features, eval_targets in tqdm(eval_loader):
             with torch.no_grad():
-                eval_preds = classifier(eval_features)
+                eval_preds = classifier(eval_features.to(torch.float32).to(device))
                 eval_loss = criterion(eval_preds, eval_targets).detach().item()
 
             epoch_val_loss += eval_loss
@@ -244,7 +244,7 @@ def linear_layer_detector(dataset, clip_model, clip_transform, id_classes, ood_c
             # get features
             image_features_for_label = feature_weight_dict_test[semantic_label]
             # calc the logits and softmaxs
-            logits = classifier(image_features_for_label)
+            logits = classifier(image_features_for_label.to(torch.float32).to(device))
 
             assert logits.shape[1] == id_classes
             # detection score is accumulative sum of probs of generated entities
