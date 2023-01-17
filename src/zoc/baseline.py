@@ -154,7 +154,9 @@ def train_id_classifier(train_set, eval_set):
             preds = classifier(image_features)
             output = criterion(preds, targets)
             output.backward()
-            epoch_loss += output
+
+            loss = output.detach().item()
+            epoch_loss += loss
 
             optimizer.step()
 
@@ -185,6 +187,8 @@ def train_id_classifier(train_set, eval_set):
 
         wandb.log(epoch_results)
     return best_classifier
+
+
 def linear_layer_detector(dataset, clip_model, clip_transform, id_classes, ood_classes, runs):
     train_dataset = dataset(Config.DATAPATH,
                             split='train',
@@ -207,17 +211,18 @@ def linear_layer_detector(dataset, clip_model, clip_transform, id_classes, ood_c
         train_set = FeatureSet(feature_weight_dict_train, ablation_split[:id_classes], class_to_idx_mapping)
         val_set = FeatureSet(feature_weight_dict_val, ablation_split[:id_classes], class_to_idx_mapping)
 
-        run = wandb.init(project="thesis-linear clip",
-                         entity="wandbefab",
-                         name=dataset.name,
-                         tags=[
-                             'linear probe',
-                             'oodd',
-                         ])
-        classifier = train_id_classifier(train_set, val_set)
-        run.finish()
+        linear_layer_run = wandb.init(project="thesis-linear clip",
+                                      entity="wandbefab",
+                                      name=dataset.name,
+                                      tags=[
+                                          'linear probe',
+                                          'oodd',
+                                      ])
+        classifier_state_dict = train_id_classifier(train_set, val_set)
+        linear_layer_run.finish()
         print("DONE")
         # eval for ood detection
+
         return "FINISH"
 
 
