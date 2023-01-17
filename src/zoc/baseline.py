@@ -31,7 +31,7 @@ class LinearClassifier(torch.nn.Module):
 @torch.no_grad()
 def get_feature_weight_dict(isolated_classes, clip_model, device):
     weights_dict = {}
-    for cls in isolated_classes.labels:
+    for cls in isolated_classes.classes:
         loader = isolated_classes[cls]
         image_feature_list = []
         for images in tqdm(loader):
@@ -50,9 +50,9 @@ def get_feature_weight_dict(isolated_classes, clip_model, device):
 
 def get_zeroshot_weight_dict(isolated_classes, clip_model):
     weights_dict = {}
-    weights = zeroshot_classifier(isolated_classes.labels, isolated_classes.templates, clip_model)
+    weights = zeroshot_classifier(isolated_classes.classes, isolated_classes.templates, clip_model)
 
-    for classname, weight in zip(isolated_classes.labels, weights):
+    for classname, weight in zip(isolated_classes.classes, weights):
         weights_dict[classname] = weight
 
     return weights_dict
@@ -132,7 +132,7 @@ def baseline_detector(clip_model,
 
 def train_id_classifier(train_set, eval_set):
     device = Config.DEVICE
-    classifier = LinearClassifier(train_set.features_dim, len(train_set.labels)).to(device)
+    classifier = LinearClassifier(train_set.features_dim, len(train_set.classes)).to(device)
 
     train_loader = DataLoader(train_set,
                               batch_size=128,

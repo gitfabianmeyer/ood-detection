@@ -49,7 +49,7 @@ def get_decoder():
 
 def run_single_dataset_ood_tip(isolated_classes, dataset, clip_model, clip_tokenizer, bert_tokenizer, bert_model,
                                id_classes=.6, runs=1):
-    labels = isolated_classes.labels
+    labels = isolated_classes.classes
     id_classes = int(len(labels) * id_classes)
     ood_classes = len(labels) - id_classes
     metrics = tip_image_decoder(clip_model=clip_model,

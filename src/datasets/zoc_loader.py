@@ -75,11 +75,11 @@ class IsolatedClasses:
         self.lsun = lsun
         self.batch_size = batch_size
 
-        self.labels = dataset.classes
+        self.classes = dataset.classes
         self.fill_loaders_dict(dataset)
 
     def fill_loaders_dict(self, full_dataset):
-        for label in self.labels:
+        for label in self.classes:
             if self.lsun:
                 dset = IsolatedLsunClass(full_dataset, label)
             else:

@@ -24,7 +24,7 @@ MODEL_PATH = "/home/fmeyer/ZOC/trained_models/COCO/ViT-B32/"
 
 
 def run_single_dataset_ood(isolated_classes, name, clip_model, id_classes=.6, runs=5):
-    labels = isolated_classes.labels
+    labels = isolated_classes.classes
     id_classes = int(len(labels) * id_classes)
     ood_classes = len(labels) - id_classes
 
