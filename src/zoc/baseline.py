@@ -132,7 +132,7 @@ def train_id_classifier(train_set, eval_set):
     classifier = LinearClassifier(train_set.features_dim, len(train_set.labels)).to(device)
 
     train_loader = DataLoader(train_set,
-                              batch_size=512,
+                              batch_size=128,
                               shuffle=True)
     eval_loader = DataLoader(eval_set,
                              batch_size=512,
