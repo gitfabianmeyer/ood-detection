@@ -42,7 +42,8 @@ def get_feature_weight_dict(isolated_classes, clip_model, device):
             image_feature_list.append(image_features)
         # for i in range(3):
         #     image_feature_list.append(torch.rand(3, 512))
-        # weights_dict[cls] = torch.cat(image_feature_list).half()
+
+        weights_dict[cls] = torch.cat(image_feature_list).half()
 
     return weights_dict
 
@@ -229,7 +230,7 @@ def linear_layer_detector(dataset, clip_model, clip_transform, id_classes, ood_c
 
         # train classifier to classify id set
         train_set = FeatureSet(feature_weight_dict_train, seen_labels, class_to_idx_mapping)
-        val_set = FeatureSet(feature_weight_dict_val, ablation_split[:id_classes], class_to_idx_mapping)
+        val_set = FeatureSet(feature_weight_dict_val, seen_labels, class_to_idx_mapping)
 
         linear_layer_run = wandb.init(project="thesis-linear_clip",
                                       entity="wandbefab",
