@@ -128,6 +128,8 @@ class LinearClassifier(torch.nn.Module):
 
 
 def train_id_classifier(train_set, eval_set):
+
+    device = Config.DEVICE
     classifier = LinearClassifier(train_set.features_dim, len(train_set.labels))
 
     train_loader = DataLoader(train_set,
@@ -151,7 +153,7 @@ def train_id_classifier(train_set, eval_set):
         for image_features, targets in tqdm(train_loader):
             optimizer.zero_grad()
 
-            preds = classifier(image_features)
+            preds = classifier(image_features.to(device))
             output = criterion(preds, targets)
             output.backward()
 
@@ -190,6 +192,7 @@ def train_id_classifier(train_set, eval_set):
 
 
 def linear_layer_detector(dataset, clip_model, clip_transform, id_classes, ood_classes, runs):
+    device = Config.DEVICE
     train_dataset = dataset(Config.DATAPATH,
                             split='train',
                             transform=clip_transform)
@@ -197,13 +200,13 @@ def linear_layer_detector(dataset, clip_model, clip_transform, id_classes, ood_c
     class_to_idx_mapping = train_dataset.class_to_idx
     isolated_classes = IsolatedClasses(train_dataset,
                                        batch_size=512)
-    feature_weight_dict_train = get_feature_weight_dict(isolated_classes, clip_model, Config.DEVICE)
+    feature_weight_dict_train = get_feature_weight_dict(isolated_classes, clip_model, device)
 
     isolated_classes = IsolatedClasses(dataset(Config.DATAPATH,
                                                split='val',
                                                transform=clip_transform),
                                        batch_size=512)
-    feature_weight_dict_val = get_feature_weight_dict(isolated_classes, clip_model, Config.DEVICE)
+    feature_weight_dict_val = get_feature_weight_dict(isolated_classes, clip_model, device)
     ablation_splits = get_ablation_splits(isolated_classes.labels, n=runs, id_classes=id_classes,
                                           ood_classes=ood_classes)
     for ablation_split in ablation_splits:
@@ -226,11 +229,13 @@ def linear_layer_detector(dataset, clip_model, clip_transform, id_classes, ood_c
         classifier_state_dict = train_id_classifier(train_set, val_set)
         linear_layer_run.finish()
         print("DONE")
-        # eval for ood detection
-
-
+#         # eval for ood detection
+#
+#
 #         zeroshot_weights = sorted_zeroshot_weights(classes_weight_dict, seen_labels)
 #
+#
+#         feature_weight_dict =
 #         ood_probs_sum, ood_probs_mean, ood_probs_max = [], [], []
 #         f_probs_sum, acc_probs_sum, id_probs_sum = [], [], []
 #
