@@ -88,7 +88,7 @@ def run_all(args):
             lsun = False
 
         isolated_classes = IsolatedClasses(dataset=dset(data_path=Config.DATAPATH,
-                                                        train=False,
+                                                        split='test',
                                                         transform=clip_transform),
                                            lsun=lsun)
 
@@ -102,7 +102,7 @@ def run_all(args):
                                                   id_classes=split[0],
                                                   runs=args.runs_ood)
             metrics_dict['id split'] = split[0]
-            run = wandb.init(project="thesis-zsoodd_five_runs",
+            run = wandb.init(project="thesis-zsoodd_all_classes_five_runs",
                              entity="wandbefab",
                              name=dname+' split-'+str(split))
             wandb.log(metrics_dict)
