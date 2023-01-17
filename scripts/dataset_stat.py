@@ -24,7 +24,7 @@ for dname, dset in DATASETS_DICT.items():
         print("jumping over lsun")
         continue
 
-    run = wandb.init(project="thesis-datasets_train_val_test",
+    run = wandb.init(project="thesis-dataset__stats_train_val_test",
                      entity="wandbefab",
                      name=dname,
                      tags=["stats"])
