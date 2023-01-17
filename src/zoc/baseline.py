@@ -18,6 +18,16 @@ from zoc.utils import get_ablation_splits, get_split_specific_targets, fill_auc_
 _logger = logging.getLogger(__name__)
 
 
+class LinearClassifier(torch.nn.Module):
+    def __init__(self, input_dim, output_dim):
+        super(LinearClassifier, self).__init__()
+        self.linear = torch.nn.Linear(input_dim, output_dim)
+
+    def forward(self, x):
+        x = self.linear(x)
+        return x
+
+
 @torch.no_grad()
 def get_feature_weight_dict(isolated_classes, clip_model, device):
     weights_dict = {}
@@ -117,20 +127,9 @@ def baseline_detector(clip_model,
     return metrics_list
 
 
-class LinearClassifier(torch.nn.Module):
-    def __init__(self, input_dim, output_dim):
-        super(LinearClassifier, self).__init__()
-        self.linear = torch.nn.Linear(input_dim, output_dim)
-
-    def forward(self, x):
-        x = self.linear(x)
-        return x
-
-
 def train_id_classifier(train_set, eval_set):
-
     device = Config.DEVICE
-    classifier = LinearClassifier(train_set.features_dim, len(train_set.labels))
+    classifier = LinearClassifier(train_set.features_dim, len(train_set.labels)).to(device)
 
     train_loader = DataLoader(train_set,
                               batch_size=512,
@@ -178,7 +177,7 @@ def train_id_classifier(train_set, eval_set):
 
             if epoch_val_loss < best_eval_loss:
                 best_eval_loss = epoch_val_loss
-                best_classifier = classifier.state_dict()
+                best_classifier = classifier
 
             _, indices = torch.topk(torch.softmax(eval_preds, dim=-1), k=1)
             accuracy = accuracy_score(eval_targets, indices)
@@ -209,6 +208,8 @@ def linear_layer_detector(dataset, clip_model, clip_transform, id_classes, ood_c
     feature_weight_dict_val = get_feature_weight_dict(isolated_classes, clip_model, device)
     ablation_splits = get_ablation_splits(isolated_classes.labels, n=runs, id_classes=id_classes,
                                           ood_classes=ood_classes)
+
+    auc_list_sum, auc_list_mean, auc_list_max = [], [], []
     for ablation_split in ablation_splits:
         seen_labels = ablation_split[:id_classes]
         unseen_labels = ablation_split[id_classes:]
@@ -226,53 +227,49 @@ def linear_layer_detector(dataset, clip_model, clip_transform, id_classes, ood_c
                                           'linear probe',
                                           'oodd',
                                       ])
-        classifier_state_dict = train_id_classifier(train_set, val_set)
+        classifier = train_id_classifier(train_set, val_set)
         linear_layer_run.finish()
         print("DONE")
-#         # eval for ood detection
-#
-#
-#         zeroshot_weights = sorted_zeroshot_weights(classes_weight_dict, seen_labels)
-#
-#
-#         feature_weight_dict =
-#         ood_probs_sum, ood_probs_mean, ood_probs_max = [], [], []
-#         f_probs_sum, acc_probs_sum, id_probs_sum = [], [], []
-#
-#         # do 10 times
-#         for i, semantic_label in enumerate(ablation_split):
-#             # get features
-#             image_features_for_label = feature_weight_dict[semantic_label]
-#             # calc the logits and softmaxs
-#             zeroshot_probs = (temperature * image_features_for_label.to(torch.float32) @ zeroshot_weights.T.to(
-#                 torch.float32)).softmax(dim=-1).squeeze()
-#
-#             assert zeroshot_probs.shape[1] == id_classes
-#             # detection score is accumulative sum of probs of generated entities
-#             # careful, only for this setting axis=1
-#             ood_prob_sum = np.sum(zeroshot_probs.detach().cpu().numpy(), axis=1)
-#             ood_probs_sum.extend(ood_prob_sum)
-#
-#             ood_prob_mean = np.mean(zeroshot_probs.detach().cpu().numpy(), axis=1)
-#             ood_probs_mean.extend(ood_prob_mean)
-#
-#             top_prob, _ = zeroshot_probs.cpu().topk(1, dim=-1)
-#             ood_probs_max.extend(top_prob.detach().numpy())
-#
-#             id_probs_sum.extend(1. - ood_prob_sum)
-#
-#         targets = get_split_specific_targets(isolated_classes, seen_labels, unseen_labels)
-#         fill_auc_lists(auc_list_max, auc_list_mean, auc_list_sum, ood_probs_mean, ood_probs_max, ood_probs_sum,
-#                        targets)
-#         fill_f_acc_lists(acc_probs_sum, f_probs_sum, id_probs_sum, ood_probs_sum, targets)
-#
-#     metrics = get_result_mean_dict(acc_probs_sum, auc_list_max, auc_list_mean, auc_list_sum, f_probs_sum)
-#     metrics["temperature"] = temperature
-#
-#     metrics_list.append(metrics)
-#
-#
-# return metrics_list
+        # eval for ood detection
+
+        isolated_classes = IsolatedClasses(dataset(Config.DATAPATH,
+                                                   split='test',
+                                                   transform=clip_transform),
+                                           batch_size=512)
+        feature_weight_dict_test = get_feature_weight_dict(isolated_classes, clip_model, device)
+
+        ood_probs_sum, ood_probs_mean, ood_probs_max = [], [], []
+        f_probs_sum, acc_probs_sum, id_probs_sum = [], [], []
+        for i, semantic_label in enumerate(ablation_split):
+            # get features
+            image_features_for_label = feature_weight_dict_test[semantic_label]
+            # calc the logits and softmaxs
+            logits = classifier(image_features_for_label)
+
+            assert logits.shape[1] == id_classes
+            # detection score is accumulative sum of probs of generated entities
+            # careful, only for this setting axis=1
+            ood_prob_sum = np.sum(logits.detach().cpu().numpy(), axis=1)
+            ood_probs_sum.extend(ood_prob_sum)
+
+            ood_prob_mean = np.mean(logits.detach().cpu().numpy(), axis=1)
+            ood_probs_mean.extend(ood_prob_mean)
+
+            top_prob, _ = logits.cpu().topk(1, dim=-1)
+            ood_probs_max.extend(top_prob.detach().numpy())
+
+            id_probs_sum.extend(1. - ood_prob_sum)
+
+        targets = get_split_specific_targets(isolated_classes, seen_labels, unseen_labels)
+        fill_auc_lists(auc_list_max, auc_list_mean, auc_list_sum, ood_probs_mean, ood_probs_max, ood_probs_sum,
+                       targets)
+        fill_f_acc_lists(acc_probs_sum, f_probs_sum, id_probs_sum, ood_probs_sum, targets)
+
+    metrics = get_result_mean_dict(acc_probs_sum, auc_list_max, auc_list_mean, auc_list_sum, f_probs_sum)
+
+    print(metrics)
+    return metrics
+
 
 class FeatureSet(Dataset):
     def __init__(self, feature_dict, labels, class_to_idx_mapping):
