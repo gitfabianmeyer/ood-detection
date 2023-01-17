@@ -174,6 +174,7 @@ def train_id_classifier(train_set, eval_set):
         # eval
 
         epoch_val_loss = 0.
+        eval_accs = []
         for eval_features, eval_targets in tqdm(eval_loader):
 
             eval_features = eval_features.to(torch.float32).to(device)
@@ -190,9 +191,10 @@ def train_id_classifier(train_set, eval_set):
                 best_classifier = classifier
 
             _, indices = torch.topk(torch.softmax(eval_preds, dim=-1), k=1)
-            accuracy = accuracy_score(eval_targets.to('cpu').numpy(), indices.to('cpu').numpy())
-            _logger.info(f"Epoch {epoch} Eval Acc: {accuracy}")
+            eval_accs.append(accuracy_score(eval_targets.to('cpu').numpy(), indices.to('cpu').numpy()))
 
+        _logger.info(f"Epoch {epoch} Eval Acc: {np.mean(eval_accs)}")
+        epoch_results["val accuracy"] = np.mean(eval_accs)
         epoch_results["val loss"] = epoch_val_loss
         epoch_results["train loss per image"] = epoch_val_loss / len(eval_loader)
 
