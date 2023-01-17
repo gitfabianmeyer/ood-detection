@@ -37,19 +37,19 @@ class Distancer:
         self.get_feature_dict()
         self.targets = self.get_dataset_targets()
 
+    @torch.no_grad()
     def get_image_batch_features(self, loader, stop_at=None):
-        with torch.no_grad():
-            features = []
-            for images in loader:
-                images = images.to(self.device)
-                batch_features = self.clip_model.encode_image(images)
-                batch_features /= batch_features.norm(dim=1, keepdim=True)
-                features.append(batch_features)
-                if len(features) >= stop_at:
-                    print(f"Reached max {stop_at} for class {loader.name}")
-                    break
+        features = []
+        for images in loader:
+            images = images.to(self.device)
+            batch_features = self.clip_model.encode_image(images)
+            batch_features /= batch_features.norm(dim=1, keepdim=True)
+            features.append(batch_features)
+            if len(features) >= stop_at:
+                print(f"Reached max {stop_at} for class {loader.name}")
+                break
 
-            return torch.cat(features)
+        return torch.cat(features)
 
     def get_feature_dict(self, max_len=20000):
         _logger.info("Start creating image features...")
