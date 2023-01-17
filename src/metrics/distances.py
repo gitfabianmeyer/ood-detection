@@ -7,7 +7,7 @@ import numpy as np
 import torch
 from datasets import corruptions
 from datasets.classnames import imagenet_templates
-from datasets.zoc_loader import single_isolated_class_loader
+from datasets.zoc_loader import single_isolated_class_loader, IsolatedClasses
 from ood_detection.config import Config
 from ood_detection.classification_utils import zeroshot_classifier, classify
 from sklearn.metrics.pairwise import rbf_kernel
@@ -26,11 +26,11 @@ _logger.setLevel(logging.INFO)
 
 
 class Distancer:
-    def __init__(self, dataloaders, clip_model, splits=5, id_split=.4):
+    def __init__(self, isolated_classes, clip_model, splits=5, id_split=.4):
         self.splits = splits
         self.id_split = id_split
-        self.dataloaders = dataloaders
-        self.classes = list(self.dataloaders.keys())
+        self.dataloaders = isolated_classes
+        self.classes = isolated_classes.classes
         self.clip_model = clip_model.eval()
         self.device = Config.DEVICE
         self.feature_dict = {}
@@ -224,23 +224,20 @@ class WassersteinDistance(Distance):
         pass
 
 
-def get_distances_for_dataset(dataset, clip_model, name, splits=10, id_split=.4, corruption=None, severity=None,
+def get_distances_for_dataset(dataset, clip_model, splits=10, id_split=.4, corruption=None, severity=None,
                               lsun=False):
-    dataset_name_printer(name)
-    loaders = single_isolated_class_loader(dataset, batch_size=512, lsun=lsun)
-    distancer = Distancer(dataloaders=loaders,
+
+    loaders = IsolatedClasses(dataset, batch_size=512, lsun=lsun)
+    distancer = Distancer(isolated_classes=loaders,
                           clip_model=clip_model,
                           splits=splits,
                           id_split=id_split)
     logging_dict = distancer.get_all_distances()
-    logging_dict['dataset'] = name
-    logging_dict['model'] = Config.VISION_MODEL
     logging_dict['id_split_size'] = id_split
     logging_dict["splits"] = splits
     if corruption and severity:
-        logging_dict["corruption"] = corruption
         logging_dict["severity"] = severity
-    return wandb_log(logging_dict)
+    return logging_dict
 
 
 def get_corruption_metrics(dataset, clip_model, clip_transform, dataset_name, lsun=False, train=False):
