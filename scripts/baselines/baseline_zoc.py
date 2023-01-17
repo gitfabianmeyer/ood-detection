@@ -1,4 +1,5 @@
 import os
+import random
 
 os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
 os.environ["CUDA_VISIBLE_DEVICES"] = "0"
@@ -27,7 +28,7 @@ def run_single_dataset_ood(isolated_classes, name, clip_model, id_classes=.6, ru
     id_classes = int(len(labels) * id_classes)
     ood_classes = len(labels) - id_classes
 
-    run = wandb.init(project="thesis-zoc_baseline_full_classes_val_sets",
+    run = wandb.init(project="thesis-zoc_baseline_ten_classes_val_sets",
                      entity="wandbefab",
                      name=name,
                      config={"runs": runs,
@@ -66,8 +67,8 @@ def run_all(args):
                        split='val',
                        transform=clip_transform)
 
-        # shorted_classes = random.sample(dataset.classes, 10)
-        # dataset.classes = shorted_classes
+        shorted_classes = random.sample(dataset.classes, 10)
+        dataset.classes = shorted_classes
 
         isolated_classes = IsolatedClasses(dataset,
                                            batch_size=512,
