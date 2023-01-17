@@ -207,17 +207,14 @@ def linear_layer_detector(dataset, clip_model, clip_transform, id_classes, ood_c
     ablation_splits = get_ablation_splits(isolated_classes.labels, n=runs, id_classes=id_classes,
                                           ood_classes=ood_classes)
     for ablation_split in ablation_splits:
-        _logger.info(f"Seen labels: {seen_labels}\nOOD Labels: {unseen_labels}")
-
         seen_labels = ablation_split[:id_classes]
         unseen_labels = ablation_split[id_classes:]
 
+        _logger.info(f"Seen labels: {seen_labels}\nOOD Labels: {unseen_labels}")
 
         # train classifier to classify id set
         train_set = FeatureSet(feature_weight_dict_train, seen_labels, class_to_idx_mapping)
         val_set = FeatureSet(feature_weight_dict_val, ablation_split[:id_classes], class_to_idx_mapping)
-
-
 
         linear_layer_run = wandb.init(project="thesis-linear_clip",
                                       entity="wandbefab",
@@ -230,7 +227,6 @@ def linear_layer_detector(dataset, clip_model, clip_transform, id_classes, ood_c
         linear_layer_run.finish()
         print("DONE")
         # eval for ood detection
-
 
 
 #         zeroshot_weights = sorted_zeroshot_weights(classes_weight_dict, seen_labels)
