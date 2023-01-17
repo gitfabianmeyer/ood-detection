@@ -234,12 +234,13 @@ def linear_layer_detector(dataset, clip_model, clip_transform, id_classes, ood_c
         train_set = FeatureSet(feature_weight_dict_train, seen_labels, class_to_idx_mapping)
         val_set = FeatureSet(feature_weight_dict_val, seen_labels, class_to_idx_mapping)
 
-        linear_layer_run = wandb.init(project="thesis-linear_clip",
+        linear_layer_run = wandb.init(project="thesis-baseline_linear_clip_training_logs",
                                       entity="wandbefab",
                                       name=train_dataset.name,
                                       tags=[
                                           'linear probe',
                                           'oodd',
+                                          'baseline'
                                       ])
         classifier = train_id_classifier(train_set, val_set)
         linear_layer_run.finish()
