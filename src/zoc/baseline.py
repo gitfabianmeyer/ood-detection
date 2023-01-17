@@ -199,7 +199,7 @@ def linear_layer_detector(dataset, clip_model, clip_transform, id_classes, ood_c
                                                transform=clip_transform),
                                        batch_size=512)
     feature_weight_dict_val = get_feature_weight_dict(isolated_classes, clip_model, Config.DEVICE)
-    ablation_splits = get_ablation_splits(dataset.labels, n=runs, id_classes=id_classes,
+    ablation_splits = get_ablation_splits(isolated_classes.labels, n=runs, id_classes=id_classes,
                                           ood_classes=ood_classes)
     for ablation_split in ablation_splits:
         # train classifier to classify id set
