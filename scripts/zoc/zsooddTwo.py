@@ -71,8 +71,7 @@ def run_all(args):
     clip_tokenizer = SimpleTokenizer()
     bert_model = get_decoder()
 
-    for dname, dset in DATASETS_DICT.items():
-
+    for dname, dset in HalfTwoDict.items():
 
         _logger.info(f"Running {dname}...")
 
@@ -99,7 +98,7 @@ def run_all(args):
             metrics_dict['id split'] = split[0]
             run = wandb.init(project="thesis-zsoodd_all_classes_five_runs",
                              entity="wandbefab",
-                             name=dname+' split-'+str(split))
+                             name=dname + ' split-' + str(split))
             wandb.log(metrics_dict)
             run.finish()
             # print(metrics_dict)
