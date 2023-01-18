@@ -20,8 +20,8 @@ def _convert_image_to_rgb(image):
 
 for dname, dset in DATASETS_DICT.items():
 
-    if dname == 'lsun':
-        print("jumping over lsun")
+    if dname == 'caltech101' or dname == 'caltech cub' or dname == 'cifar10':
+        print(f"jumping over {dname}")
         continue
 
     run = wandb.init(project="thesis-dataset__stats_train_val_test",
