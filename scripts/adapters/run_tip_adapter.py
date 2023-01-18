@@ -46,7 +46,9 @@ def main():
                                        eps=1e-4)
             print(results)
         except Exception as e:
+
             failed.append(dname)
+            raise e
         run = wandb.init(project=f"thesis-tip-adapters-{kshots}_shots",
                          entity="wandbefab",
                          name=dname)
