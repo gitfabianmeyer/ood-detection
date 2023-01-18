@@ -18,9 +18,12 @@ def _convert_image_to_rgb(image):
     return image.convert("RGB")
 
 
+passing = True
 for dname, dset in DATASETS_DICT.items():
 
-    if dname == 'caltech101' or dname == 'caltech cub' or dname == 'cifar10':
+    if dname == 'gtsrb':
+        passing = False
+    if passing:
         print(f"jumping over {dname}")
         continue
 
