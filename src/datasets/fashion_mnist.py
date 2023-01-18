@@ -30,7 +30,7 @@ class OodFashionMNIST(torchvision.datasets.FashionMNIST):
         if self.split == 'val':
             _, self.data, _, self.targets = train_test_split(self.data, self.targets, test_size=Config.TEST_SIZE,
                                                              random_state=42, stratify=self.targets)
-        elif self.train == 'train':
+        elif self.split == 'train':
             self.data, _, self.targets, _ = train_test_split(self.data, self.targets, test_size=Config.TEST_SIZE,
                                                              random_state=42, stratify=self.targets)
     @property

@@ -23,7 +23,7 @@ class OodCub2011(Dataset):
     def __init__(self, data_path, transform=None, split=True, download=True, templates=None):
         self.data_path = os.path.expanduser(data_path)
         self.transform = transform
-        self.train = split
+        self.split = split
 
         if download:
             self._download()
@@ -72,16 +72,16 @@ class OodCub2011(Dataset):
         self.targets = np.array(labels) - 1
         is_training = np.array(is_training, dtype=bool)
 
-        if self.train == 'train' or self.train == 'val':
+        if self.split == 'train' or self.split == 'val':
             self.data = self.data[is_training]
             self.targets = self.targets[is_training]
-            if self.train == 'val':
+            if self.split == 'val':
                 _, self.data, _, self.targets = train_test_split(self.data, self.targets, test_size=Config.TEST_SIZE,
                                                                  random_state=42, stratify=self.targets)
-            elif self.train == 'train':
+            elif self.split == 'train':
                 self.data, _, self.targets, _ = train_test_split(self.data, self.targets, test_size=Config.TEST_SIZE,
                                                                  random_state=42, stratify=self.targets)
-        elif self.train == 'test':
+        elif self.split == 'test':
             is_test = np.invert(is_training)
             self.data = self.data[is_test]
             self.targets = self.targets[is_test]
