@@ -173,7 +173,7 @@ def get_train_set(dataset, kshots):
     _logger.info("Creating train set")
     train_transform = get_train_transform()
     dataset = dataset(data_path=Config.DATAPATH,
-                      train=True,
+                      split='train',
                       transform=train_transform)
 
     return get_kshot_train_set(dataset, kshots)
@@ -263,7 +263,7 @@ def get_test_features_tip(dataset, model, transform):
 @torch.no_grad()
 def get_test_features(dataset, model, transform):
     dataset = dataset(data_path=Config.DATAPATH,
-                      train=False,
+                      split='val',
                       transform=transform)
     dataloader = DataLoader(dataset, batch_size=16, shuffle=False, num_workers=1)
     test_features, test_labels = [], []

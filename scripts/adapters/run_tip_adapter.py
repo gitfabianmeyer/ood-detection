@@ -25,6 +25,8 @@ run_clearml = False
 
 
 def main():
+
+    kshots = 16
     failed = []
     for dname, dset in DATASETS_DICT.items():
 
@@ -35,16 +37,21 @@ def main():
         _logger.info(f"\t\tStarting {dname} run...")
 
         try:
-            results = clip_tip_adapter(dataset=dset)
+            results = clip_tip_adapter(dataset=dset,
+                                       kshots=kshots,
+                                       train_epoch=20,
+                                       alpha=1.,
+                                       beta=1.17,
+                                       lr=0.001,
+                                       eps=1e-4)
             print(results)
         except Exception as e:
             failed.append(dname)
             raise e
             break
-        name = "-".join([dname, 'adapter', datetime.today().strftime('%Y/%m/%d')])
-        run = wandb.init(project="thesis-tip-adapters",
+        run = wandb.init(project=f"thesis-tip-adapters-{kshots}_shots",
                          entity="wandbefab",
-                         name=name)
+                         name=dname)
         run.log(results)
         run.finish()
 
