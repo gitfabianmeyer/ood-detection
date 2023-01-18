@@ -21,7 +21,7 @@ def _convert_image_to_rgb(image):
 passing = True
 for dname, dset in DATASETS_DICT.items():
 
-    if dname == 'gtsrb':
+    if dname == 'imagenet':
         passing = False
     if passing:
         print(f"jumping over {dname}")
