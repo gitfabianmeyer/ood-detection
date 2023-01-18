@@ -1,10 +1,12 @@
 import os
 
-from sklearn.model_selection import train_test_split
-
 os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
 os.environ["CUDA_VISIBLE_DEVICES"] = "1"
 
+from typing import Tuple, Any
+
+import PIL
+from sklearn.model_selection import train_test_split
 import logging
 
 import clip
@@ -32,6 +34,21 @@ class OodGTSRB(torchvision.datasets.GTSRB):
         self.data, self.targets = zip(*self._samples)
         self.targets = np.array(self.targets)
         self.set_split()
+
+    def __getitem__(self, index: int) -> Tuple[Any, Any]:
+
+        path = self.data[index]
+        sample = PIL.Image.open(path).convert("RGB")
+
+        target = self.targets[index]
+
+        if self.transform is not None:
+            sample = self.transform(sample)
+
+        if self.target_transform is not None:
+            target = self.target_transform(target)
+
+        return sample, target
 
     def set_split(self):
         if self.split == 'val':
