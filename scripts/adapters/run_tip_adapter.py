@@ -28,9 +28,14 @@ def main():
 
     kshots = 16
     failed = []
+
+    jumping = True
     for dname, dset in DATASETS_DICT.items():
 
-        if dname != 'gtsrb':
+        if dname == 'imagenet':
+            jumping = False
+
+        if jumping:
             _logger.info(f"Jumping over {dname}")
             continue
 
