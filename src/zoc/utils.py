@@ -102,7 +102,7 @@ def image_decoder(clip_model,
                   id_classes=6,
                   ood_classes=4,
                   runs=1, ):
-    ablation_splits = get_ablation_splits(isolated_classes.labels, n=runs, id_classes=id_classes,
+    ablation_splits = get_ablation_splits(isolated_classes.classes, n=runs, id_classes=id_classes,
                                           ood_classes=ood_classes)
 
     auc_list_sum, auc_list_mean, auc_list_max = [], [], []
@@ -221,7 +221,7 @@ def tip_image_decoder(clip_model,
                       alpha=1., beta=1.17,
                       lr=0.001, eps=1e-4
                       ):
-    ablation_splits = get_ablation_splits(isolated_classes.labels, n=runs, id_classes=id_classes,
+    ablation_splits = get_ablation_splits(isolated_classes.classes, n=runs, id_classes=id_classes,
                                           ood_classes=ood_classes)
 
     auc_list_sum, auc_list_mean, auc_list_max = [], [], []
