@@ -201,6 +201,7 @@ def get_train_features(train_set, model, augment_epochs=1):
             images_features = model.encode_image(images)
             train_images_features.append(images_features)
 
+
             if augment_idx == 0:
                 targets = targets.to(device)
                 cache_values.append(targets)
@@ -216,6 +217,7 @@ def get_train_features(train_set, model, augment_epochs=1):
     cache_keys = train_images_features_agg.to(torch.float32)
     cache_values = cache_values.to(torch.float32)
 
+    print(f"caches: {cache_keys.shape}, {cache_values.shape}")
     return cache_keys, cache_values
 
 

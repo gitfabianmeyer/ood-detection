@@ -30,7 +30,7 @@ def main():
     failed = []
     for dname, dset in DATASETS_DICT.items():
 
-        if dname == 'lsun':
+        if dname != 'gtsrb':
             _logger.info(f"Jumping over {dname}")
             continue
 
@@ -38,7 +38,7 @@ def main():
 
         try:
             results = clip_tip_adapter(dataset=dset,
-                                       kshots=kshots,
+                                       kshots=16,
                                        train_epoch=20,
                                        alpha=1.,
                                        beta=1.17,
@@ -47,8 +47,6 @@ def main():
             print(results)
         except Exception as e:
             failed.append(dname)
-            raise e
-            break
         run = wandb.init(project=f"thesis-tip-adapters-{kshots}_shots",
                          entity="wandbefab",
                          name=dname)
