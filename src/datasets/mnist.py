@@ -41,7 +41,10 @@ class OodMNIST(torchvision.datasets.MNIST):
 
     def set_split(self):
         if self.split == 'val':
-            _, self.data, _, self.targets = train_test_split(self.data, self.targets, test_size=.4,
+            _, self.data, _, self.targets = train_test_split(self.data, self.targets, test_size=Config.TEST_SIZE,
+                                                             random_state=42, stratify=self.targets)
+        elif self.train == 'train':
+            self.data, _, self.targets, _ = train_test_split(self.data, self.targets, test_size=Config.TEST_SIZE,
                                                              random_state=42, stratify=self.targets)
 
 

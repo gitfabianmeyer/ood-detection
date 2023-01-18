@@ -8,6 +8,7 @@ from datasets import corruptions
 from metrics.distances import get_distances_for_dataset, run_full_distances
 from ood_detection.config import Config
 from datasets.classnames import stanfordcars_templates
+from sklearn.model_selection import train_test_split
 from torchvision.transforms import Compose
 
 logging.basicConfig(level=logging.INFO)
@@ -18,14 +19,24 @@ class OodStanfordCars(torchvision.datasets.StanfordCars):
         super().__init__(data_path,
                          transform=transform,
                          download=True,
-                         split='train' if split=='val' else split)
+                         split='train' if split == 'val' else split)
+        self.split = split
         self.data, self.targets = zip(*self._samples)
         self.targets = np.array(self.targets)
         self.templates = templates if templates else stanfordcars_templates
+        self.set_split()
 
     @property
     def name(self):
         return 'stanford cars'
+
+    def set_split(self):
+        if self.split == 'val':
+            _, self.data, _, self.targets = train_test_split(self.data, self.targets, test_size=Config.TEST_SIZE,
+                                                             random_state=42, stratify=self.targets)
+        elif self.train == 'train':
+            self.data, _, self.targets, _ = train_test_split(self.data, self.targets, test_size=Config.TEST_SIZE,
+                                                             random_state=42, stratify=self.targets)
 
     def __getitem__(self, idx):
 
@@ -52,4 +63,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-

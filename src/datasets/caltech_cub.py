@@ -4,6 +4,7 @@ import os
 import numpy as np
 from PIL import Image
 from datasets.classnames import imagenet_templates
+from ood_detection.config import Config
 from sklearn.model_selection import train_test_split
 from torchvision.datasets.utils import download_url
 from torch.utils.data import Dataset
@@ -75,7 +76,10 @@ class OodCub2011(Dataset):
             self.data = self.data[is_training]
             self.targets = self.targets[is_training]
             if self.train == 'val':
-                _, self.data, _, self.targets = train_test_split(self.data, self.targets,
+                _, self.data, _, self.targets = train_test_split(self.data, self.targets, test_size=Config.TEST_SIZE,
+                                                                 random_state=42, stratify=self.targets)
+            elif self.train == 'train':
+                self.data, _, self.targets, _ = train_test_split(self.data, self.targets, test_size=Config.TEST_SIZE,
                                                                  random_state=42, stratify=self.targets)
         elif self.train == 'test':
             is_test = np.invert(is_training)

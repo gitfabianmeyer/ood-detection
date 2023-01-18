@@ -9,4 +9,5 @@ class Config:
     VISION_MODEL = 'ViT-B/32'
     MODELS = os.path.join(DATAPATH, "models")
     DEVICE = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
+    TEST_SIZE = .4
 

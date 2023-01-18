@@ -1,5 +1,6 @@
 import os
 
+from ood_detection.config import Config
 from sklearn.model_selection import train_test_split
 
 os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
@@ -27,9 +28,11 @@ class OodFashionMNIST(torchvision.datasets.FashionMNIST):
 
     def set_split(self):
         if self.split == 'val':
-            _, self.data, _, self.targets = train_test_split(self.data, self.targets, test_size=.4,
+            _, self.data, _, self.targets = train_test_split(self.data, self.targets, test_size=Config.TEST_SIZE,
                                                              random_state=42, stratify=self.targets)
-
+        elif self.train == 'train':
+            self.data, _, self.targets, _ = train_test_split(self.data, self.targets, test_size=Config.TEST_SIZE,
+                                                             random_state=42, stratify=self.targets)
     @property
     def name(self):
         return 'fashion mnist'
