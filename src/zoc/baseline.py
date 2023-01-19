@@ -155,10 +155,7 @@ def baseline_detector_no_temperature(dset,
         id_classes = int(len(shorted_classes) * id_classes)
         ood_classes = len(shorted_classes) - id_classes
 
-
-        # only one run
-        ablation_splits = get_ablation_splits(shorted_classes, n=1, id_classes=id_classes,
-                                              ood_classes=ood_classes)
+        ablation_splits = [shorted_classes[:id_classes] + shorted_classes[id_classes:]]
 
         metrics_list = defaultdict(list)
         # for each temperature..
