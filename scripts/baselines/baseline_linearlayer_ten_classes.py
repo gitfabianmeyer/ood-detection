@@ -65,7 +65,7 @@ def linear_layer_detector(dataset, clip_model, clip_transform, id_classes, ood_c
 
     val_set = dataset(Config.DATAPATH,
                       split='val',
-                      transform=clip_transform),
+                      transform=clip_transform)
     val_set.classes = shorted_classes
     isolated_classes = IsolatedClasses(val_set,
                                        batch_size=512
