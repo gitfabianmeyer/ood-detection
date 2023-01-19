@@ -73,6 +73,8 @@ def run_all(args):
 
     for dname, dset in HalfTwoDict.items():
 
+        if dname != 'svhn':
+            continue
         _logger.info(f"Running {dname}...")
 
         if dname == 'lsun':
