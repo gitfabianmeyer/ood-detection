@@ -1,4 +1,5 @@
 import logging
+import random
 from collections import defaultdict
 
 import numpy as np
@@ -130,6 +131,83 @@ def baseline_detector(clip_model,
     return metrics_list
 
 
+@torch.no_grad()
+def baseline_detector_no_temperature(dset,
+                                     clip_model,
+                                     clip_transform,
+                                     device,
+                                     id_classes=.4,
+                                     runs=10):
+    dataset = dset(data_path=Config.DATAPATH,
+                   split='test',
+                   transform=clip_transform)
+    isolated_classes = IsolatedClasses(dataset,
+                                       batch_size=512,
+                                       lsun=False)
+    labels = isolated_classes.classes
+    id_classes = int(len(labels) * id_classes)
+    ood_classes = len(labels) - id_classes
+
+    feature_weight_dict = get_feature_weight_dict(isolated_classes, clip_model, device)
+    classes_weight_dict = get_zeroshot_weight_dict(isolated_classes, clip_model)
+
+    for i in range(runs):
+        shorted_classes = random.sample(dataset.classes, 10)
+        dataset.classes = shorted_classes
+
+        # only one run
+        ablation_splits = get_ablation_splits(shorted_classes, n=1, id_classes=id_classes,
+                                              ood_classes=ood_classes)
+
+        metrics_list = defaultdict(list)
+        # for each temperature..
+
+        auc_list_sum, auc_list_mean, auc_list_max = [], [], []
+        for split in ablation_splits:
+
+            seen_labels = split[:id_classes]
+            unseen_labels = split[id_classes:]
+            _logger.debug(f"Seen labels: {seen_labels}\nOOD Labels: {split[id_classes:]}")
+
+            zeroshot_weights = sorted_zeroshot_weights(classes_weight_dict, seen_labels)
+
+            ood_probs_sum, ood_probs_mean, ood_probs_max = [], [], []
+            f_probs_sum, acc_probs_sum, id_probs_sum = [], [], []
+
+            for i, semantic_label in enumerate(split):
+                # get features
+                image_features_for_label = feature_weight_dict[semantic_label]
+                # calc the logits and softmaxs
+                zeroshot_probs = (image_features_for_label.to(torch.float32) @ zeroshot_weights.T.to(
+                    torch.float32)).softmax(dim=-1).squeeze()
+
+                assert zeroshot_probs.shape[1] == id_classes
+                # detection score is accumulative sum of probs of generated entities
+                # careful, only for this setting axis=1
+                ood_prob_sum = np.sum(zeroshot_probs.detach().cpu().numpy(), axis=1)
+                ood_probs_sum.extend(ood_prob_sum)
+
+                ood_prob_mean = np.mean(zeroshot_probs.detach().cpu().numpy(), axis=1)
+                ood_probs_mean.extend(ood_prob_mean)
+
+                top_prob, _ = zeroshot_probs.cpu().topk(1, dim=-1)
+                ood_probs_max.extend(top_prob.detach().numpy())
+
+                id_probs_sum.extend(1. - ood_prob_sum)
+
+            targets = get_split_specific_targets(isolated_classes, seen_labels, unseen_labels)
+            fill_auc_lists(auc_list_max, auc_list_mean, auc_list_sum, ood_probs_mean, ood_probs_max, ood_probs_sum,
+                           targets)
+            fill_f_acc_lists(acc_probs_sum, f_probs_sum, id_probs_sum, ood_probs_sum, targets)
+
+        metrics = get_result_mean_dict(acc_probs_sum, auc_list_max, auc_list_mean, auc_list_sum, f_probs_sum)
+
+        for key, value in metrics.items():
+            metrics_list[key].append(value)
+
+    return metrics_list
+
+
 def train_id_classifier(train_set, eval_set):
     device = Config.DEVICE
     classifier = LinearClassifier(train_set.features_dim, len(train_set.labels)).to(device)
@@ -207,7 +285,6 @@ def linear_layer_detector(dataset, clip_model, clip_transform, id_classes, ood_c
     train_dataset = dataset(Config.DATAPATH,
                             split='train',
                             transform=clip_transform)
-
 
     isolated_classes = IsolatedClasses(train_dataset,
                                        batch_size=512)
