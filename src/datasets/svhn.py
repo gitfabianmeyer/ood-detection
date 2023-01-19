@@ -1,5 +1,6 @@
 import os
 
+from ood_detection.config import Config
 from sklearn.model_selection import train_test_split
 
 os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
