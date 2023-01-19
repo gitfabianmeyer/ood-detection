@@ -32,7 +32,7 @@ def main():
     jumping = True
     for dname, dset in DATASETS_DICT.items():
 
-        if dname == 'imagenet':
+        if dname == 'svhn':
             jumping = False
 
         if jumping:
