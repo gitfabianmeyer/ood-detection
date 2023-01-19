@@ -144,16 +144,17 @@ def baseline_detector_no_temperature(dset,
     isolated_classes = IsolatedClasses(dataset,
                                        batch_size=512,
                                        lsun=False)
-    labels = isolated_classes.classes
-    id_classes = int(len(labels) * id_classes)
-    ood_classes = len(labels) - id_classes
+
 
     feature_weight_dict = get_feature_weight_dict(isolated_classes, clip_model, device)
     classes_weight_dict = get_zeroshot_weight_dict(isolated_classes, clip_model)
 
     for i in range(runs):
+
         shorted_classes = random.sample(dataset.classes, 10)
-        dataset.classes = shorted_classes
+        id_classes = int(len(shorted_classes) * id_classes)
+        ood_classes = len(shorted_classes) - id_classes
+
 
         # only one run
         ablation_splits = get_ablation_splits(shorted_classes, n=1, id_classes=id_classes,
