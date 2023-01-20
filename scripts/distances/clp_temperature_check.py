@@ -40,7 +40,7 @@ for dname, dset in DATASETS_DICT.items():
                           splits=splits,
                           id_split=id_split)
 
-    clp = ConfusionLogProbability(distancer.feature_dict)
+    clp = ConfusionLogProbability(distancer.feature_dict, clip_model)
 
     for temperature in np.logspace(-7.158429362604483, 6.643856189774724, num=50,
                                    base=2.0):
