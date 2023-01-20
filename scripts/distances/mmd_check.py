@@ -53,7 +53,7 @@ def main():
 
         print(distancer.feature_dict.keys())
         print(list(distancer.feature_dict.values())[0].shape)
-        X = torch.cat(list(distancer.feature_dict.values())).cpu()
+        X = torch.cat(list(distancer.feature_dict.values())).to(torch.float32).cpu()
         print("kerneeel")
         print(torch.mean(torch.cdist(X, X)).cpu().numpy())
         print(torch.nanmean(torch.cdist(X, X).fill_diagonal_(torch.nan)).cpu().numpy())
