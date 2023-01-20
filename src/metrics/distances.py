@@ -183,7 +183,10 @@ class MaximumMeanDiscrepancy(Distance):
     def get_kernel_size(self):
         # kernel size is mean of all distances
         X = torch.cat(list(self.feature_dict.values()))
-        return torch.nanmean(torch.cdist(X, X).fill_diagonal_(torch.nan)).cpu().numpy()
+        X = X.cpu()
+        dist = torch.cdist(X,X)
+        dist = dist.fill_diagonal_(torch.nan)
+        return torch.nanmean(dist).cpu().numpy()
 
 
 class ConfusionLogProbability(Distance):
