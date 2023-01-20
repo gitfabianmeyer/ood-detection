@@ -136,7 +136,7 @@ def baseline_detector_no_temperature(dset,
                                      clip_model,
                                      clip_transform,
                                      device,
-                                     id_classes=.4,
+                                     id_classes_split=.4,
                                      runs=10):
     dataset = dset(data_path=Config.DATAPATH,
                    split='test',
@@ -152,21 +152,21 @@ def baseline_detector_no_temperature(dset,
     for i in range(runs):
 
         shorted_classes = random.sample(dataset.classes, 10)
-        print(shorted_classes)
-        id_classes = int(len(shorted_classes) * id_classes)
-        ood_classes = len(shorted_classes) - id_classes
+        _logger.info(f"Running with shorted classlist: {shorted_classes}")
+        num_id_classes = int(len(shorted_classes) * id_classes_split)
+        num_ood_classes = len(shorted_classes) - id_classes_split
 
-        ablation_splits = [shorted_classes[:id_classes] + shorted_classes[id_classes:]]
+        ablation_splits = [shorted_classes[:num_id_classes] + shorted_classes[num_id_classes:]]
         metrics_list = defaultdict(list)
         # for each temperature..
 
         auc_list_sum, auc_list_mean, auc_list_max = [], [], []
-        for split in ablation_splits:
-            print(split)
+        for i, split in enumerate(ablation_splits):
+            _logger.info(f"Current class split: {split} (i / {len(ablation_splits)} ")
 
-            seen_labels = split[:id_classes]
-            unseen_labels = split[id_classes:]
-            _logger.info(f"Seen labels: {seen_labels}\nOOD Labels: {split[id_classes:]}")
+            seen_labels = split[:num_id_classes]
+            unseen_labels = split[num_id_classes:]
+            _logger.info(f"Seen labels: {seen_labels}\nOOD Labels: {unseen_labels}")
 
             zeroshot_weights = sorted_zeroshot_weights(classes_weight_dict, seen_labels)
             print(zeroshot_weights.shape)
@@ -181,8 +181,8 @@ def baseline_detector_no_temperature(dset,
                 zeroshot_probs = (image_features_for_label.to(torch.float32) @ zeroshot_weights.T.to(
                     torch.float32)).softmax(dim=-1).squeeze()
 
-                if zeroshot_probs.shape[1] != id_classes:
-                    _logger.error(f"Z_p.shape: {zeroshot_probs.shape} != id: {id_classes}")
+                if zeroshot_probs.shape[1] != num_id_classes:
+                    _logger.error(f"Z_p.shape: {zeroshot_probs.shape} != id: {num_id_classes}")
                     raise AssertionError
                 # detection score is accumulative sum of probs of generated entities
                 # careful, only for this setting axis=1

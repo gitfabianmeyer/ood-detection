@@ -32,7 +32,7 @@ def run_single_dataset_ood(dset, name, clip_model, clip_transform, id_classes=.6
                                                clip_model,
                                                clip_transform,
                                                Config.DEVICE,
-                                               id_classes=id_classes,
+                                               id_classes_split=id_classes,
                                                runs=runs)
 
     to_log = {}
