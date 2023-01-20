@@ -162,7 +162,7 @@ def baseline_detector_no_temperature(dset,
 
         auc_list_sum, auc_list_mean, auc_list_max = [], [], []
         for i, split in enumerate(ablation_splits):
-            _logger.info(f"Current class split: {split} (i / {len(ablation_splits)} ")
+            _logger.info(f"Current class split: {split} ({i} / {len(ablation_splits)} ")
 
             seen_labels = split[:num_id_classes]
             unseen_labels = split[num_id_classes:]

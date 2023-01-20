@@ -36,7 +36,7 @@ def run_single_dataset_ood(dset, name, clip_model, clip_transform, id_classes=.6
                                                runs=runs)
 
     to_log = {}
-    for key, metric in metrics:
+    for key, metric in metrics.items():
         to_log[key] = np.mean(metric)
     wandb.log(to_log)
     run.finish()
