@@ -19,7 +19,7 @@ from metrics.distances_utils import id_ood_printer, \
     shape_printer, dataset_name_printer, mean_std_printer, \
     distance_name_printer, accuracy_printer, debug_scores
 from metrics.metrics_logging import wandb_log
-
+from zoc.baseline import sorted_zeroshot_weights
 
 _logger = logging.getLogger(__name__)
 _logger.setLevel(logging.INFO)
@@ -181,8 +181,9 @@ class MaximumMeanDiscrepancy(Distance):
         return beta * (XX.sum() + YY.sum()) - gamma * XY.sum()
 
     def get_kernel_size(self):
+        # kernel size is mean of all distances
         X = torch.cat(list(self.feature_dict.values()))
-        return torch.mean(torch.cdist(X, X)).cpu().numpy()
+        return torch.nanmean(torch.cdist(X, X).fill_diagonal_(torch.nan)).cpu().numpy()
 
 
 class ConfusionLogProbability(Distance):
@@ -194,16 +195,19 @@ class ConfusionLogProbability(Distance):
     def __init__(self, feature_dict, clip_model):
         super(ConfusionLogProbability, self).__init__(feature_dict)
         self.clip_model = clip_model
+        self.class_features_dict = self.get_class_features_dict()
 
-    def get_distance(self):
+    def get_distance(self, temperature=100):
         id_classes, ood_classes = self.get_id_ood_split()
 
         # get labels AFTER shuffling self.classes in get_id_ood_split()
-        labels = zeroshot_classifier(self.classes, imagenet_templates, self.clip_model)
+        # classes are shuffled by get_id_ood_split()!
+        labels = sorted_zeroshot_weights(self.class_features_dict, self.classes)
+
         id_ood_printer(id_classes, ood_classes)
         ood_features = torch.cat([self.feature_dict[ood_class] for ood_class in ood_classes])
 
-        logits = ood_features.to(torch.float32) @ labels.to(torch.float32).t()
+        logits = temperature * ood_features.to(torch.float32) @ labels.to(torch.float32).t()
 
         # debug_scores(logits, "Logits")
         softmax_scores = F.softmax(logits, dim=1)
@@ -212,6 +216,10 @@ class ConfusionLogProbability(Distance):
         id_scores = softmax_scores[:, :len(id_classes)]  # use only id labels proba
         confusion_log_proba = torch.log(id_scores.sum(dim=1).mean())
         return confusion_log_proba.cpu().numpy()
+
+    def get_class_features_dict(self):
+        features = zeroshot_classifier(self.classes, imagenet_templates, self.clip_model)
+        return {label: value for (label, value) in zip(self.classes, features)}
 
 
 class WassersteinDistance(Distance):
@@ -226,7 +234,6 @@ class WassersteinDistance(Distance):
 
 def get_distances_for_dataset(dataset, clip_model, splits=10, id_split=.4, corruption=None, severity=None,
                               lsun=False):
-
     loaders = IsolatedClasses(dataset, batch_size=512, lsun=lsun)
     distancer = Distancer(isolated_classes=loaders,
                           clip_model=clip_model,
@@ -240,7 +247,7 @@ def get_distances_for_dataset(dataset, clip_model, splits=10, id_split=.4, corru
     return logging_dict
 
 
-def get_corruption_metrics(dataset, clip_model, clip_transform, dataset_name, lsun=False, train=False):
+def get_corruption_metrics(dataset, clip_model, clip_transform, dataset_name, lsun=False, split='val'):
     data_path = Config.DATAPATH
 
     corruption_dict = corruptions.Corruptions
@@ -252,14 +259,13 @@ def get_corruption_metrics(dataset, clip_model, clip_transform, dataset_name, ls
             transform_list.append(corruption)
             transform_list.extend(clip_transform.transforms[-2:])
             transform = Compose(transform_list)
-            dset = dataset(data_path, transform, train)
+            dset = dataset(data_path, transform, split)
             run = get_distances_for_dataset(dset, clip_model, dataset_name, lsun=lsun, corruption=name, severity=i)
         run.finish()
 
 
-def run_full_distances(name, dataset, lsun=False):
+def run_full_distances(name, dataset, lsun=False, split='val'):
     data_path = Config.DATAPATH
-    train = False
     clip_model, transform_clip = clip.load(Config.VISION_MODEL)
 
     get_corruption_metrics(dataset=dataset,
@@ -267,7 +273,7 @@ def run_full_distances(name, dataset, lsun=False):
                            clip_transform=transform_clip,
                            dataset_name=name,
                            lsun=lsun,
-                           train=train)
+                           split=split)
 
-    dataset = dataset(data_path, transform_clip, train)
+    dataset = dataset(data_path, transform_clip, split)
     get_distances_for_dataset(dataset, clip_model, name, lsun=lsun)

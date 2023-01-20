@@ -35,6 +35,7 @@ class OodCifar10(torchvision.datasets.CIFAR10):
             self.data, _, self.targets, _ = train_test_split(self.data, self.targets, test_size=Config.TEST_SIZE,
                                                              random_state=42, stratify=self.targets)
 
+
 def main():
     name = "cifar10"
     dataset = OodCifar10

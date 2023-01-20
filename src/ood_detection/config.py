@@ -10,4 +10,4 @@ class Config:
     MODELS = os.path.join(DATAPATH, "models")
     DEVICE = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
     TEST_SIZE = .4
-
+    ID_SPLIT = .4
