@@ -40,7 +40,7 @@ for dname, dset in DATASETS_DICT.items():
                           splits=splits,
                           id_split=id_split)
 
-    mmd = MaximumMeanDiscrepancy(distancer.feature_dict, clip_model)
+    mmd = MaximumMeanDiscrepancy(distancer.feature_dict)
 
     results = []
     for i in range(splits):
