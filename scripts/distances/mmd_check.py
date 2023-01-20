@@ -52,6 +52,14 @@ def main():
         # feature_dict = {val: torch.rand((5, 512)) for val in classes}
 
         print(distancer.feature_dict.keys())
+        print(list(distancer.feature_dict.values())[0].shape)
+        X = torch.cat(list(distancer.feature_dict.values()))
+        print("kerneeel")
+        print(torch.mean(torch.cdist(X, X)).cpu().numpy())
+        print(torch.nanmean(torch.cdist(X, X).fill_diagonal_(torch.nan)).cpu().numpy())
+        print("kernel end")
+
+
         mmd = MaximumMeanDiscrepancy(distancer.feature_dict)
         print(f"kernel size: {mmd.kernel_size}")
         results = []
