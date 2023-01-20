@@ -13,7 +13,7 @@ _logger = logging.getLogger(__name__)
 
 for dname, dset in DATASETS_DICT.items():
 
-    run = wandb.init(project="thesis-clp-temperature",
+    run = wandb.init(project="thesis-clp-temperature-100runs",
                      entity="wandbefab",
                      name=dname,
                      tags=['distance',
@@ -31,7 +31,7 @@ for dname, dset in DATASETS_DICT.items():
 
     loaders = IsolatedClasses(dataset, batch_size=512, lsun=False)
 
-    splits = 10  # run each exp 10 times
+    splits = 100  # run each exp 10 times
     id_split = Config.ID_SPLIT
 
     _logger.info("Initializing distancer")
