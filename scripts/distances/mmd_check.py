@@ -54,7 +54,7 @@ def main():
             mmd.kernel_size = np.array(0.83247465, dtype=np.float32)
         print(f"kernel size: {mmd.kernel_size}")
         results = []
-        for i in range(1):
+        for i in range(100):
             results.append(mmd.get_distance())
             print(results[-1])
         wandb.log({'mmd': np.mean(results),
