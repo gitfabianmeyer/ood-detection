@@ -47,6 +47,8 @@ def main():
                               splits=splits,
                               id_split=id_split)
 
+        torch.save(torch.cat([feature for feature in distancer.feature_dict.values()]), Config.DATAPATH + 'test_imagenet_tensor.pt')
+        print("saved")
         mmd = MaximumMeanDiscrepancy(distancer.feature_dict)
         print(f"kernel size: {mmd.kernel_size}")
         results = []
