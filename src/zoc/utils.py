@@ -11,6 +11,7 @@ from tqdm import tqdm
 
 from datasets.zoc_loader import IsolatedClasses
 from adapters.tip_adapter import get_train_features, WeightAdapter
+from transformers import BertGenerationConfig, BertGenerationDecoder
 
 _logger = logging.getLogger()
 
@@ -101,7 +102,7 @@ def image_decoder(clip_model,
                   isolated_classes: IsolatedClasses = None,
                   id_classes=6,
                   ood_classes=4,
-                  runs=1, ):
+                  runs=1):
     ablation_splits = get_ablation_splits(isolated_classes.classes, n=runs, id_classes=id_classes,
                                           ood_classes=ood_classes)
 
@@ -165,7 +166,84 @@ def image_decoder(clip_model,
     return metrics
 
 
+@torch.no_grad()
+def image_decoder_featuredict(clip_model,
+                              clip_tokenizer,
+                              bert_tokenizer,
+                              bert_model,
+                              device,
+                              feature_dict,
+                              id_classes=6,
+                              ood_classes=4,
+                              runs=1, ):
+    ablation_splits = get_ablation_splits(feature_dict.keys(), n=runs, id_classes=id_classes,
+                                          ood_classes=ood_classes)
+
+    auc_list_sum, auc_list_mean, auc_list_max = [], [], []
+    for split in ablation_splits:
+        seen_labels = split[:id_classes]
+        unseen_labels = split[id_classes:]
+        _logger.debug(f"Seen labels: {seen_labels}\nOOD Labels: {split[id_classes:]}")
+        seen_descriptions = [f"This is a photo of a {label}" for label in seen_labels]
+
+        ood_probs_sum, ood_probs_mean, ood_probs_max = [], [], []
+        f_probs_sum, acc_probs_sum, id_probs_sum = [], [], []
+
+        for i, semantic_label in enumerate(split):
+            _logger.info(f"Iterating images for label {semantic_label}")
+            image_features = feature_dict[semantic_label]
+            for idx, image in enumerate(tqdm(image_features)):
+                clip_out = image
+                clip_extended_embed = clip_out.repeat(1, 2).type(torch.FloatTensor)
+
+                # greedy generation
+                target_list, topk_list = greedysearch_generation_topk(clip_extended_embed,
+                                                                      bert_tokenizer,
+                                                                      bert_model,
+                                                                      device)
+
+                topk_tokens = [bert_tokenizer.decode(int(pred_idx.cpu().numpy())) for pred_idx in topk_list]
+
+                unique_entities = list(set(topk_tokens) - {semantic_label})
+                _logger.debug(f"Semantic label: {semantic_label}Unique Entities: {unique_entities}")
+
+                all_desc = seen_descriptions + [f"This is a photo of a {label}" for label in unique_entities]
+                all_desc_ids = tokenize_for_clip(all_desc, clip_tokenizer)
+
+                image_feature = clip_out
+                image_feature /= image_feature.norm(dim=-1, keepdim=True)
+
+                text_features = clip_model.encode_text(all_desc_ids.to(device)).float()
+                text_features /= text_features.norm(dim=-1, keepdim=True)
+                zeroshot_probs = (100.0 * image_feature @ text_features.T).softmax(dim=-1).squeeze()
+
+                # detection score is accumulative sum of probs of generated entities
+                ood_prob_sum = np.sum(zeroshot_probs[id_classes:].detach().cpu().numpy())
+                ood_probs_sum.append(ood_prob_sum)
+
+                ood_prob_mean = np.mean(zeroshot_probs[id_classes:].detach().cpu().numpy())
+                ood_probs_mean.append(ood_prob_mean)
+
+                top_prob, _ = zeroshot_probs.cpu().topk(1, dim=-1)
+                ood_probs_max.append(top_prob.detach().numpy())
+
+                id_probs_sum.append(1. - ood_prob_sum)
+
+                if idx == 2:
+                    break
+
+        targets = get_split_specific_targets(feature_dict, seen_labels, unseen_labels)
+        fill_auc_lists(auc_list_max, auc_list_mean, auc_list_sum, ood_probs_mean, ood_probs_max, ood_probs_sum,
+                       targets)
+        fill_f_acc_lists(acc_probs_sum, f_probs_sum, id_probs_sum, ood_probs_sum, targets)
+
+    metrics = get_result_mean_dict(acc_probs_sum, auc_list_max, auc_list_mean, auc_list_sum, f_probs_sum)
+
+    return metrics
+
+
 def get_id_datasets(dataset, id_classes, kshots=16):
+    # do stuff here
     _logger.info("Creating train set")
     train_transform = get_train_transform()
     train_dataset = dataset(data_path=Config.DATAPATH,
@@ -353,3 +431,47 @@ def get_result_mean_dict(acc_probs_sum, auc_list_max, auc_list_mean, auc_list_su
                'f1_mean': sum_mean_f1,
                'acc_mean': sum_mean_acc}
     return metrics
+
+
+def get_decoder(clearml_model=False, MODEL_PATH="/home/fmeyer/ZOC/trained_models/COCO/ViT-B32/"):
+    if clearml_model:
+        from clearml import Task
+        artifact_task = Task.get_task(project_name='ma_fmeyer', task_name='Train Decoder')
+
+        model_path = artifact_task.artifacts['model'].get_local_copy()
+    else:
+        model_path = MODEL_PATH
+
+    bert_config = BertGenerationConfig.from_pretrained("google/bert_for_seq_generation_L-24_bbc_encoder")
+    bert_config.is_decoder = True
+    bert_config.add_cross_attention = True
+    bert_model = BertGenerationDecoder.from_pretrained('google/bert_for_seq_generation_L-24_bbc_encoder',
+                                                       config=bert_config).to(Config.DEVICE).eval()
+
+    bert_model.load_state_dict(
+        torch.load(model_path + 'model_3.pt', map_location=torch.device(Config.DEVICE))['net'])
+
+    return bert_model
+
+
+@torch.no_grad()
+def get_image_batch_features(self, loader, stop_at=None):
+    features = []
+    for images in loader:
+        images = images.to(self.device)
+        batch_features = self.clip_model.encode_image(images)
+        batch_features /= batch_features.norm(dim=1, keepdim=True)
+        features.append(batch_features)
+        if len(features) >= stop_at:
+            print(f"Reached max {stop_at} for class {loader.name}")
+            break
+
+    return torch.cat(features)
+
+
+def get_feature_dict_from_isolated_classes(isolated_classes: IsolatedClasses, max_len=50000):
+    _logger.info("Start creating image features...")
+    max_per_class = max_len // len(isolated_classes.classes)
+    feature_dict = {}
+    for cls in tqdm(isolated_classes.classes):
+        feature_dict[cls] = get_image_batch_features(isolated_classes[cls], max_per_class)
