@@ -3,6 +3,7 @@ import os.path
 from abc import ABC, abstractmethod
 
 import PIL.Image
+import torch
 from PIL import Image, ImageFile
 import numpy as np
 import skimage as sk
@@ -18,6 +19,8 @@ from scipy.ndimage import zoom as scizoom
 from scipy.ndimage.interpolation import map_coordinates
 
 from ood_detection.config import Config as OodConfig
+
+from src.ood_detection.config import Config
 
 
 # https://github.com/hendrycks/robustness/blob/master/ImageNet- C/imagenet_c/imagenet_c/corruptions.py
@@ -480,6 +483,25 @@ def get_corruption_transform(clip_transform, corr, severity):
     transform = Compose(transform_list)
     return transform
 
+
+def store_corruptions_feature_dict(feature_dict, corruption, dataset, severity):
+    datafolder = os.path.join(Config.DATAPATH, 'corruptions', dataset)
+    os.makedirs(datafolder, exist_ok=True)
+    prefix = "_".join([corruption, str(severity)])
+    full_prefix = os.path.join(datafolder, prefix)
+    for key, value in feature_dict.items():
+        torch.save(value, full_prefix + f"-{key}.pt")
+
+
+def load_corruptions_feature_dict(keys, corruption, dataset, severity):
+    datafolder = os.path.join(Config.DATAPATH, 'corruptions', dataset)
+    prefix = "_".join([corruption, str(severity)])
+    full_prefix = os.path.join(datafolder, prefix)
+    feature_dict = {}
+    for key in keys:
+        feature_dict[key] = torch.load(full_prefix + f"-{key}.pt", map_location=Config.DEVICED)
+
+    return feature_dict
 
 Corruptions = collections.OrderedDict()
 Corruptions['Gaussian Noise'] = GaussianNoiseTransform

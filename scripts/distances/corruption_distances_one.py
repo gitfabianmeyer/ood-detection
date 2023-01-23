@@ -8,7 +8,7 @@ import clip
 import numpy as np
 import torch
 import wandb
-from datasets.corruptions import get_corruption_transform, THESIS_CORRUPTIONS
+from datasets.corruptions import get_corruption_transform, THESIS_CORRUPTIONS, store_corruptions_feature_dict
 from datasets.zoc_loader import IsolatedClasses
 from ood_detection.config import Config
 
@@ -19,15 +19,6 @@ from metrics.distances import run_full_distances, MaximumMeanDiscrepancy, Confus
 _logger = logging.getLogger(__name__)
 
 clip_model, clip_transform = clip.load(Config.VISION_MODEL)
-
-
-def store_feature_dict(feature_dict, corruption, dataset, severity):
-    datafolder = os.path.join(Config.DATAPATH, 'corruptions', dataset)
-    os.makedirs(datafolder, exist_ok=True)
-    prefix = "_".join([corruption, str(severity)])
-    full_prefix = os.path.join(datafolder, prefix)
-    for key, value in feature_dict.items():
-        torch.save(value, full_prefix + f"-{key}.pt")
 
 
 def main():
@@ -64,8 +55,7 @@ def main():
                                       splits=splits,
                                       id_split=id_split)
 
-                store_feature_dict(distancer.feature_dict, cname, dname, severity)
-                store_feature_dict(distancer.feature_dict, cname, dname, severity)
+                store_corruptions_feature_dict(distancer.feature_dict, cname, dname, severity)
 
                 clp = ConfusionLogProbability(distancer.feature_dict, clip_model)
                 mmd = MaximumMeanDiscrepancy(distancer.feature_dict)

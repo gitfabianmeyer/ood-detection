@@ -11,3 +11,5 @@ class Config:
     DEVICE = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
     TEST_SIZE = .4
     ID_SPLIT = .4
+    # MODEL_PATH = "/home/fmeyer/ZOC/trained_models/COCO/ViT-B32/"
+    MODEL_PATH = "/mnt/c/users/fmeyer/git/ood-detection/data/zoc/trained_models/COCO/"

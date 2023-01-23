@@ -44,3 +44,10 @@ HalfTwoDict["imagenet"] = OodTinyImageNet
 HalfTwoDict["mnist"] = OodMNIST
 HalfTwoDict["stanford cars"] = OodStanfordCars
 HalfTwoDict["svhn"] = OodSVHN
+
+CorruptionSets = collections.OrderedDict()
+CorruptionSets['gtsrb'] = OodGTSRB
+CorruptionSets['caltech101'] = OodCaltech101
+CorruptionSets["caltech cub"] = OodCub2011
+CorruptionSets["dtd"] = OodDTD
+CorruptionSets["flowers102"] = OodFlowers102

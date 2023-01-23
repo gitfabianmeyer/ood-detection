@@ -25,26 +25,6 @@ clearml_model = False
 MODEL_PATH = "/home/fmeyer/ZOC/trained_models/COCO/ViT-B32/"
 
 
-def get_decoder():
-    if clearml_model:
-        artifact_task = Task.get_task(project_name='ma_fmeyer', task_name='Train Decoder')
-
-        model_path = artifact_task.artifacts['model'].get_local_copy()
-    else:
-        model_path = MODEL_PATH
-
-    bert_config = BertGenerationConfig.from_pretrained("google/bert_for_seq_generation_L-24_bbc_encoder")
-    bert_config.is_decoder = True
-    bert_config.add_cross_attention = True
-    bert_model = BertGenerationDecoder.from_pretrained('google/bert_for_seq_generation_L-24_bbc_encoder',
-                                                       config=bert_config).to(Config.DEVICE).eval()
-
-    bert_model.load_state_dict(
-        torch.load(model_path + 'model_3.pt', map_location=torch.device(Config.DEVICE))['net'])
-
-    return bert_model
-
-
 def run_single_dataset_ood(isolated_classes, clip_model, clip_tokenizer, bert_tokenizer, bert_model,
                            id_classes=.6, runs=5):
     labels = isolated_classes.classes
