@@ -496,7 +496,7 @@ def load_corruptions_feature_dict(keys, corruption, dataset, severity):
     full_prefix = os.path.join(datafolder, prefix)
     feature_dict = {}
     for key in keys:
-        feature_dict[key] = torch.load(full_prefix + f"-{key}.pt", map_location=OodConfig.DEVICED)
+        feature_dict[key] = torch.load(full_prefix + f"-{key}.pt", map_location=OodConfig.DEVICE)
 
     return feature_dict
 
