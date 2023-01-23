@@ -215,7 +215,7 @@ def image_decoder_featuredict(clip_model,
 
                 text_features = clip_model.encode_text(all_desc_ids.to(device)).float()
                 text_features /= text_features.norm(dim=-1, keepdim=True)
-                zeroshot_probs = (100.0 * image_feature @ text_features.T).softmax(dim=-1).squeeze()
+                zeroshot_probs = (100.0 * image_feature.to(torch.float32) @ text_features.to(torch.float32).T).softmax(dim=-1).squeeze()
 
                 # detection score is accumulative sum of probs of generated entities
                 ood_prob_sum = np.sum(zeroshot_probs[id_classes:].detach().cpu().numpy())
