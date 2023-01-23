@@ -413,8 +413,8 @@ def get_auroc_for_ood_probs(targets, means):
 
 
 def get_split_specific_targets(isolated_classes, seen_labels, unseen_labels):
-    len_id_targets = sum([len(isolated_classes[lab].dataset) for lab in seen_labels])
-    len_ood_targets = sum([len(isolated_classes[lab].dataset) for lab in unseen_labels])
+    len_id_targets = sum([len(isolated_classes[lab]) for lab in seen_labels])
+    len_ood_targets = sum([len(isolated_classes[lab]) for lab in unseen_labels])
     targets = torch.tensor(len_id_targets * [0] + len_ood_targets * [1])
     return targets
 
