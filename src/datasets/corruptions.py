@@ -20,9 +20,6 @@ from scipy.ndimage.interpolation import map_coordinates
 
 from ood_detection.config import Config as OodConfig
 
-from src.ood_detection.config import Config
-
-
 # https://github.com/hendrycks/robustness/blob/master/ImageNet- C/imagenet_c/imagenet_c/corruptions.py
 
 def disk(radius, alias_blur=0.1, dtype=np.float32):
@@ -485,7 +482,7 @@ def get_corruption_transform(clip_transform, corr, severity):
 
 
 def store_corruptions_feature_dict(feature_dict, corruption, dataset, severity):
-    datafolder = os.path.join(Config.DATAPATH, 'corruptions', dataset)
+    datafolder = os.path.join(OodConfig.DATAPATH, 'corruptions', dataset)
     os.makedirs(datafolder, exist_ok=True)
     prefix = "_".join([corruption, str(severity)])
     full_prefix = os.path.join(datafolder, prefix)
@@ -494,12 +491,12 @@ def store_corruptions_feature_dict(feature_dict, corruption, dataset, severity):
 
 
 def load_corruptions_feature_dict(keys, corruption, dataset, severity):
-    datafolder = os.path.join(Config.DATAPATH, 'corruptions', dataset)
+    datafolder = os.path.join(OodConfig.DATAPATH, 'corruptions', dataset)
     prefix = "_".join([corruption, str(severity)])
     full_prefix = os.path.join(datafolder, prefix)
     feature_dict = {}
     for key in keys:
-        feature_dict[key] = torch.load(full_prefix + f"-{key}.pt", map_location=Config.DEVICED)
+        feature_dict[key] = torch.load(full_prefix + f"-{key}.pt", map_location=OodConfig.DEVICED)
 
     return feature_dict
 
