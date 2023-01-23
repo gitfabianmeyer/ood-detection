@@ -1,7 +1,7 @@
 import os
 
 os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
-os.environ["CUDA_VISIBLE_DEVICES"] = "1"
+os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 
 from datasets.corruptions import get_corruption_transform, THESIS_CORRUPTIONS, store_corruptions_feature_dict, \
     load_corruptions_feature_dict
@@ -24,11 +24,11 @@ from zoc.utils import image_decoder, get_decoder, image_decoder_featuredict, get
 _logger = logging.getLogger(__name__)
 splits = [(.4, .6), ]
 clearml_model = False
-create_features = False
+create_features = True
 
 
 def run_single_dataset_ood(feature_dict, clip_model, clip_tokenizer, bert_tokenizer, bert_model,
-                               id_classes=.6, runs=5):
+                           id_classes=.6, runs=5):
     labels = list(feature_dict.keys())
     _logger.info(f'Running with classes {labels[:10]} ...')
     id_classes = int(len(labels) * id_classes)
@@ -83,15 +83,12 @@ def run_all(args):
                 if create_features:
                     _logger.info('Creating corruptions set')
                     feature_dict = get_feature_dict_from_isolated_classes(isolated_classes)
-                    # store_corruptions_feature_dict(feature_dict, cname, dname + '-test', severity)
-                    store_corruptions_feature_dict(feature_dict, cname, dname, severity)
+                    store_corruptions_feature_dict(feature_dict, cname, dname + '-test', severity)
 
                 else:
                     _logger.info("Loading feature dict...")
-                    # feature_dict = load_corruptions_feature_dict(isolated_classes.classes, cname, dname + '-test',
-                    #                                              severity)
-                    feature_dict = load_corruptions_feature_dict(isolated_classes.classes, cname, dname, severity)
-
+                    feature_dict = load_corruptions_feature_dict(isolated_classes.classes, cname, dname + '-test',
+                                                                 severity)
                 for split in splits:
                     # perform zsoodd
                     metrics_dict = run_single_dataset_ood(feature_dict=feature_dict,
