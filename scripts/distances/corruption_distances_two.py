@@ -32,10 +32,11 @@ def store_feature_dict(feature_dict, corruption, dataset, severity):
 
 def main():
     for dname, dset in DATASETS_DICT.items():
-        if dname not in ['caltech101', 'caltech cub']:
+        if dname not in ['gtsrb']:
             continue
         for cname, ccorr in THESIS_CORRUPTIONS.items():
-
+            if cname != 'Glass Blur':
+                continue
             run = wandb.init(project="thesis-full_distances-selected-sets",
                              entity="wandbefab",
                              name="_".join([dname, cname]),
