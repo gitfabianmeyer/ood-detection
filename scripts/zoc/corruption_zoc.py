@@ -57,7 +57,6 @@ def run_all(args):
 
     for dname, dset in CorruptionSets.items():
         for cname, ccorr in THESIS_CORRUPTIONS.items():
-            _logger.info(f"Running {dname} with {cname} and severity {severity}")
 
             run = wandb.init(project="thesis-zoc-selected_corruption-selected_sets_all-classes",
                              entity="wandbefab",
@@ -65,6 +64,8 @@ def run_all(args):
                              tags=['distance',
                                    'metrics'])
             for severity in [1, 3, 5]:
+                _logger.info(f"Running {dname} with {cname} and severity {severity}")
+
                 if dname == 'lsun':
                     lsun = True
 
