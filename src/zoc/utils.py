@@ -473,3 +473,5 @@ def get_feature_dict_from_isolated_classes(isolated_classes: IsolatedClasses, cl
     feature_dict = {}
     for cls in tqdm(isolated_classes.classes):
         feature_dict[cls] = get_image_batch_features(isolated_classes[cls],clip_model, max_per_class)
+
+    return feature_dict

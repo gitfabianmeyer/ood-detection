@@ -1,7 +1,7 @@
 import os
 
 os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
-os.environ["CUDA_VISIBLE_DEVICES"] = "1"
+os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 
 from datasets.corruptions import get_corruption_transform, THESIS_CORRUPTIONS, store_corruptions_feature_dict, \
     load_corruptions_feature_dict
@@ -58,7 +58,7 @@ def run_all(args):
 
     for dname, dset in CorruptionSets.items():
         for cname, ccorr in THESIS_CORRUPTIONS.items():
-            if cname != 'Glass Blur':
+            if cname == 'Glass Blur':
                 continue
             run = wandb.init(project="thesis-zoc-selected_corruption-selected_sets_all-classes",
                              entity="wandbefab",
