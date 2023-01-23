@@ -453,11 +453,11 @@ def get_decoder(clearml_model=False, MODEL_PATH="/home/fmeyer/ZOC/trained_models
 
 
 @torch.no_grad()
-def get_image_batch_features(self, loader, stop_at=None):
+def get_image_batch_features(loader, clip_model, stop_at=None):
     features = []
     for images in loader:
-        images = images.to(self.device)
-        batch_features = self.clip_model.encode_image(images)
+        images = images.to(Config.DEVICE)
+        batch_features = clip_model.encode_image(images)
         batch_features /= batch_features.norm(dim=1, keepdim=True)
         features.append(batch_features)
         if len(features) >= stop_at:
@@ -467,9 +467,9 @@ def get_image_batch_features(self, loader, stop_at=None):
     return torch.cat(features)
 
 
-def get_feature_dict_from_isolated_classes(isolated_classes: IsolatedClasses, max_len=50000):
+def get_feature_dict_from_isolated_classes(isolated_classes: IsolatedClasses, clip_model, max_len=50000):
     _logger.info("Start creating image features...")
     max_per_class = max_len // len(isolated_classes.classes)
     feature_dict = {}
     for cls in tqdm(isolated_classes.classes):
-        feature_dict[cls] = get_image_batch_features(isolated_classes[cls], max_per_class)
+        feature_dict[cls] = get_image_batch_features(isolated_classes[cls],clip_model, max_per_class)

@@ -82,7 +82,7 @@ def run_all(args):
 
                 if create_features:
                     _logger.info('Creating corruptions set')
-                    feature_dict = get_feature_dict_from_isolated_classes(isolated_classes)
+                    feature_dict = get_feature_dict_from_isolated_classes(isolated_classes, clip_model)
                     store_corruptions_feature_dict(feature_dict, cname, dname + '-test', severity)
 
                 else:
