@@ -29,7 +29,8 @@ create_features = False
 
 def run_single_dataset_ood(feature_dict, clip_model, clip_tokenizer, bert_tokenizer, bert_model,
                                id_classes=.6, runs=5):
-    labels = feature_dict.classes
+    labels = list(feature_dict.keys())
+    _logger.info(f'Running with classes {labels[:10]} ...')
     id_classes = int(len(labels) * id_classes)
     ood_classes = len(labels) - id_classes
     metrics = image_decoder_featuredict(clip_model=clip_model,
