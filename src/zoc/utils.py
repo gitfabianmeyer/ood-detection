@@ -1,5 +1,6 @@
 import logging
 import random
+from typing import Dict
 
 import numpy as np
 import torch
@@ -411,9 +412,14 @@ def get_auroc_for_ood_probs(targets, means):
 
 
 def get_split_specific_targets(isolated_classes, seen_labels, unseen_labels):
-    len_id_targets = sum([len(isolated_classes[lab]) for lab in seen_labels])
-    len_ood_targets = sum([len(isolated_classes[lab]) for lab in unseen_labels])
-    targets = torch.tensor(len_id_targets * [0] + len_ood_targets * [1])
+    if isinstance(isolated_classes, IsolatedClasses):
+        len_id_targets = sum([len(isolated_classes[lab].dataset) for lab in seen_labels])
+        len_ood_targets = sum([len(isolated_classes[lab].dataset) for lab in unseen_labels])
+        targets = torch.tensor(len_id_targets * [0] + len_ood_targets * [1])
+    elif isinstance(isolated_classes, Dict):
+        len_id_targets = sum([len(isolated_classes[lab]) for lab in seen_labels])
+        len_ood_targets = sum([len(isolated_classes[lab]) for lab in unseen_labels])
+        targets = torch.tensor(len_id_targets * [0] + len_ood_targets * [1])
     return targets
 
 
@@ -425,7 +431,7 @@ def get_result_mean_dict(acc_probs_sum, auc_list_max, auc_list_mean, auc_list_su
     max_mean_auc, max_std_auc = get_mean_std(auc_list_max)
     metrics = {'auc-mean': mean_mean_auc,
                'auc-max': max_mean_auc,
-               'auc-sum:': sum_mean_auc,
+               'auc-sum': sum_mean_auc,
                'f1_mean': sum_mean_f1,
                'acc_mean': sum_mean_acc}
     return metrics

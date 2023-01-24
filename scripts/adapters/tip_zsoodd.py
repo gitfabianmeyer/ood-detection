@@ -18,13 +18,11 @@ from datasets.zoc_loader import IsolatedClasses
 from metrics.metrics_logging import wandb_log
 from ood_detection.config import Config
 from transformers import BertGenerationTokenizer, BertGenerationConfig, BertGenerationDecoder
-from zoc.utils import image_decoder, tip_image_decoder
+from zoc.utils import image_decoder, tip_image_decoder, get_decoder
 
 _logger = logging.getLogger(__name__)
 splits = [(.4, .6), ]
 clearml_model = False
-
-
 
 
 def run_single_dataset_ood_tip(isolated_classes, dataset, clip_model, clip_tokenizer, bert_tokenizer, bert_model,
@@ -32,6 +30,10 @@ def run_single_dataset_ood_tip(isolated_classes, dataset, clip_model, clip_token
     labels = isolated_classes.classes
     id_classes = int(len(labels) * id_classes)
     ood_classes = len(labels) - id_classes
+
+    # first train here
+    # some to do here
+    # then pass the adapter model as param
     metrics = tip_image_decoder(clip_model=clip_model,
                                 clip_tokenizer=clip_tokenizer,
                                 bert_tokenizer=bert_tokenizer,

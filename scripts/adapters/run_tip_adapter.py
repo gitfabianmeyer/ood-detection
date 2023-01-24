@@ -45,8 +45,8 @@ def main():
             results = clip_tip_adapter(dataset=dset,
                                        kshots=16,
                                        train_epoch=20,
-                                       alpha=1.,
-                                       beta=1.17,
+                                       alpha=2.,
+                                       beta=1,
                                        lr=0.001,
                                        eps=1e-4)
             print(results)
@@ -54,7 +54,7 @@ def main():
 
             failed.append(dname)
             raise e
-        run = wandb.init(project=f"thesis-tip-adapters-{kshots}_shots",
+        run = wandb.init(project=f"thesis-tip-adapters-{kshots}_shots-test",
                          entity="wandbefab",
                          name=dname)
         run.log(results)
