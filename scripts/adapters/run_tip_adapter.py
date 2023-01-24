@@ -3,21 +3,12 @@ import os
 os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
 os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 
-from datetime import datetime
 import logging
 
 import wandb
 from datasets.config import DATASETS_DICT
 
 from adapters.tip_adapter import clip_tip_adapter
-
-# import for clearml
-import clip
-import torch
-import torchvision
-import numpy as np
-import sklearn
-import tqdm
 
 logging.basicConfig(level=logging.INFO)
 _logger = logging.getLogger(__name__)

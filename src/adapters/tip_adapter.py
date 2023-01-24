@@ -162,7 +162,9 @@ def clip_tip_adapter(dataset, kshots=16, train_epoch=20, init_alpha=1., init_bet
     acc_tip_fine, f1_tip_fine = zeroshot(tipf_logits, test_labels)
 
     results = {"ZEROSHOT": zsa, "zf1": f1, "TIP ADAPTER": acc_tip_no, "TIP F1": f1_tip_no,
-               "TIP-F ADAPTER": acc_tip_fine, "TIP-F F1": f1_tip_fine}
+               "TIP-F ADAPTER": acc_tip_fine, "TIP-F F1": f1_tip_fine,
+               "tip_best_alpha":tip_best_alpha, "tip_best_beta":tip_best_beta,
+               "tipf_best_alpha":tipf_best_alpha, "tipf_best_beta":tipf_best_beta}
     return results
 
 
