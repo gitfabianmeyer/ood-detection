@@ -20,24 +20,15 @@ def main():
     kshots = 16
     failed = []
 
-    jumping = True
     for dname, dset in DATASETS_DICT.items():
-
-        if dname == 'svhn':
-            jumping = False
-
-        if jumping:
-            _logger.info(f"Jumping over {dname}")
-            continue
-
         _logger.info(f"\t\tStarting {dname} run...")
 
         try:
             results = clip_tip_adapter(dataset=dset,
                                        kshots=16,
                                        train_epoch=20,
-                                       alpha=2.,
-                                       beta=1,
+                                       init_alpha=2.,
+                                       init_beta=1,
                                        lr=0.001,
                                        eps=1e-4)
             print(results)

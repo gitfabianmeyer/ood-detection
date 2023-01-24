@@ -4,14 +4,13 @@ from typing import Dict
 
 import numpy as np
 import torch
-from adapters.tip_adapter import get_train_transform, get_kshot_train_set, get_adapter_weights
+from adapters.tip_adapter import get_train_transform, get_kshot_train_set, get_adapter_weights, WeightAdapter, get_cache_model
 from ood_detection.config import Config
 from sklearn.metrics import roc_auc_score, f1_score, accuracy_score
 from sklearn.model_selection import train_test_split
 from tqdm import tqdm
 
 from datasets.zoc_loader import IsolatedClasses
-from adapters.tip_adapter import get_train_features, WeightAdapter
 from transformers import BertGenerationConfig, BertGenerationDecoder
 
 _logger = logging.getLogger()
@@ -307,7 +306,7 @@ def tip_image_decoder(clip_model,
         seen_labels = split[:id_classes]
 
         train_set, val_set = get_id_datasets(dataset, seen_labels, kshots=kshots)
-        cache_keys, cache_values = get_train_features(train_set, clip_model)
+        cache_keys, cache_values = get_cache_model(train_set, clip_model)
 
         adapter = WeightAdapter(clip_model, cache_keys).to(device)
         adapter_weights = get_tip_adapter_weights(train_set, val_set,
