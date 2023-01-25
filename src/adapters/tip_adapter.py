@@ -40,7 +40,7 @@ def get_adapter_weights(train_set, test_set, model, train_epoch=1, alpha=1., bet
     _logger.info("Initializing everything...")
     clip_model, clip_transform = clip.load(Config.VISION_MODEL)
     clip_model.eval()
-    cache_keys, cache_values = get_cache_model(train_set, clip_model, augment_epochs=1)
+    cache_keys, cache_values = get_cache_model(train_set, clip_model, augment_epochs=10)
 
     test_features, test_labels, label_features, classes = get_test_features_tip(test_set, clip_model, clip_transform)
 
@@ -91,7 +91,7 @@ def get_adapter_weights(train_set, test_set, model, train_epoch=1, alpha=1., bet
 
         # eval
         adapter.eval()
-        affinity = adapter.linear1(test_features)
+        affinity = adapter(test_features)
         cache_logits = get_cache_logits(affinity, cache_values, beta)
         clip_logits = 100. * test_features @ label_features.t()
         tip_logits = clip_logits + cache_logits * alpha
@@ -338,7 +338,7 @@ def search_hp(cache_keys, cache_values, features, labels, clip_weights, adapter=
     best_beta, best_alpha = 0, 0
 
     if adapter:
-        affinity = adapter.linear1(features)
+        affinity = adapter(features)
     else:
         affinity = features @ cache_keys
 
@@ -420,7 +420,7 @@ def run_tip_adapter_finetuned(train_set, model,
                 image_features = model.encode_image(images)
                 image_features /= image_features.norm(dim=-1, keepdim=True)
 
-            affinity = adapter.linear1(image_features.to(torch.float32))
+            affinity = adapter(image_features.to(torch.float32))
             cache_logits = get_cache_logits(affinity, cache_values, beta)
 
             clip_logits = 100. * image_features.to(torch.float32) @ zeroshot_weights.t()
@@ -442,7 +442,7 @@ def run_tip_adapter_finetuned(train_set, model,
 
         # eval on val set
         adapter.eval()
-        affinity = adapter.linear1(val_features)
+        affinity = adapter(val_features)
         cache_logits = get_cache_logits(affinity,
                                         cache_values,
                                         beta)
@@ -458,6 +458,7 @@ def run_tip_adapter_finetuned(train_set, model,
     # search the best alpha and beta
     _logger.info("Loading best state dict for hp search....")
     adapter.load_state_dict(load_adapter(train_set.name))
+    adapter.eval()
 
     best_beta, best_alpha = search_hp(cache_keys=cache_keys,
                                       cache_values=cache_values,
@@ -476,4 +477,4 @@ def store_adapter(model, dataset):
 
 def load_adapter(dataset):
     adapter_path = os.path.join(Config.DATAPATH, 'tip-adapter', dataset, 'tip_adapter.pt')
-    return torch.load(adapter_path)
+    return torch.load(adapter_path, map_location=Config.DEVICE)
