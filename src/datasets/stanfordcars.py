@@ -25,7 +25,7 @@ class OodStanfordCars(torchvision.datasets.StanfordCars):
         self.targets = np.array(self.targets)
         self.templates = templates if templates else stanfordcars_templates
         self.set_split()
-        self.idx_to_class = {value:key for (key, value) in self.idx_to_class.items()}
+        self.idx_to_class = {value: key for (key, value) in self.class_to_idx.items()}
 
     @property
     def name(self):
