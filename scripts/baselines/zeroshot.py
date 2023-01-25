@@ -51,12 +51,14 @@ def main():
             dataloader = DataLoader(dataset,
                                     batch_size=512)
 
-            features, targets = get_dataset_features(clip_model, dataloader)
+            features, targets = get_dataset_features(dataloader, clip_model)
+
             zsw = zeroshot_classifier(dataset.classes,
                                       dataset.templates,
                                       clip_model)
 
             results[f'{split} Acc'] = classify(features, zsw, targets)
+
         wandb.log(results)
         run.finish()
 
