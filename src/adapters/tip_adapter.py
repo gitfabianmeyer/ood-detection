@@ -368,9 +368,14 @@ def run_tip_adapter(val_features, val_labels, zeroshot_weights, cache_keys, cach
     # first: simply go on val set
     # second: eval alpha and beta
 
+    def dtypeprinter(name, tensor):
+        print(f"{name}: {tensor.shape}, {tensor.dtype}")
     _logger.info(f"Running TIP Adapter - NO FINETUNING")
     # n_images * feature_size @ (num_classes * feature_size).t() --> n_images x num_classes
     affinity = val_features @ cache_keys
+    dtypeprinter("affinity", affinity)
+    dtypeprinter("cache values", cache_values)
+    print(type(beta), print(beta))
     cache_logits = get_cache_logits(affinity, cache_values, beta)
 
     tip_logits = clip_logits + cache_logits * alpha
