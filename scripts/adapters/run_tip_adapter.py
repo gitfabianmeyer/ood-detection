@@ -14,29 +14,29 @@ logging.basicConfig(level=logging.INFO)
 _logger = logging.getLogger(__name__)
 run_clearml = False
 
+kshots = 16
+train_epochs = 20
+init_alpha = 2.,
+init_beta = 1,
+lr = 0.001,
+eps = 1e-4,
+augment_epochs = 10
+
 
 def main():
-
-    kshots = 16
     failed = []
-    passing = True
 
     for dname, dset in DATASETS_DICT.items():
         _logger.info(f"\t\tStarting {dname} run...")
-        if dname == 'flowers102':
-            passing = False
-        if passing:
-            print(f'Jumping over {dname}')
-            continue
         try:
             results = clip_tip_adapter(dataset=dset,
-                                       kshots=2,
-                                       train_epoch=2,
-                                       init_alpha=2.,
-                                       init_beta=1,
-                                       lr=0.001,
-                                       eps=1e-4,
-                                       augment_epochs=1)
+                                       kshots=kshots,
+                                       train_epochs=train_epochs,
+                                       init_alpha=init_alpha,
+                                       init_beta=init_beta,
+                                       lr=lr,
+                                       eps=eps,
+                                       augment_epochs=augment_epochs)
             print(results)
         except Exception as e:
 

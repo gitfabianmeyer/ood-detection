@@ -106,7 +106,7 @@ def get_adapter_weights(train_set, test_set, model, train_epoch=1, alpha=1., bet
     return finetuned_adapter_weights
 
 
-def clip_tip_adapter(dataset, kshots, train_epoch, init_alpha, init_beta, lr, eps, augment_epochs):
+def clip_tip_adapter(dataset, kshots, train_epochs, init_alpha, init_beta, lr, eps, augment_epochs):
     _logger.info("Initializing everything...")
     clip_model, clip_transform = clip.load(Config.VISION_MODEL)
     clip_model.eval()
@@ -138,12 +138,12 @@ def clip_tip_adapter(dataset, kshots, train_epoch, init_alpha, init_beta, lr, ep
                                                                 val_features, val_labels,
                                                                 label_features, cache_keys,
                                                                 cache_values, init_alpha,
-                                                                init_beta, train_epoch,
+                                                                init_beta, train_epochs,
                                                                 lr, eps)
 
     # load test features, the adapter with weights, and run everything
-    # evaluating everything on the test set and report
 
+    _logger.info("Evaluation on test set...")
     test_features, test_labels, label_features, classes = get_dataset_features(dataset, clip_model, clip_transform,
                                                                                'test')
     # zeroshot
@@ -219,7 +219,7 @@ def get_cache_model(train_set, model, augment_epochs=10):
     _logger.info(f'Getting train features aggregated...')
 
     train_loader = DataLoader(train_set,
-                              batch_size=16,
+                              batch_size=512,
                               num_workers=1,
                               shuffle=False)
 
@@ -300,7 +300,7 @@ def get_dataset_features(dataset, model, transform, split):
     dataset = dataset(data_path=Config.DATAPATH,
                       split=split,
                       transform=transform)
-    dataloader = DataLoader(dataset, batch_size=16, shuffle=True, num_workers=1)
+    dataloader = DataLoader(dataset, batch_size=512, shuffle=True, num_workers=1)
     test_features, test_labels = [], []
 
     _logger.info(f"Getting {split} features...")
@@ -394,9 +394,9 @@ def run_tip_adapter_finetuned(train_set, model,
     _logger.info(f"Running TIP Adapter - FINETUNING")
 
     train_loader_shuffle = DataLoader(train_set,
-                                      batch_size=256,
+                                      batch_size=128,
                                       shuffle=True,
-                                      num_workers=1)
+                                      num_workers=2)
 
     adapter = WeightAdapter(cache_keys).to(device)
     adapter.weight = nn.Parameter(cache_keys.t())
