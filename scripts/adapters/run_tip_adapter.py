@@ -25,12 +25,13 @@ def main():
 
         try:
             results = clip_tip_adapter(dataset=dset,
-                                       kshots=16,
-                                       train_epoch=20,
+                                       kshots=2,
+                                       train_epoch=2,
                                        init_alpha=2.,
                                        init_beta=1,
                                        lr=0.001,
-                                       eps=1e-4)
+                                       eps=1e-4,
+                                       augment_epochs=1)
             print(results)
         except Exception as e:
 

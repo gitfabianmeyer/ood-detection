@@ -28,8 +28,8 @@ class WeightAdapter(nn.Module):
         self.linear1 = nn.Linear(cache_keys.shape[0], cache_keys.shape[1], bias=False).to(torch.float32)
         self.linear1.weight = nn.Parameter(cache_keys.t())
 
-    def __forward__(self, features):
-        return self.linear1(features)
+    def forward(self, x):
+        return self.linear1(x)
 
 
 def zeroshot(clip_logits, test_labels):
@@ -105,7 +105,7 @@ def get_adapter_weights(train_set, test_set, model, train_epoch=1, alpha=1., bet
     return finetuned_adapter_weights
 
 
-def clip_tip_adapter(dataset, kshots=16, train_epoch=20, init_alpha=1., init_beta=1., lr=0.001, eps=1e-4):
+def clip_tip_adapter(dataset, kshots, train_epoch, init_alpha, init_beta, lr, eps, augment_epochs):
     _logger.info("Initializing everything...")
     clip_model, clip_transform = clip.load(Config.VISION_MODEL)
     clip_model.eval()
@@ -114,7 +114,7 @@ def clip_tip_adapter(dataset, kshots=16, train_epoch=20, init_alpha=1., init_bet
 
     # run everything on the val set first.
     _logger.info('----- VALIDATION PHASE-------')
-    cache_keys, cache_values = get_cache_model(train_set, clip_model, augment_epochs=10)
+    cache_keys, cache_values = get_cache_model(train_set, clip_model, augment_epochs=augment_epochs)
 
     val_features, val_labels, label_features, classes = get_dataset_features(dataset, clip_model, clip_transform, 'val')
 
