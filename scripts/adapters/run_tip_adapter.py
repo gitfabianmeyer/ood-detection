@@ -19,12 +19,15 @@ def main():
 
     kshots = 16
     failed = []
+    passing = True
 
     for dname, dset in DATASETS_DICT.items():
         _logger.info(f"\t\tStarting {dname} run...")
-        if dname != 'flowers102':
+        if dname == 'flowers102':
+            passing = False
+        if passing:
+            print(f'Jumping over {dname}')
             continue
-
         try:
             results = clip_tip_adapter(dataset=dset,
                                        kshots=2,
