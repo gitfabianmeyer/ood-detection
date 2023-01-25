@@ -25,6 +25,7 @@ class OodFashionMNIST(torchvision.datasets.FashionMNIST):
         self.templates = templates if templates else mnist_templates
         self.split = split
         self.set_split()
+        self.idx_to_class = {value: key for (key, value) in self.class_to_idx.items()}
 
     def set_split(self):
         if self.split == 'val':

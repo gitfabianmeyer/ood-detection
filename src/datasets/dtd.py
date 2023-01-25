@@ -21,6 +21,7 @@ class OodDTD(torchvision.datasets.DTD):
         self.data = self._image_files
         self.targets = np.array(self._labels)
         self.templates = templates if templates else dtd_templates
+        self.idx_to_class = {value: key for (key, value) in self.class_to_idx.items()}
 
     def __getitem__(self, idx):
         image, label = self.data[idx], self.targets[idx]
@@ -50,4 +51,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-
