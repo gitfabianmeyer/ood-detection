@@ -24,9 +24,9 @@ device = Config.DEVICE
 class WeightAdapter(nn.Module):
     def __init__(self,
                  cache_keys):
-        super().__init__()
+        super(WeightAdapter, self).__init__()
         self.linear1 = nn.Linear(cache_keys.shape[0], cache_keys.shape[1], bias=False).to(torch.float32)
-        #self.linear1.weight = nn.Parameter(cache_keys.t())
+        self.linear1.weight = nn.Parameter(cache_keys.t())
 
     def forward(self, x):
         return self.linear1(x)
