@@ -51,10 +51,12 @@ def get_feature_weight_dict(isolated_classes, clip_model, device):
 
 def get_zeroshot_weight_dict(isolated_classes, clip_model):
     weights_dict = {}
-    weights = zeroshot_classifier(isolated_classes.classes, isolated_classes.templates, clip_model)
 
-    for classname, weight in zip(isolated_classes.classes, weights):
-        weights_dict[classname] = weight
+    if isinstance(isolated_classes, IsolatedClasses):
+        weights = zeroshot_classifier(isolated_classes.classes, isolated_classes.templates, clip_model)
+
+        for classname, weight in zip(isolated_classes.classes, weights):
+            weights_dict[classname] = weight
 
     return weights_dict
 
@@ -145,7 +147,6 @@ def baseline_detector_no_temperature(dset,
                                        batch_size=512,
                                        lsun=False)
 
-
     feature_weight_dict = get_feature_weight_dict(isolated_classes, clip_model, device)
     classes_weight_dict = get_zeroshot_weight_dict(isolated_classes, clip_model)
 
@@ -154,7 +155,7 @@ def baseline_detector_no_temperature(dset,
         shorted_classes = random.sample(dataset.classes, 10)
         _logger.info(f"Running with shorted classlist: {shorted_classes}")
         num_id_classes = int(len(shorted_classes) * id_classes_split)
-        num_ood_classes = len(shorted_classes) - id_classes_split
+        num_ood_classes = len(shorted_classes) - num_id_classes
 
         ablation_splits = [shorted_classes[:num_id_classes] + shorted_classes[num_id_classes:]]
         metrics_list = defaultdict(list)
@@ -177,6 +178,88 @@ def baseline_detector_no_temperature(dset,
                 # get features
                 image_features_for_label = feature_weight_dict[semantic_label]
                 print(image_features_for_label.shape)
+                # calc the logits and softmaxs
+                zeroshot_probs = (image_features_for_label.to(torch.float32) @ zeroshot_weights.T.to(
+                    torch.float32)).softmax(dim=-1).squeeze()
+
+                if zeroshot_probs.shape[1] != num_id_classes:
+                    _logger.error(f"Z_p.shape: {zeroshot_probs.shape} != id: {num_id_classes}")
+                    raise AssertionError
+                # detection score is accumulative sum of probs of generated entities
+                # careful, only for this setting axis=1
+                ood_prob_sum = np.sum(zeroshot_probs.detach().cpu().numpy(), axis=1)
+                ood_probs_sum.extend(ood_prob_sum)
+
+                ood_prob_mean = np.mean(zeroshot_probs.detach().cpu().numpy(), axis=1)
+                ood_probs_mean.extend(ood_prob_mean)
+
+                top_prob, _ = zeroshot_probs.cpu().topk(1, dim=-1)
+                ood_probs_max.extend(top_prob.detach().numpy())
+
+                id_probs_sum.extend(1. - ood_prob_sum)
+
+            targets = get_split_specific_targets(isolated_classes, seen_labels, unseen_labels)
+            fill_auc_lists(auc_list_max, auc_list_mean, auc_list_sum, ood_probs_mean, ood_probs_max, ood_probs_sum,
+                           targets)
+            fill_f_acc_lists(acc_probs_sum, f_probs_sum, id_probs_sum, ood_probs_sum, targets)
+
+        metrics = get_result_mean_dict(acc_probs_sum, auc_list_max, auc_list_mean, auc_list_sum, f_probs_sum)
+
+        for key, value in metrics.items():
+            metrics_list[key].append(value)
+
+    return metrics_list
+
+
+@torch.no_grad()
+def baseline_detector_no_temperature_featuredict(feature_dict,
+                                                 dset,
+                                                 clip_model,
+                                                 clip_transform,
+                                                 device,
+                                                 id_classes_split=.4,
+                                                 runs=10):
+    dataset = dset(data_path=Config.DATAPATH,
+                   split='val', # TODO set to test
+                   transform=clip_transform)
+    isolated_classes = IsolatedClasses(dataset,
+                                       batch_size=512,
+                                       lsun=False)
+
+    feature_weight_dict = feature_dict
+    # classes stay the same
+    classes_weight_dict = get_zeroshot_weight_dict(isolated_classes, clip_model)
+
+    for run_idx in range(runs):
+
+        # shorted_classes = random.sample(dataset.classes, 10)
+        # _logger.info(f"Running with shorted classlist: {shorted_classes}")
+
+        classes = dataset.classes
+
+        num_id_classes = int(len(classes) * id_classes_split)
+        num_ood_classes = len(classes) - num_id_classes
+
+        ablation_splits = get_ablation_splits(classes, n=5, id_classes=num_id_classes, ood_classes=num_ood_classes)
+        metrics_list = defaultdict(list)
+        # for each temperature..
+
+        auc_list_sum, auc_list_mean, auc_list_max = [], [], []
+        for split_idx, split in enumerate(ablation_splits):
+            _logger.info(f"Current class split: {split} ({split_idx} / {len(ablation_splits)} ")
+
+            seen_labels = split[:num_id_classes]
+            unseen_labels = split[num_id_classes:]
+            _logger.info(f"Seen labels: {seen_labels}\nOOD Labels: {unseen_labels}")
+
+            zeroshot_weights = sorted_zeroshot_weights(classes_weight_dict, seen_labels)
+            assert zeroshot_weights.shape[0] == num_id_classes
+            ood_probs_sum, ood_probs_mean, ood_probs_max = [], [], []
+            f_probs_sum, acc_probs_sum, id_probs_sum = [], [], []
+
+            for i, semantic_label in enumerate(split):
+                # get features
+                image_features_for_label = feature_weight_dict[semantic_label]
                 # calc the logits and softmaxs
                 zeroshot_probs = (image_features_for_label.to(torch.float32) @ zeroshot_weights.T.to(
                     torch.float32)).softmax(dim=-1).squeeze()

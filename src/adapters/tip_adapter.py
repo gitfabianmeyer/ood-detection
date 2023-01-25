@@ -27,8 +27,10 @@ class WeightAdapter(nn.Module):
         super().__init__()
         self.linear1 = nn.Linear(cache_keys.shape[0], cache_keys.shape[1], bias=False).to(torch.float32)
         self.linear1.weight = nn.Parameter(cache_keys.t())
+
     def __forward__(self, features):
         return self.linear1(features)
+
 
 def zeroshot(clip_logits, test_labels):
     return get_acc_f1(clip_logits, test_labels)
@@ -163,8 +165,8 @@ def clip_tip_adapter(dataset, kshots=16, train_epoch=20, init_alpha=1., init_bet
 
     results = {"ZEROSHOT": zsa, "zf1": f1, "TIP ADAPTER": acc_tip_no, "TIP F1": f1_tip_no,
                "TIP-F ADAPTER": acc_tip_fine, "TIP-F F1": f1_tip_fine,
-               "tip_best_alpha":tip_best_alpha, "tip_best_beta":tip_best_beta,
-               "tipf_best_alpha":tipf_best_alpha, "tipf_best_beta":tipf_best_beta}
+               "tip_best_alpha": tip_best_alpha, "tip_best_beta": tip_best_beta,
+               "tipf_best_alpha": tipf_best_alpha, "tipf_best_beta": tipf_best_beta}
     return results
 
 
