@@ -36,11 +36,11 @@ def zeroshot(clip_logits, test_labels):
     return get_acc_f1(clip_logits, test_labels)
 
 
-def get_adapter_weights(train_set, test_set, model, train_epoch=20, alpha=1., beta=1.17, lr=0.001, eps=1e-4):
+def get_adapter_weights(train_set, test_set, model, train_epoch=1, alpha=1., beta=1.17, lr=0.001, eps=1e-4):
     _logger.info("Initializing everything...")
     clip_model, clip_transform = clip.load(Config.VISION_MODEL)
     clip_model.eval()
-    cache_keys, cache_values = get_cache_model(train_set, clip_model)
+    cache_keys, cache_values = get_cache_model(train_set, clip_model, augment_epochs=1)
 
     test_features, test_labels, label_features, classes = get_test_features_tip(test_set, clip_model, clip_transform)
 
@@ -346,17 +346,17 @@ def search_hp(cache_keys, cache_values, features, labels, clip_weights, adapter=
         for alpha in np.linspace(.1, 5, 10):
 
             cache_logits = ((-1) * (beta - beta * affinity)).exp() @ cache_values
-            clip_logits = 100. * features @ clip_weights
+            clip_logits = 100. * features @ clip_weights.t()
             tip_logits = clip_logits + cache_logits * alpha
             acc, _ = get_acc_f1(tip_logits, labels)  # eval only on acc
 
             if acc > best_acc:
-                print("New best setting, beta: {:.2f}, alpha: {:.2f}; accuracy: {:.2f}".format(beta, alpha, acc))
+                _logger.info("New best setting, beta: {:.2f}, alpha: {:.2f}; accuracy: {:.2f}".format(beta, alpha, acc))
                 best_acc = acc
                 best_beta = beta
                 best_alpha = alpha
 
-    print("\nAfter searching, the best accuarcy: {:.2f}.\n".format(best_acc))
+    _logger.info("\nAfter searching, the best accuarcy: {:.2f}.\n".format(best_acc))
 
     return best_beta, best_alpha
 
@@ -455,7 +455,7 @@ def run_tip_adapter_finetuned(train_set, model,
             _logger.info(f"New best acc: {best_acc:.3f} \t(f1: {best_f1:.3f})")
             store_adapter(adapter, train_set.name)
 
-    # search best alpha and beta
+    # search the best alpha and beta
     _logger.info("Loading best state dict for hp search....")
     adapter.load_state_dict(load_adapter(train_set.name))
 
