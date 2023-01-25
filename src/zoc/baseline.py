@@ -220,7 +220,7 @@ def baseline_detector_no_temperature_featuredict(feature_dict,
                                                  id_classes_split=.4,
                                                  runs=10):
     dataset = dset(data_path=Config.DATAPATH,
-                   split='val', # TODO set to test
+                   split='test',
                    transform=clip_transform)
     isolated_classes = IsolatedClasses(dataset,
                                        batch_size=512,
