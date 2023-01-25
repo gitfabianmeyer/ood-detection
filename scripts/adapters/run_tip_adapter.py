@@ -22,6 +22,8 @@ def main():
 
     for dname, dset in DATASETS_DICT.items():
         _logger.info(f"\t\tStarting {dname} run...")
+        if dname == 'caltech101':
+            pass
 
         try:
             results = clip_tip_adapter(dataset=dset,

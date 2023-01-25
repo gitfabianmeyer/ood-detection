@@ -303,7 +303,7 @@ def get_dataset_features(dataset, model, transform, split):
     dataloader = DataLoader(dataset, batch_size=16, shuffle=True, num_workers=1)
     test_features, test_labels = [], []
 
-    _logger.info("Getting test features...")
+    _logger.info(f"Getting {split} features...")
     for idx, (images, targets) in enumerate(tqdm(dataloader)):
         images = images.to(device)
         targets = targets.to(device)
@@ -368,10 +368,16 @@ def run_tip_adapter(val_features, val_labels, zeroshot_weights, cache_keys, cach
     # second: eval alpha and beta
 
     _logger.info(f"Running TIP Adapter - NO FINETUNING")
-
+    print(f'zeroshot weighst ( classes x features size) {zeroshot_weights.shape}')
     # n_images * feature_size @ (num_classes * feature_size).t() --> n_images x num_classes
+    print(f'val feats: {val_features.shape}')
+    print(f"cache keys : {cache_keys.shape}")
     affinity = val_features @ cache_keys
+    print(f"aff: {affinity.shape}")
     cache_logits = get_cache_logits(affinity, cache_values, beta)
+    print(f'cache  logits {cache_logits.shape}')
+    print(f"clip logits: {clip_logits.shape}")
+
     tip_logits = clip_logits + cache_logits * alpha
 
     acc, f1 = get_acc_f1(tip_logits, val_labels)
