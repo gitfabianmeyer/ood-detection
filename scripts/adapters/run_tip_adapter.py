@@ -16,8 +16,8 @@ run_clearml = False
 
 kshots = 16
 train_epochs = 20
-init_alpha = 2.,
-init_beta = 1.,
+init_alpha = 2.
+init_beta = 1.
 lr = 0.001,
 eps = 1e-4,
 augment_epochs = 10
