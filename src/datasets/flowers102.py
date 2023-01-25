@@ -1,4 +1,7 @@
 import os
+from typing import Tuple, Any
+
+import PIL
 
 os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
 os.environ["CUDA_VISIBLE_DEVICES"] = "1"
@@ -31,6 +34,18 @@ class OodFlowers102(torchvision.datasets.Flowers102):
 
     def __len__(self) -> int:
         return len(self.data)
+
+    def __getitem__(self, idx) -> Tuple[Any, Any]:
+        image_file, label = self.data[idx], self.targets[idx]
+        image = PIL.Image.open(image_file).convert("RGB")
+
+        if self.transform:
+            image = self.transform(image)
+
+        if self.target_transform:
+            label = self.target_transform(label)
+
+        return image, label
 
     @property
     def name(self):
