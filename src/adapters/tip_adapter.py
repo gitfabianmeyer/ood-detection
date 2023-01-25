@@ -247,10 +247,10 @@ def get_cache_model(train_set, model, augment_epochs=10):
     train_images_features_agg /= train_images_features_agg.norm(dim=-1, keepdim=True)
     train_images_features_agg = train_images_features_agg.permute(1, 0)
 
-    cache_values = F.one_hot(torch.cat(cache_values, dim=0))
+    cache_values = F.one_hot(torch.cat(cache_values, dim=0)).to(torch.float32)
     cache_keys = train_images_features_agg.to(torch.float32)
-    cache_values = cache_values.to(torch.float32)
-
+    assert cache_keys.shape[1] == cache_values.shape[0]
+    assert cache_values.shape[1] == len(train_set.classes)
     return cache_keys, cache_values
 
 
@@ -368,15 +368,9 @@ def run_tip_adapter(val_features, val_labels, zeroshot_weights, cache_keys, cach
     # second: eval alpha and beta
 
     _logger.info(f"Running TIP Adapter - NO FINETUNING")
-    print(f'zeroshot weighst ( classes x features size) {zeroshot_weights.shape}')
     # n_images * feature_size @ (num_classes * feature_size).t() --> n_images x num_classes
-    print(f'val feats: {val_features.shape}')
-    print(f"cache keys : {cache_keys.shape}")
     affinity = val_features @ cache_keys
-    print(f"aff: {affinity.shape}")
     cache_logits = get_cache_logits(affinity, cache_values, beta)
-    print(f'cache  logits {cache_logits.shape}')
-    print(f"clip logits: {clip_logits.shape}")
 
     tip_logits = clip_logits + cache_logits * alpha
 
