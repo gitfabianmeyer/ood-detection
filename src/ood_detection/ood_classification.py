@@ -7,7 +7,6 @@ from datetime import datetime
 import clip
 import torch
 import torchvision
-from ood_detection.ood_utils import zeroshot_classifier, classify
 from tqdm import tqdm
 
 from ood_detection.classnames import fgvcaircraft_classes, \
@@ -21,6 +20,8 @@ from ood_detection.classnames import fgvcaircraft_classes, \
 from ood_detection.config import Config
 
 from ood_detection.plotting.distributions import plot_pca_analysis
+from ood_detection.ood_utils import zeroshot_classifier, classify
+from ood_detection.classification_utils import get_dataset_features
 
 device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 
@@ -66,27 +67,6 @@ def prep_subset_image_files(dataset: torchvision.datasets, n):
     dataset.targets = targets
 
     return dataset
-
-
-def get_dataset_features(loader: torch.utils.data.DataLoader, model, features_path, targets_path):
-    features = []
-    labels = []
-    with torch.no_grad():
-        for i, (images, target) in enumerate(tqdm(loader)):
-            images = images.to(device)
-            target = target.to(device)
-            image_features = model.encode_image(images)
-            image_features /= image_features.norm(dim=-1, keepdim=True)
-            features.append(image_features)
-            labels.append(target)
-        features = torch.cat(features)
-
-        labels = torch.cat(labels)
-
-        if features_path and targets_path:
-            torch.save(features, features_path)
-            torch.save(labels, targets_path)
-        return features, labels
 
 
 def get_classnames_from_vision_set(vision_set: torchvision.datasets):
@@ -162,7 +142,6 @@ def main(dataset_dictionary):
                                                  num_workers=8,
                                                  shuffle=False
                                                  )
-
 
         ood_features, ood_labels = get_dataset_features(ood_loader,
                                                         model,

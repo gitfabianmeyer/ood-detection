@@ -117,7 +117,7 @@ def clip_tip_adapter(dataset, kshots, train_epochs, init_alpha, init_beta, lr, e
     _logger.info('----- VALIDATION PHASE-------')
     cache_keys, cache_values = get_cache_model(train_set, clip_model, augment_epochs=augment_epochs)
 
-    val_features, val_labels, label_features, classes = get_dataset_features(dataset, clip_model, clip_transform, 'val')
+    val_features, val_labels, label_features, classes = get_dataset_features_with_split(dataset, clip_model, clip_transform, 'val')
 
     # zeroshot
     clip_logits_val = 100. * val_features @ label_features.t()
@@ -144,7 +144,7 @@ def clip_tip_adapter(dataset, kshots, train_epochs, init_alpha, init_beta, lr, e
     # load test features, the adapter with weights, and run everything
 
     _logger.info("Evaluation on test set...")
-    test_features, test_labels, label_features, classes = get_dataset_features(dataset, clip_model, clip_transform,
+    test_features, test_labels, label_features, classes = get_dataset_features_with_split(dataset, clip_model, clip_transform,
                                                                                'test')
     # zeroshot
     clip_logits_test = 100. * test_features @ label_features.t()
@@ -296,7 +296,7 @@ def get_test_features_tip(dataset, model, transform):
 
 
 @torch.no_grad()
-def get_dataset_features(dataset, model, transform, split):
+def get_dataset_features_with_split(dataset, model, transform, split):
     dataset = dataset(data_path=Config.DATAPATH,
                       split=split,
                       transform=transform)

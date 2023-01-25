@@ -47,7 +47,7 @@ def full_batch_classification(dataset, model, name):
 
 
 @torch.no_grad()
-def get_dataset_features(loader: torch.utils.data.DataLoader, model, features_path, targets_path):
+def get_dataset_features(loader: torch.utils.data.DataLoader, model, features_path=None, targets_path=None):
     features = []
     labels = []
     for i, (images, target) in enumerate(tqdm(loader)):
