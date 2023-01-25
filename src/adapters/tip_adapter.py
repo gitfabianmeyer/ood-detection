@@ -26,7 +26,7 @@ class WeightAdapter(nn.Module):
                  cache_keys):
         super().__init__()
         self.linear1 = nn.Linear(cache_keys.shape[0], cache_keys.shape[1], bias=False).to(torch.float32)
-        self.linear1.weight = nn.Parameter(cache_keys.t())
+        #self.linear1.weight = nn.Parameter(cache_keys.t())
 
     def forward(self, x):
         return self.linear1(x)
@@ -388,7 +388,7 @@ def run_tip_adapter_finetuned(train_set, model,
                               val_features, val_labels,
                               zeroshot_weights, cache_keys,
                               cache_values, alpha, beta,
-                              train_epoch, lr,
+                              train_epochs, lr,
                               eps):
     _logger.info(f"Running TIP Adapter - FINETUNING")
 
@@ -401,14 +401,14 @@ def run_tip_adapter_finetuned(train_set, model,
     adapter.weight = nn.Parameter(cache_keys.t())
 
     optimizer = torch.optim.AdamW(adapter.parameters(), lr=lr, eps=eps)
-    scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, train_epoch * len(train_loader_shuffle))
+    scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, train_epochs * len(train_loader_shuffle))
 
     best_acc, best_epoch, best_f1 = 0, 0, 0
     losses, learning_rates, accuracies = [], [], []
 
     # finetune and store everythin
-    for epoch in range(20):
-        _logger.info(f"Training epoch\t{epoch}/{train_epoch}")
+    for epoch in range(train_epochs):
+        _logger.info(f"Training epoch\t{epoch}/{train_epochs}")
         adapter.train()
 
         batch_losses = []
