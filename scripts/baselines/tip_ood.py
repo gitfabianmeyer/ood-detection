@@ -1,16 +1,15 @@
 import os
 
-import clip
-
 os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
 os.environ["CUDA_VISIBLE_DEVICES"] = "0"
-
+import clip
 import numpy as np
 import pandas as pd
 import torch
 
-from adapters.tip_adapter import get_tip_adapter_train_set, get_kshot_train_set, get_cache_model, get_cache_logits, \
-    get_train_transform
+from adapters.tip_adapter import from adapters.tip_adapter import create_tip_train_set,\
+    get_tip_adapter_train_set, get_kshot_train_set, \
+    get_train_transform, get_cache_model, create_tip_train_set, get_cache_logits
 from datasets.zoc_loader import IsolatedClasses
 from ood_detection.config import Config
 from zoc.baseline import get_feature_weight_dict, get_zeroshot_weight_dict, sorted_zeroshot_weights
@@ -63,31 +62,6 @@ def main():
     print(f"Failed: {failed}")
 
 
-def create_tip_train_set(dset, seen_labels, kshots):
-    dataset = dset(Config.DATAPATH,
-                   transform=get_train_transform(),
-                   split='train')
-
-    _logger.info("Creating train set for the seen labels")
-    new_class_to_idx = {seen_labels[i]: i for i in range(len(seen_labels))}
-    new_idx_to_class = {value: key for (key, value) in new_class_to_idx.items()}
-
-    new_images, new_targets = [], []
-    for image, target in zip(dataset.data, dataset.targets):
-        old_label = dataset.idx_to_class[int(target)]
-        if old_label in seen_labels:
-            # get only seen images & new labels for them
-            new_images.append(image)
-            new_targets.append(new_class_to_idx[old_label])
-
-    dataset.data = new_images
-    dataset.targets = np.array(new_targets)
-    dataset.idx_to_class = new_idx_to_class
-    dataset.class_to_idx = new_class_to_idx
-    dataset.classes = seen_labels
-
-    dataset = get_kshot_train_set(dataset, kshots)
-    return dataset
 
 
 def load_hyperparams_from_training(name):

@@ -117,7 +117,8 @@ def clip_tip_adapter(dataset, kshots, train_epochs, init_alpha, init_beta, lr, e
     _logger.info('----- VALIDATION PHASE-------')
     cache_keys, cache_values = get_cache_model(train_set, clip_model, augment_epochs=augment_epochs)
 
-    val_features, val_labels, label_features, classes = get_dataset_features_with_split(dataset, clip_model, clip_transform, 'val')
+    val_features, val_labels, label_features, classes = get_dataset_features_with_split(dataset, clip_model,
+                                                                                        clip_transform, 'val')
 
     # zeroshot
     clip_logits_val = 100. * val_features @ label_features.t()
@@ -144,8 +145,9 @@ def clip_tip_adapter(dataset, kshots, train_epochs, init_alpha, init_beta, lr, e
     # load test features, the adapter with weights, and run everything
 
     _logger.info("Evaluation on test set...")
-    test_features, test_labels, label_features, classes = get_dataset_features_with_split(dataset, clip_model, clip_transform,
-                                                                               'test')
+    test_features, test_labels, label_features, classes = get_dataset_features_with_split(dataset, clip_model,
+                                                                                          clip_transform,
+                                                                                          'test')
     # zeroshot
     clip_logits_test = 100. * test_features @ label_features.t()
     zsa, f1 = zeroshot(clip_logits_test, test_labels)
@@ -238,7 +240,8 @@ def get_cache_model(train_set, model, augment_epochs=10):
 
             if augment_idx == 0:
                 targets = targets.to(device)
-                cache_values.append(int(targets))
+
+                cache_values.append(targets)
 
         images_features_cat = torch.cat(train_images_features, dim=0).unsqueeze(0)
         train_images_features_agg.append(images_features_cat)
@@ -251,8 +254,36 @@ def get_cache_model(train_set, model, augment_epochs=10):
     cache_values = cache_values.to(torch.float32)
     cache_keys = train_images_features_agg.to(torch.float32)
     assert cache_keys.shape[1] == cache_values.shape[0], f"ck shape:{cache_keys.shape}, cv {cache_values.shape[0]}"
-    assert cache_values.shape[1] == len(train_set.classes), f"cv {cache_values.shape[0]}, tain set: {len(train_set.classes)}"
+    assert cache_values.shape[1] == len(
+        train_set.classes), f"cv {cache_values.shape[0]}, tain set: {len(train_set.classes)}"
     return cache_keys, cache_values
+
+
+def create_tip_train_set(dset, seen_labels, kshots):
+    dataset = dset(Config.DATAPATH,
+                   transform=get_train_transform(),
+                   split='train')
+
+    _logger.info("Creating train set for the seen labels")
+    new_class_to_idx = {seen_labels[i]: i for i in range(len(seen_labels))}
+    new_idx_to_class = {value: key for (key, value) in new_class_to_idx.items()}
+
+    new_images, new_targets = [], []
+    for image, target in zip(dataset.data, dataset.targets):
+        old_label = dataset.idx_to_class[int(target)]
+        if old_label in seen_labels:
+            # get only seen images & new labels for them
+            new_images.append(image)
+            new_targets.append(new_class_to_idx[old_label])
+
+    dataset.data = new_images
+    dataset.targets = np.array(new_targets)
+    dataset.idx_to_class = new_idx_to_class
+    dataset.class_to_idx = new_class_to_idx
+    dataset.classes = seen_labels
+
+    dataset = get_kshot_train_set(dataset, kshots)
+    return dataset
 
 
 def _convert_image_to_rgb(image):
