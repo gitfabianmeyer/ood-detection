@@ -3,7 +3,7 @@ import os
 from ood_detection.config import Config
 from sklearn.model_selection import train_test_split
 
-from src.datasets.mnist import CustomMNIST
+from datasets.mnist import CustomMNIST
 
 os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
 os.environ["CUDA_VISIBLE_DEVICES"] = "1"
