@@ -3,7 +3,7 @@ import os
 import clip
 
 os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
-os.environ["CUDA_VISIBLE_DEVICES"] = "0"
+os.environ["CUDA_VISIBLE_DEVICES"] = "1"
 
 import numpy as np
 import pandas as pd
@@ -37,7 +37,7 @@ def main():
     device = Config.DEVICE
 
     for dname, dset in DATASETS_DICT.items():
-        if dname not in ["fashion mnist", "flowers102", "gtsrb", "imagenet", "mnist", "stanford cars", "svhn"]:
+        if dname not in ["mnist", "stanford cars", "svhn"]:
             continue
         _logger.info(f"\t\tStarting {dname} run...")
         run = wandb.init(project=f"thesis-tip-ood-test",
