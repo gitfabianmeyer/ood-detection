@@ -53,18 +53,28 @@ class CustomMNIST(VisionDataset):
 
     training_file = "training.pt"
     test_file = "test.pt"
-    classes = [
-        "0 - zero",
-        "1 - one",
-        "2 - two",
-        "3 - three",
-        "4 - four",
-        "5 - five",
-        "6 - six",
-        "7 - seven",
-        "8 - eight",
-        "9 - nine",
-    ]
+    classes = ["0",
+               "1",
+               "2",
+               "3",
+               "4",
+               "5",
+               "6",
+               "7",
+               "8",
+               "9"]
+    # classes = [
+    #    "0 - zero",
+    #    "1 - one",
+    #    "2 - two",
+    #    "3 - three",
+    #    "4 - four",
+    #    "5 - five",
+    #    "6 - six",
+    #    "7 - seven",
+    #    "8 - eight",
+    #    "9 - nine",
+    #]
 
     @property
     def train_labels(self):
