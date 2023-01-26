@@ -37,7 +37,8 @@ def main():
     device = Config.DEVICE
 
     for dname, dset in DATASETS_DICT.items():
-
+        if dname not in ["fashion mnist", "flowers102", "gtsrb", "imagenet"]:
+            continue
         _logger.info(f"\t\tStarting {dname} run...")
         run = wandb.init(project=f"thesis-tip-ood-test",
                          entity="wandbefab",
@@ -73,7 +74,7 @@ def create_tip_train_set(dset, seen_labels, kshots):
 
     new_images, new_targets = [], []
     for image, target in zip(dataset.data, dataset.targets):
-        old_label = dataset.idx_to_class[target]
+        old_label = dataset.idx_to_class[int(target)]
         if old_label in seen_labels:
             # get only seen images & new labels for them
             new_images.append(image)
