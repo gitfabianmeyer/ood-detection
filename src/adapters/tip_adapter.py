@@ -238,7 +238,7 @@ def get_cache_model(train_set, model, augment_epochs=10):
 
             if augment_idx == 0:
                 targets = targets.to(device)
-                cache_values.append(targets)
+                cache_values.append(int(targets))
 
         images_features_cat = torch.cat(train_images_features, dim=0).unsqueeze(0)
         train_images_features_agg.append(images_features_cat)

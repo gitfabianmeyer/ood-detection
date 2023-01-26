@@ -48,6 +48,7 @@ class OodSVHN(torchvision.datasets.SVHN):
             self.data, _, self.targets, _ = train_test_split(self.data, self.targets, test_size=Config.TEST_SIZE,
                                                              random_state=42, stratify=self.targets)
 
+
 def main():
     name = "SVHN"
     dataset = OodSVHN
