@@ -36,7 +36,7 @@ def main():
     device = Config.DEVICE
 
     for dname, dset in DATASETS_DICT.items():
-        if dname not in ["mnist", "svhn"]:
+        if dname not in ["svhn"]:
             continue
         _logger.info(f"\t\tStarting {dname} run...")
         run = wandb.init(project=f"thesis-tip-ood-test",

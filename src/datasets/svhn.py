@@ -1,5 +1,8 @@
 import os
+from typing import Tuple, Any
 
+import numpy as np
+from PIL import Image
 from ood_detection.config import Config
 from sklearn.model_selection import train_test_split
 
@@ -36,6 +39,27 @@ class OodSVHN(torchvision.datasets.SVHN):
         self.templates = templates if templates else mnist_templates
         self.set_split()
 
+    def __getitem__(self, index: int) -> Tuple[Any, Any]:
+        """
+        Args:
+            index (int): Index
+
+        Returns:
+            tuple: (image, target) where target is index of the target class.
+        """
+        img, target = self.data[index], int(self.targets[index])
+
+        # doing this so that it is consistent with all other datasets
+        # to return a PIL Image
+        img = Image.fromarray(np.transpose(img, (1, 2, 0)))
+
+        if self.transform is not None:
+            img = self.transform(img)
+
+        if self.target_transform is not None:
+            target = self.target_transform(target)
+
+        return img, target
     @property
     def name(self):
         return 'svhn'
