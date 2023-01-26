@@ -147,6 +147,7 @@ def tip_ood_detector(dset,
         unseen_labels = split[num_id_classes:]
         _logger.debug(f"Seen labels: {seen_labels}\nOOD Labels: {unseen_labels}")
         zeroshot_weights = sorted_zeroshot_weights(classes_weight_dict, seen_labels)
+        zeroshot_weights = zeroshot_weights.to(torch.float32)
         _logger.info(f'Zeroshot weights: {zeroshot_weights.shape}')
 
         # prepare split specific adapter
@@ -155,6 +156,8 @@ def tip_ood_detector(dset,
         tip_train_set = create_tip_train_set(dset, seen_labels, kshots)
         _logger.info(f"len trainset: {len(tip_train_set)}. Should be: {len(tip_train_set.classes) * kshots} (max)")
         cache_keys, cache_values = get_cache_model(tip_train_set, clip_model, augment_epochs=augment_epochs)
+        cache_keys, cache_values = cache_keys.to(torch.float32), cache_values.to(torch.float32)
+
         _logger.info(f"cache keys: {cache_keys.shape}\n cache values: {cache_values.shape}")
         hyperparams = load_hyperparams_from_training(dataset.name)
         _logger.info(f'hyperparams: {hyperparams}')
@@ -163,9 +166,10 @@ def tip_ood_detector(dset,
         for split_idx, semantic_label in enumerate(split):
             # get features
             image_features_for_label = feature_weight_dict[semantic_label]
+            image_features_for_label = image_features_for_label.to(torch.float32)
             _logger.info(f'image features for label: {image_features_for_label.shape}')
             # calc the logits and softmax
-            clip_logits = image_features_for_label.to(torch.float32) @ zeroshot_weights.T.to(torch.float32)
+            clip_logits = image_features_for_label @ zeroshot_weights.T
             zeroshot_probs = torch.softmax(clip_logits, dim=-1).squeeze()
 
             # TIP ADAPTER
