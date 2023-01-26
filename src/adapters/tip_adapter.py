@@ -250,8 +250,8 @@ def get_cache_model(train_set, model, augment_epochs=10):
     cache_values = F.one_hot(torch.cat(cache_values, dim=0))
     cache_values = cache_values.to(torch.float32)
     cache_keys = train_images_features_agg.to(torch.float32)
-    assert cache_keys.shape[1] == cache_values.shape[0]
-    assert cache_values.shape[1] == len(train_set.classes)
+    assert cache_keys.shape[1] == cache_values.shape[0], f"ck shape:{cache_keys.shape}, cv {cache_values.shape[0]}"
+    assert cache_values.shape[1] == len(train_set.classes), f"cv {cache_values.shape[0]}, tain set: {len(train_set.classes)}"
     return cache_keys, cache_values
 
 

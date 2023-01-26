@@ -84,6 +84,7 @@ def create_tip_train_set(dset, seen_labels, kshots):
     dataset.targets = np.array(new_targets)
     dataset.idx_to_class = new_idx_to_class
     dataset.class_to_idx = new_class_to_idx
+    dataset.classes = seen_labels
 
     dataset = get_kshot_train_set(dataset, kshots)
     return dataset
@@ -125,8 +126,11 @@ def tip_ood_detector(dset,
     isolated_classes = IsolatedClasses(dataset,
                                        batch_size=512,
                                        lsun=False)
+    _logger.info('Creating the test weight dicts')
     feature_weight_dict = get_feature_weight_dict(isolated_classes, clip_model, device)
     classes_weight_dict = get_zeroshot_weight_dict(isolated_classes, clip_model)
+    _logger.info("Done creating weight dicts.")
+
 
     # prepare ablation splits...
     num_id_classes = int(len(dataset.classes) * id_classes_split)
@@ -137,12 +141,13 @@ def tip_ood_detector(dset,
     # run for the ablation splits
     clip_aucs, tip_aucs = [], []
     for split_idx, split in enumerate(ablation_splits):
-        _logger.info(f"Split ({split_idx} / {len(ablation_splits)} ")
+        _logger.info(f"Split ({split_idx+1} / {len(ablation_splits)} ")
 
         seen_labels = split[:num_id_classes]
         unseen_labels = split[num_id_classes:]
         _logger.debug(f"Seen labels: {seen_labels}\nOOD Labels: {unseen_labels}")
         zeroshot_weights = sorted_zeroshot_weights(classes_weight_dict, seen_labels)
+        _logger.info(f'Zeroshot weights: {zeroshot_weights.shape}')
 
         # prepare split specific adapter
 
@@ -150,13 +155,15 @@ def tip_ood_detector(dset,
         tip_train_set = create_tip_train_set(dset, seen_labels, kshots)
         _logger.info(f"len trainset: {len(tip_train_set)}. Should be: {len(tip_train_set.classes) * kshots} (max)")
         cache_keys, cache_values = get_cache_model(tip_train_set, clip_model, augment_epochs=augment_epochs)
+        _logger.info(f"cache keys: {cache_keys.shape}\n cache values: {cache_values.shape}")
         hyperparams = load_hyperparams_from_training(dataset.name)
+        _logger.info(f'hyperparams: {hyperparams}')
         clip_probs_max, tip_probs_max = [], []
 
         for split_idx, semantic_label in enumerate(split):
             # get features
             image_features_for_label = feature_weight_dict[semantic_label]
-
+            _logger.info(f'image features for label: {image_features_for_label.shape}')
             # calc the logits and softmax
             clip_logits = image_features_for_label.to(torch.float32) @ zeroshot_weights.T.to(torch.float32)
             zeroshot_probs = torch.softmax(clip_logits, dim=-1).squeeze()
