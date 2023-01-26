@@ -37,7 +37,7 @@ def main():
     device = Config.DEVICE
 
     for dname, dset in DATASETS_DICT.items():
-        if dname not in ["mnist", "stanford cars", "svhn"]:
+        if dname not in ["flowers102", "gtsrb", "imagenet", "stanford cars", "svhn"]:
             continue
         _logger.info(f"\t\tStarting {dname} run...")
         run = wandb.init(project=f"thesis-tip-ood-test",
