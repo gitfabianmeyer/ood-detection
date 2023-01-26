@@ -37,12 +37,11 @@ def main():
     device = Config.DEVICE
 
     for dname, dset in DATASETS_DICT.items():
-        if dname != 'cifar10':
-            continue
+
         _logger.info(f"\t\tStarting {dname} run...")
-        # run = wandb.init(project=f"thesis-tip-ood-test",
-        #                  entity="wandbefab",
-        #                  name=dname)
+        run = wandb.init(project=f"thesis-tip-ood-test",
+                         entity="wandbefab",
+                         name=dname)
         try:
             results = tip_ood_detector(dset,
                                        clip_model,
@@ -57,8 +56,8 @@ def main():
             failed.append(dname)
             raise e
 
-        # wandb.log(results)
-        # run.finish()
+        wandb.log(results)
+        run.finish()
 
     print(f"Failed: {failed}")
 
@@ -148,7 +147,6 @@ def tip_ood_detector(dset,
         _logger.debug(f"Seen labels: {seen_labels}\nOOD Labels: {unseen_labels}")
         zeroshot_weights = sorted_zeroshot_weights(classes_weight_dict, seen_labels)
         zeroshot_weights = zeroshot_weights.to(torch.float32)
-        _logger.info(f'Zeroshot weights: {zeroshot_weights.shape}')
 
         # prepare split specific adapter
 
@@ -158,9 +156,7 @@ def tip_ood_detector(dset,
         cache_keys, cache_values = get_cache_model(tip_train_set, clip_model, augment_epochs=augment_epochs)
         cache_keys, cache_values = cache_keys.to(torch.float32), cache_values.to(torch.float32)
 
-        _logger.info(f"cache keys: {cache_keys.shape}\n cache values: {cache_values.shape}")
         hyperparams = load_hyperparams_from_training(dataset.name)
-        _logger.info(f'hyperparams: {hyperparams}')
         clip_probs_max, tip_probs_max = [], []
 
         for split_idx, semantic_label in enumerate(split):
