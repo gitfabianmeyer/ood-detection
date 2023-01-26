@@ -25,10 +25,10 @@ logging.basicConfig(level=logging.INFO)
 _logger = logging.getLogger(__name__)
 
 run_clearml = False
-runs = 1
-kshots = 2
+runs = 10
+kshots = 16
 train_epochs = 1
-augment_epochs = 1
+augment_epochs = 10
 
 
 def main():
@@ -170,7 +170,7 @@ def tip_ood_detector(dset,
             _logger.info(f'image features for label: {image_features_for_label.shape}')
             # calc the logits and softmax
             clip_logits = image_features_for_label @ zeroshot_weights.T
-            zeroshot_probs = torch.softmax(clip_logits, dim=-1).squeeze()
+            clip_probs = torch.softmax(clip_logits, dim=-1).squeeze()
 
             # TIP ADAPTER
             tip_alpha, tip_beta = hyperparams['tip_best_alpha'], hyperparams['tip_best_beta']
@@ -179,14 +179,14 @@ def tip_ood_detector(dset,
             tip_logits = clip_logits + cache_logits * tip_alpha
             tip_probs = torch.softmax(tip_logits, dim=1).squeeze()
 
-            if zeroshot_probs.shape[1] != num_id_classes:
-                _logger.error(f"Z_p.shape: {zeroshot_probs.shape} != id: {num_id_classes}")
+            if clip_probs.shape[1] != num_id_classes:
+                _logger.error(f"Z_p.shape: {clip_probs.shape} != id: {num_id_classes}")
                 raise AssertionError
 
-            top_clip_prob, _ = zeroshot_probs.cpu().topk(1, dim=-1)
+            top_clip_prob, _ = clip_probs.cpu().topk(1, dim=-1)
             clip_probs_max.extend(top_clip_prob.detach().numpy())
             top_tip_prob, _ = tip_probs.cpu().topk(1, dim=-1)
-            tip_probs_max.extend(top_clip_prob.detach().numpy())
+            tip_probs_max.extend(top_tip_prob.detach().numpy())
 
         targets = get_split_specific_targets(isolated_classes, seen_labels, unseen_labels)
 
