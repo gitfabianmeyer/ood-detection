@@ -7,7 +7,7 @@ import numpy as np
 import pandas as pd
 import torch
 
-from adapters.tip_adapter import from adapters.tip_adapter import create_tip_train_set,\
+from adapters.tip_adapter import create_tip_train_set,\
     get_tip_adapter_train_set, get_kshot_train_set, \
     get_train_transform, get_cache_model, create_tip_train_set, get_cache_logits
 from datasets.zoc_loader import IsolatedClasses
