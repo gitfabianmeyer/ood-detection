@@ -272,7 +272,7 @@ def get_train_transform():
 
 
 @torch.no_grad()
-def get_test_features_tip(dataset, model, transform):
+def get_test_features_tip(dataset, model):
     dataloader = DataLoader(dataset, batch_size=16, shuffle=False, num_workers=1)
     test_features, test_labels = [], []
 
