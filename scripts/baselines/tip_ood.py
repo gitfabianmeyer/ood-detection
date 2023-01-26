@@ -9,7 +9,8 @@ import numpy as np
 import pandas as pd
 import torch
 
-from adapters.tip_adapter import get_tip_adapter_train_set, get_kshot_train_set, get_cache_model, get_cache_logits
+from adapters.tip_adapter import get_tip_adapter_train_set, get_kshot_train_set, get_cache_model, get_cache_logits, \
+    get_train_transform
 from datasets.zoc_loader import IsolatedClasses
 from ood_detection.config import Config
 from zoc.baseline import get_feature_weight_dict, get_zeroshot_weight_dict, sorted_zeroshot_weights
@@ -64,7 +65,7 @@ def main():
 
 def create_tip_train_set(dset, seen_labels, kshots):
     dataset = dset(Config.DATAPATH,
-                   transform=None,
+                   transform=get_train_transform(),
                    split='train')
 
     _logger.info("Creating train set for the seen labels")
