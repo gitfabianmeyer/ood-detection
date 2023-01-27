@@ -67,8 +67,7 @@ def tip_hyperparam_ood_detector(dset,
         # get features from the shorted val set
         val_features, val_labels, label_features, classes = get_dataset_features_from_dataset_with_split(
             shorted_val_loader,
-            clip_model,
-            'val')
+            clip_model)
         clip_weights_val_set = 100 * val_features @ label_features
         alpha, beta = search_hp(cache_keys, cache_values, val_features, val_labels, clip_weights_val_set)
 
@@ -168,7 +167,6 @@ def tip_ood_detector(dset,
             # get features
             image_features_for_label = feature_weight_dict[semantic_label]
             image_features_for_label = image_features_for_label.to(torch.float32)
-            _logger.info(f'image features for label: {image_features_for_label.shape}')
             # calc the logits and softmax
             clip_logits = image_features_for_label @ zeroshot_weights.T
             clip_probs = torch.softmax(clip_logits, dim=-1).squeeze()
