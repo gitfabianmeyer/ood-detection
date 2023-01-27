@@ -240,7 +240,7 @@ def get_train_transform():
 @torch.no_grad()
 def get_dataset_features_from_dataset_with_split(dataset, model):
     dataloader = DataLoader(dataset, batch_size=512, shuffle=True, num_workers=1)
-    features, labels = get_dataset_features(dataloader)
+    features, labels = get_dataset_features(dataloader, model)
     label_features = zeroshot_classifier(dataset.classes, dataset.templates, model)
     classes = dataset.classes
 
