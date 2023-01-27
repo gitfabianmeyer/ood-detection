@@ -63,10 +63,9 @@ def tip_hyperparam_ood_detector(dset,
 
         # get shorted val set for the
         tip_val_set = get_dataset_with_shorted_classes(dset, seen_labels, 'val')
-        shorted_val_loader = DataLoader(tip_val_set, batch_size=512)
         # get features from the shorted val set
         val_features, val_labels, label_features, classes = get_dataset_features_from_dataset_with_split(
-            shorted_val_loader,
+            tip_val_set,
             clip_model)
         clip_weights_val_set = 100 * val_features @ label_features
         alpha, beta = search_hp(cache_keys, cache_values, val_features, val_labels, clip_weights_val_set)
