@@ -28,8 +28,6 @@ def main():
     device = Config.DEVICE
 
     for dname, dset in HalfOneDict.items():
-        if dname!='dtd':
-            continue
         _logger.info(f"\t\tStarting {dname} run...")
         run = wandb.init(project=f"thesis-tip-ood-test-hyperparam-search-{runs}-runs",
                          entity="wandbefab",
