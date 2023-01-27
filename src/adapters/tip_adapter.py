@@ -4,6 +4,8 @@ from collections import defaultdict
 import random
 
 import numpy as np
+import pandas as pd
+import wandb
 from sklearn.metrics import accuracy_score, f1_score
 from tqdm import tqdm
 
@@ -35,76 +37,6 @@ class WeightAdapter(nn.Module):
 
 def zeroshot(clip_logits, test_labels):
     return get_acc_f1(clip_logits, test_labels)
-
-
-def get_adapter_weights(train_set, test_set, model, train_epoch=1, alpha=1., beta=1.17, lr=0.001, eps=1e-4):
-    _logger.info("Initializing everything...")
-    clip_model, clip_transform = clip.load(Config.VISION_MODEL)
-    clip_model.eval()
-    cache_keys, cache_values = get_cache_model(train_set, clip_model, augment_epochs=10)
-
-    test_features, test_labels, label_features, classes = get_test_features_tip(test_set, clip_model, clip_transform)
-
-    _logger.info(f"Running TIP Adapter - FINETUNING")
-
-    train_loader_shuffle = DataLoader(train_set,
-                                      batch_size=256,
-                                      shuffle=True,
-                                      num_workers=1)
-    adapter = WeightAdapter(cache_keys).to(device)
-    optimizer = torch.optim.AdamW(adapter.parameters(), lr=lr, eps=eps)
-    scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, train_epoch * len(train_loader_shuffle))
-
-    best_acc, best_epoch, best_f1 = 0, 0, 0
-    losses, learning_rates, accuracies = [], [], []
-    for epoch in range(train_epoch):
-        _logger.info(f"Training epoch\t{epoch}/{train_epoch}")
-        adapter.train()
-
-        batch_losses = []
-
-        for i, (images, targets) in enumerate(tqdm(train_loader_shuffle)):
-            images = images.to(device)
-            targets = targets.to(device)
-            with torch.no_grad():
-                image_features = model.encode_image(images)
-                image_features /= image_features.norm(dim=-1, keepdim=True)
-
-            affinity = adapter(image_features.to(torch.float32))
-
-            cache_logits = get_cache_logits(affinity, cache_values, beta)
-
-            clip_logits = 100. * image_features.to(torch.float32) @ label_features.t()
-            clip_logits = clip_logits + cache_logits * alpha
-
-            loss = F.cross_entropy(clip_logits, targets)
-            batch_losses.append(loss.item())
-
-            optimizer.zero_grad()
-            loss.backward()
-            optimizer.step()
-            scheduler.step()
-
-        losses.append(sum(batch_losses))
-        current_lr = scheduler.get_last_lr()[0]
-        learning_rates.append(current_lr)
-        _logger.info(f"LOSS: {sum(batch_losses)}, LR: {current_lr}")
-
-        # eval
-        adapter.eval()
-        affinity = adapter(test_features)
-        cache_logits = get_cache_logits(affinity, cache_values, beta)
-        clip_logits = 100. * test_features @ label_features.t()
-        tip_logits = clip_logits + cache_logits * alpha
-        acc, f1 = get_acc_f1(tip_logits, test_labels)
-        if acc > best_acc:
-            best_acc = acc
-            _logger.info(f"New best acc: {acc:.3f} (f1: {f1:.3f})")
-            # best_epoch = epoch
-            finetuned_adapter_weights = adapter.weight  # maybe return them
-
-    return finetuned_adapter_weights
-
 
 def clip_tip_adapter(dataset, kshots, train_epochs, init_alpha, init_beta, lr, eps, augment_epochs):
     _logger.info("Initializing everything...")
@@ -259,15 +191,20 @@ def get_cache_model(train_set, model, augment_epochs=10):
     return cache_keys, cache_values
 
 
-def create_tip_train_set(dset, seen_labels, kshots):
+def create_tip_train_set(dset, seen_labels, kshots, split='train'):
+    dataset = get_dataset_with_shorted_classes(dset, seen_labels, split)
+
+    dataset = get_kshot_train_set(dataset, kshots)
+    return dataset
+
+
+def get_dataset_with_shorted_classes(dset, seen_labels, split):
     dataset = dset(Config.DATAPATH,
                    transform=get_train_transform(),
-                   split='train')
-
+                   split={split})
     _logger.info("Creating train set for the seen labels")
     new_class_to_idx = {seen_labels[i]: i for i in range(len(seen_labels))}
     new_idx_to_class = {value: key for (key, value) in new_class_to_idx.items()}
-
     new_images, new_targets = [], []
     for image, target in zip(dataset.data, dataset.targets):
         old_label = dataset.idx_to_class[int(target)]
@@ -275,14 +212,11 @@ def create_tip_train_set(dset, seen_labels, kshots):
             # get only seen images & new labels for them
             new_images.append(image)
             new_targets.append(new_class_to_idx[old_label])
-
     dataset.data = new_images
     dataset.targets = np.array(new_targets)
     dataset.idx_to_class = new_idx_to_class
     dataset.class_to_idx = new_class_to_idx
     dataset.classes = seen_labels
-
-    dataset = get_kshot_train_set(dataset, kshots)
     return dataset
 
 
@@ -300,31 +234,6 @@ def get_train_transform():
         transforms.ToTensor(),
         transforms.Normalize(mean=(0.48145466, 0.4578275, 0.40821073), std=(0.26862954, 0.26130258, 0.27577711))
     ])
-
-
-@torch.no_grad()
-def get_test_features_tip(dataset, model):
-    dataloader = DataLoader(dataset, batch_size=16, shuffle=False, num_workers=1)
-    test_features, test_labels = [], []
-
-    _logger.info("Getting test features...")
-    for idx, (images, targets) in enumerate(tqdm(dataloader)):
-        images = images.to(device)
-        targets = targets.to(device)
-
-        image_features = model.encode_image(images)
-        image_features /= image_features.norm(dim=-1, keepdim=True)
-        test_features.append(image_features)
-        test_labels.append(targets)
-    test_features = torch.cat(test_features)
-    test_labels = torch.cat(test_labels)
-
-    test_features = test_features.to(torch.float32)
-    test_labels = test_labels.to(torch.float32)
-    label_features = zeroshot_classifier(dataset.classes, dataset.templates, model).to(torch.float32)
-    classes = dataset.classes
-
-    return test_features, test_labels, label_features, classes
 
 
 @torch.no_grad()
@@ -511,3 +420,23 @@ def store_adapter(model, dataset):
 def load_adapter(dataset):
     adapter_path = os.path.join(Config.DATAPATH, 'tip-adapter', dataset, 'tip_adapter.pt')
     return torch.load(adapter_path, map_location=Config.DEVICE)
+
+
+def load_hyperparams_from_training(name):
+    api = wandb.Api()
+    # Project is specified by <entity/project-name>
+    runs = api.runs('thesis-tip-adapters-16_shots-test')
+    for run in runs:
+        if run.name == name:
+            set_run = run
+            break
+    df = pd.DataFrame(set_run.history())
+
+    tipf_best_beta = 'tipf_best_beta'
+    tipf_best_alpha = 'tipf_best_alpha'
+    tip_best_beta = 'tip_best_beta'
+    tip_best_alpha = 'tip_best_alpha'
+    return {tip_best_alpha: df.iloc[0][tip_best_alpha],
+            tip_best_beta: df.iloc[0][tip_best_beta],
+            tipf_best_alpha: df.iloc[0][tipf_best_alpha],
+            tipf_best_beta: df.iloc[0][tipf_best_beta]}

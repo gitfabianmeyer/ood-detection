@@ -1,23 +1,22 @@
 import os
 
-
 os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
 os.environ["CUDA_VISIBLE_DEVICES"] = "1"
 
+from src.adapters.ood import tip_hyperparam_ood_detector
+
 import clip
 from ood_detection.config import Config
-from adapters.ood import tip_ood_detector
-
 import logging
 
 import wandb
-from datasets.config import HalfTwoDict
+from datasets.config import DATASETS_DICT, HalfOneDict
 
 logging.basicConfig(level=logging.INFO)
 _logger = logging.getLogger(__name__)
 
 run_clearml = False
-runs = 10
+runs = 50
 kshots = 16
 train_epochs = 1
 augment_epochs = 10
@@ -28,21 +27,20 @@ def main():
     clip_model, clip_transform = clip.load(Config.VISION_MODEL)
     device = Config.DEVICE
 
-    for dname, dset in HalfTwoDict.items():
-
+    for dname, dset in HalfOneDict.items():
         _logger.info(f"\t\tStarting {dname} run...")
         run = wandb.init(project=f"thesis-tip-ood-test-50-runs",
                          entity="wandbefab",
                          name=dname)
         try:
-            results = tip_ood_detector(dset,
-                                       clip_model,
-                                       clip_transform,
-                                       device,
-                                       Config.ID_SPLIT,
-                                       runs,
-                                       kshots,
-                                       augment_epochs)
+            results = tip_hyperparam_ood_detector(dset,
+                                                  clip_model,
+                                                  clip_transform,
+                                                  device,
+                                                  Config.ID_SPLIT,
+                                                  runs,
+                                                  kshots,
+                                                  augment_epochs)
             print(results)
         except Exception as e:
             failed.append(dname)

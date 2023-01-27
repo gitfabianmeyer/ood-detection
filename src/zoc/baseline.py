@@ -16,6 +16,8 @@ from tqdm import tqdm
 from zoc.utils import get_ablation_splits, get_split_specific_targets, fill_auc_lists, fill_f_acc_lists, \
     get_result_mean_dict
 
+from ood_detection.ood_utils import sorted_zeroshot_weights
+
 _logger = logging.getLogger(__name__)
 
 
@@ -59,13 +61,6 @@ def get_zeroshot_weight_dict(isolated_classes, clip_model):
             weights_dict[classname] = weight
 
     return weights_dict
-
-
-def sorted_zeroshot_weights(weights, split):
-    sorted_weights = []
-    for classname in split:
-        sorted_weights.append(weights[classname])
-    return torch.stack(sorted_weights)
 
 
 @torch.no_grad()

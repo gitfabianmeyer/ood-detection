@@ -7,6 +7,13 @@ from ood_detection.models.dummy_zoc import CaptionGenerator
 from ood_detection.classification_utils import get_normed_embeddings
 
 
+def sorted_zeroshot_weights(weights, split):
+    sorted_weights = []
+    for classname in split:
+        sorted_weights.append(weights[classname])
+    return torch.stack(sorted_weights)
+
+
 def ood_accuracy(output, target, num_id_labels=5, top_k=(1,)):
     pred = output.topk(max(top_k), 1, True, True)[1].t()
     for i, tensor in enumerate(pred):
