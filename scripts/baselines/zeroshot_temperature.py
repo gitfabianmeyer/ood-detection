@@ -13,7 +13,7 @@ from datasets.config import DATASETS_DICT
 import wandb
 from datasets.cifar import OodCifar10
 from ood_detection.config import Config
-from ood_detection.classification_utils import accuracy
+from ood_detection.classification_utils import accuracy, get_dataset_features
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 
@@ -48,21 +48,6 @@ def clip_zeroshot(features, targets, zeroshot_weights, temperature):
     results["logits_std"], results["logits"] = torch.std_mean(logits)
     results["accuracy"] = top1_acc
     return results
-
-
-@torch.no_grad()
-def get_dataset_features(clip_model, dataloader):
-    features, targets = [], []
-    for num_batches, (images, targs) in enumerate(tqdm(dataloader)):
-        images = images.to(Config.DEVICE)
-        targs = targs.to(Config.DEVICE)
-        image_features = clip_model.encode_image(images)
-        image_features /= image_features.norm(dim=-1, keepdim=True)
-        features.append(image_features)
-        targets.append(targs)
-    features = torch.cat(features).half()
-    targets = torch.cat(targets).half()
-    return features, targets
 
 
 def conf_scores(softmax_scores=None, targets=None):

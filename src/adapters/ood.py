@@ -1,16 +1,21 @@
 import logging
 
 import torch
-from adapters.tip_adapter import get_cache_logits, get_cache_model, create_tip_train_set, load_hyperparams_from_training
+from adapters.tip_adapter import get_cache_logits, get_cache_model, create_tip_train_set, \
+    load_hyperparams_from_training, search_hp
 from datasets.zoc_loader import IsolatedClasses
 from ood_detection.config import Config
 from torch.utils.data import DataLoader
 from zoc.baseline import sorted_zeroshot_weights, get_zeroshot_weight_dict, get_feature_weight_dict
 from zoc.utils import get_mean_std, get_auroc_for_max_probs, get_split_specific_targets, get_ablation_splits
 
-from src.adapters.tip_adapter import get_dataset_with_shorted_classes
+from src.adapters.tip_adapter import get_dataset_with_shorted_classes, get_dataset_features_from_dataset_with_split
 
 _logger = logging.getLogger(__name__)
+
+
+def extract_full_split_features(shorted_val_loader, clip_model, param):
+    pass
 
 
 def tip_hyperparam_ood_detector(dset,
@@ -42,8 +47,8 @@ def tip_hyperparam_ood_detector(dset,
 
     # run for the ablation splits
     clip_aucs, tip_aucs = [], []
-    for split_idx, split in enumerate(ablation_splits):
-        _logger.info(f"Split ({split_idx + 1} / {len(ablation_splits)} ")
+    for label_idx, split in enumerate(ablation_splits):
+        _logger.info(f"Split ({label_idx + 1} / {len(ablation_splits)} ")
 
         seen_labels = split[:num_id_classes]
         unseen_labels = split[num_id_classes:]
@@ -53,26 +58,27 @@ def tip_hyperparam_ood_detector(dset,
 
         # get the kshot train set
         tip_train_set = create_tip_train_set(dset, seen_labels, kshots)
-        _logger.info(f"len trainset: {len(tip_train_set)}. Should be: {len(tip_train_set.classes) * kshots} (max)")
+        _logger.info(f"len train set: {len(tip_train_set)}. Should be: {len(tip_train_set.classes) * kshots} (max)")
         cache_keys, cache_values = get_cache_model(tip_train_set, clip_model, augment_epochs=augment_epochs)
-        cache_keys, cache_values = cache_keys.to(torch.float32), cache_values.to(torch.float32)
 
         # get shorted val set for the
         tip_val_set = get_dataset_with_shorted_classes(dset, seen_labels, kshots, 'val')
         shorted_val_loader = DataLoader(tip_val_set, batch_size=512)
         # get features from the shorted val set
-        val_features, val_labels, label_features, classes = extract_features_from_loader(shorted_val_loader, clip_model,
-                                                                                         clip_transform)
+        val_features, val_labels, label_features, classes = get_dataset_features_from_dataset_with_split(
+            shorted_val_loader,
+            clip_model,
+            'val')
         clip_weights_val_set = 100 * val_features @ label_features
         alpha, beta = search_hp(cache_keys, cache_values, val_features, val_labels, clip_weights_val_set)
 
         clip_probs_max, tip_probs_max = [], []
 
-        for split_idx, semantic_label in enumerate(split):
+        for label_idx, semantic_label in enumerate(split):
             # get features
             image_features_for_label = feature_weight_dict[semantic_label]
             image_features_for_label = image_features_for_label.to(torch.float32)
-            _logger.info(f'image features for label: {image_features_for_label.shape}')
+
             # calc the logits and softmax
             clip_logits = image_features_for_label @ zeroshot_weights.T
             clip_probs = torch.softmax(clip_logits, dim=-1).squeeze()
@@ -153,7 +159,6 @@ def tip_ood_detector(dset,
         tip_train_set = create_tip_train_set(dset, seen_labels, kshots)
         _logger.info(f"len trainset: {len(tip_train_set)}. Should be: {len(tip_train_set.classes) * kshots} (max)")
         cache_keys, cache_values = get_cache_model(tip_train_set, clip_model, augment_epochs=augment_epochs)
-        cache_keys, cache_values = cache_keys.to(torch.float32), cache_values.to(torch.float32)
 
         hyperparams = load_hyperparams_from_training(dataset.name)
 

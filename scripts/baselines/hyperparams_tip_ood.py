@@ -10,13 +10,13 @@ from ood_detection.config import Config
 import logging
 
 import wandb
-from datasets.config import DATASETS_DICT, HalfOneDict
+from datasets.config import HalfOneDict
 
 logging.basicConfig(level=logging.INFO)
 _logger = logging.getLogger(__name__)
 
 run_clearml = False
-runs = 50
+runs = 10
 kshots = 16
 train_epochs = 1
 augment_epochs = 10
@@ -29,7 +29,7 @@ def main():
 
     for dname, dset in HalfOneDict.items():
         _logger.info(f"\t\tStarting {dname} run...")
-        run = wandb.init(project=f"thesis-tip-ood-test-50-runs",
+        run = wandb.init(project=f"thesis-tip-ood-test-hyperparam-search-{runs}-runs",
                          entity="wandbefab",
                          name=dname)
         try:

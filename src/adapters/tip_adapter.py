@@ -16,7 +16,7 @@ import torch.nn as nn
 from torch.utils.data import DataLoader
 from torchvision import transforms
 
-from ood_detection.classification_utils import zeroshot_classifier
+from ood_detection.classification_utils import zeroshot_classifier, get_dataset_features
 from ood_detection.config import Config
 
 _logger = logging.getLogger()
@@ -37,6 +37,7 @@ class WeightAdapter(nn.Module):
 
 def zeroshot(clip_logits, test_labels):
     return get_acc_f1(clip_logits, test_labels)
+
 
 def clip_tip_adapter(dataset, kshots, train_epochs, init_alpha, init_beta, lr, eps, augment_epochs):
     _logger.info("Initializing everything...")
@@ -188,7 +189,7 @@ def get_cache_model(train_set, model, augment_epochs=10):
     assert cache_keys.shape[1] == cache_values.shape[0], f"ck shape:{cache_keys.shape}, cv {cache_values.shape[0]}"
     assert cache_values.shape[1] == len(
         train_set.classes), f"cv {cache_values.shape[0]}, tain set: {len(train_set.classes)}"
-    return cache_keys, cache_values
+    return cache_keys.to(torch.float32), cache_values.to(torch.float32)
 
 
 def create_tip_train_set(dset, seen_labels, kshots, split='train'):
@@ -201,8 +202,8 @@ def create_tip_train_set(dset, seen_labels, kshots, split='train'):
 def get_dataset_with_shorted_classes(dset, seen_labels, split):
     dataset = dset(Config.DATAPATH,
                    transform=get_train_transform(),
-                   split={split})
-    _logger.info("Creating train set for the seen labels")
+                   split=split)
+    _logger.info(f"Creating {split} set for the seen labels")
     new_class_to_idx = {seen_labels[i]: i for i in range(len(seen_labels))}
     new_idx_to_class = {value: key for (key, value) in new_class_to_idx.items()}
     new_images, new_targets = [], []
@@ -237,31 +238,21 @@ def get_train_transform():
 
 
 @torch.no_grad()
+def get_dataset_features_from_dataset_with_split(dataset, model):
+    dataloader = DataLoader(dataset, batch_size=512, shuffle=True, num_workers=1)
+    features, labels = get_dataset_features(dataloader)
+    label_features = zeroshot_classifier(dataset.classes, dataset.templates, model)
+    classes = dataset.classes
+
+    return features, labels, label_features, classes
+
+
+@torch.no_grad()
 def get_dataset_features_with_split(dataset, model, transform, split):
     dataset = dataset(data_path=Config.DATAPATH,
                       split=split,
                       transform=transform)
-    dataloader = DataLoader(dataset, batch_size=512, shuffle=True, num_workers=1)
-    test_features, test_labels = [], []
-
-    _logger.info(f"Getting {split} features...")
-    for idx, (images, targets) in enumerate(tqdm(dataloader)):
-        images = images.to(device)
-        targets = targets.to(device)
-
-        image_features = model.encode_image(images)
-        image_features /= image_features.norm(dim=-1, keepdim=True)
-        test_features.append(image_features)
-        test_labels.append(targets)
-    test_features = torch.cat(test_features)
-    test_labels = torch.cat(test_labels)
-
-    test_features = test_features.to(torch.float32)
-    test_labels = test_labels.to(torch.float32)
-    label_features = zeroshot_classifier(dataset.classes, dataset.templates, model).to(torch.float32)
-    classes = dataset.classes
-
-    return test_features, test_labels, label_features, classes
+    return get_dataset_features_from_dataset_with_split(dataset, model)
 
 
 def get_cache_logits(affinity, cache_values, beta):

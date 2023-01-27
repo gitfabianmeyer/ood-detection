@@ -4,7 +4,7 @@ from typing import Dict
 
 import numpy as np
 import torch
-from adapters.tip_adapter import get_train_transform, get_kshot_train_set, get_adapter_weights, WeightAdapter, get_cache_model
+from adapters.tip_adapter import get_train_transform, get_kshot_train_set, WeightAdapter, get_cache_model
 from ood_detection.config import Config
 from sklearn.metrics import roc_auc_score, f1_score, accuracy_score
 from sklearn.model_selection import train_test_split
@@ -268,18 +268,6 @@ def get_id_datasets(dataset, id_classes, kshots=16):
     val_dataset.classes = id_classes
 
     return get_kshot_train_set(train_dataset, kshots), val_dataset
-
-
-def get_tip_adapter_weights(train_set,
-                            val_set,
-                            clip_model,
-                            train_epoch=20,
-                            alpha=1., beta=1.17,
-                            lr=0.001, eps=1e-4):
-    # only for the id classes
-
-    return get_adapter_weights(train_set, val_set, clip_model, train_epoch=train_epoch, alpha=alpha, beta=beta, lr=lr,
-                               eps=eps)
 
 
 def fill_f_acc_lists(acc_probs_sum, f_probs_sum, id_probs_sum, ood_probs_sum, targets):

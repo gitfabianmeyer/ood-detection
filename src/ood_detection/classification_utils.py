@@ -1,3 +1,5 @@
+import logging
+
 import clip
 import numpy as np
 import torch
@@ -8,6 +10,7 @@ from torch.utils.data import DataLoader
 from tqdm import tqdm
 
 device = Config.DEVICE
+_logger = logging.getLogger(__name__)
 
 
 def full_classification(dataset, model, name):
@@ -48,8 +51,8 @@ def full_batch_classification(dataset, model, name):
 
 @torch.no_grad()
 def get_dataset_features(loader: torch.utils.data.DataLoader, model, features_path=None, targets_path=None):
-    features = []
-    labels = []
+    features, labels = [], []
+    _logger.info(f"Getting dataset features...")
     for i, (images, target) in enumerate(tqdm(loader)):
         images = images.to(device)
         target = target.to(device)
@@ -64,7 +67,7 @@ def get_dataset_features(loader: torch.utils.data.DataLoader, model, features_pa
     if features_path and targets_path:
         torch.save(features, features_path)
         torch.save(labels, targets_path)
-    return features, labels
+    return features.to(torch.float32), labels.to(torch.float32)
 
 
 @torch.no_grad()
@@ -74,7 +77,7 @@ def zeroshot_classifier(classnames: list, templates: list, clip_model):
         class_embeddings = get_normed_classname_embedding(classname, clip_model, templates)
         weights.append(class_embeddings)
 
-    return torch.stack(weights)
+    return torch.stack(weights).to(torch.float32)
 
 
 def classify(features, zeroshot_weights, targets, dataset=None, print_results=False):
@@ -103,6 +106,7 @@ def macro_f1_score(output, targets):
     targets = targets.cpu()
     pred = output.topk(1, 1, True, True)[1].t()
     f1_score(targets, pred, average='macro')
+
 
 @torch.no_grad()
 def get_normed_classname_embedding(classname, clip_model, templates):
