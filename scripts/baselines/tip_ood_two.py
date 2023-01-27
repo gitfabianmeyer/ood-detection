@@ -17,7 +17,7 @@ logging.basicConfig(level=logging.INFO)
 _logger = logging.getLogger(__name__)
 
 run_clearml = False
-runs = 10
+runs = 50
 kshots = 16
 train_epochs = 1
 augment_epochs = 10
@@ -29,9 +29,11 @@ def main():
     device = Config.DEVICE
 
     for dname, dset in HalfTwoDict.items():
+        if dname in ['gtsrb', 'flowers102']:
+            continue
 
         _logger.info(f"\t\tStarting {dname} run...")
-        run = wandb.init(project=f"thesis-tip-ood-test-50-runs",
+        run = wandb.init(project=f"thesis-tip-ood-test-{runs}-runs",
                          entity="wandbefab",
                          name=dname)
         try:

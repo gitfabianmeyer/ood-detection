@@ -3,7 +3,7 @@ import os
 os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
 os.environ["CUDA_VISIBLE_DEVICES"] = "6"
 
-from src.adapters.ood import tip_hyperparam_ood_detector
+from adapters.ood import tip_hyperparam_ood_detector
 
 import clip
 from ood_detection.config import Config
