@@ -1,7 +1,7 @@
 import os
 
 os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
-os.environ["CUDA_VISIBLE_DEVICES"] = "7"
+os.environ["CUDA_VISIBLE_DEVICES"] = "6"
 
 from src.adapters.ood import tip_hyperparam_ood_detector
 
@@ -10,7 +10,7 @@ from ood_detection.config import Config
 import logging
 
 import wandb
-from datasets.config import HalfOneDict
+from datasets.config import HalfOneDict, HalfTwoDict
 
 logging.basicConfig(level=logging.INFO)
 _logger = logging.getLogger(__name__)
@@ -27,7 +27,7 @@ def main():
     clip_model, clip_transform = clip.load(Config.VISION_MODEL)
     device = Config.DEVICE
 
-    for dname, dset in HalfOneDict.items():
+    for dname, dset in HalfTwoDict.items():
         _logger.info(f"\t\tStarting {dname} run...")
         run = wandb.init(project=f"thesis-tip-ood-test-hyperparam-search-{runs}-runs",
                          entity="wandbefab",
