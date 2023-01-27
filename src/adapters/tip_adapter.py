@@ -266,7 +266,7 @@ def get_acc_f1(logits, test_labels):
     return acc, f1
 
 
-def search_hp(cache_keys, cache_values, features, labels, clip_weights, adapter=None):
+def search_hp(cache_keys, cache_values, features, labels, zeroshot_weights, adapter=None):
     best_acc = 0
     best_beta, best_alpha = 0, 0
 
@@ -279,7 +279,7 @@ def search_hp(cache_keys, cache_values, features, labels, clip_weights, adapter=
         for alpha in np.linspace(.1, 5, 10):
 
             cache_logits = ((-1) * (beta - beta * affinity)).exp() @ cache_values
-            clip_logits = 100. * features @ clip_weights.t()
+            clip_logits = 100. * features @ zeroshot_weights.t()
             tip_logits = clip_logits + cache_logits * alpha
             acc, _ = get_acc_f1(tip_logits, labels)  # eval only on acc
 
@@ -313,7 +313,7 @@ def run_tip_adapter(val_features, val_labels, zeroshot_weights, cache_keys, cach
                                       cache_values=cache_values,
                                       features=val_features,
                                       labels=val_labels,
-                                      clip_weights=zeroshot_weights)
+                                      zeroshot_weights=zeroshot_weights)
     return best_alpha, best_beta
 
 
@@ -397,7 +397,7 @@ def run_tip_adapter_finetuned(train_set, model,
                                       cache_values=cache_values,
                                       features=val_features,
                                       labels=val_labels,
-                                      clip_weights=zeroshot_weights,
+                                      zeroshot_weights=zeroshot_weights,
                                       adapter=adapter)
     return best_alpha, best_beta
 

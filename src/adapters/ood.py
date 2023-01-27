@@ -67,8 +67,7 @@ def tip_hyperparam_ood_detector(dset,
         val_features, val_labels, label_features, classes = get_dataset_features_from_dataset_with_split(
             tip_val_set,
             clip_model)
-        clip_weights_val_set = 100 * val_features @ label_features.T
-        alpha, beta = search_hp(cache_keys, cache_values, val_features, val_labels, clip_weights_val_set)
+        alpha, beta = search_hp(cache_keys, cache_values, val_features, val_labels, zeroshot_weights)
 
         clip_probs_max, tip_probs_max = [], []
 
