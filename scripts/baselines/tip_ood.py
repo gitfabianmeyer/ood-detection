@@ -18,13 +18,13 @@ from zoc.utils import get_ablation_splits, get_split_specific_targets, get_auroc
 import logging
 
 import wandb
-from datasets.config import DATASETS_DICT
+from datasets.config import DATASETS_DICT, HalfOneDict
 
 logging.basicConfig(level=logging.INFO)
 _logger = logging.getLogger(__name__)
 
 run_clearml = False
-runs = 10
+runs = 50
 kshots = 16
 train_epochs = 1
 augment_epochs = 10
@@ -35,11 +35,9 @@ def main():
     clip_model, clip_transform = clip.load(Config.VISION_MODEL)
     device = Config.DEVICE
 
-    for dname, dset in DATASETS_DICT.items():
-        if dname not in ["svhn"]:
-            continue
+    for dname, dset in HalfOneDict.items():
         _logger.info(f"\t\tStarting {dname} run...")
-        run = wandb.init(project=f"thesis-tip-ood-test",
+        run = wandb.init(project=f"thesis-tip-ood-test-50-runs",
                          entity="wandbefab",
                          name=dname)
         try:
@@ -132,6 +130,7 @@ def tip_ood_detector(dset,
         cache_keys, cache_values = cache_keys.to(torch.float32), cache_values.to(torch.float32)
 
         hyperparams = load_hyperparams_from_training(dataset.name)
+
         clip_probs_max, tip_probs_max = [], []
 
         for split_idx, semantic_label in enumerate(split):

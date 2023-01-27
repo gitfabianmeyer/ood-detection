@@ -19,7 +19,7 @@ from zoc.utils import get_ablation_splits, get_split_specific_targets, get_auroc
 import logging
 
 import wandb
-from datasets.config import DATASETS_DICT
+from datasets.config import DATASETS_DICT, HalfTwoDict
 
 logging.basicConfig(level=logging.INFO)
 _logger = logging.getLogger(__name__)
@@ -36,11 +36,10 @@ def main():
     clip_model, clip_transform = clip.load(Config.VISION_MODEL)
     device = Config.DEVICE
 
-    for dname, dset in DATASETS_DICT.items():
-        if dname not in ["flowers102", "gtsrb", "imagenet", "stanford cars", "svhn"]:
-            continue
+    for dname, dset in HalfTwoDict.items():
+
         _logger.info(f"\t\tStarting {dname} run...")
-        run = wandb.init(project=f"thesis-tip-ood-test",
+        run = wandb.init(project=f"thesis-tip-ood-test-50-runs",
                          entity="wandbefab",
                          name=dname)
         try:
