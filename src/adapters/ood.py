@@ -1,7 +1,7 @@
 import logging
 
 import torch
-from adapters.tip_adapter import get_cache_logits, get_cache_model,\
+from adapters.tip_adapter import get_cache_logits, get_cache_model, \
     create_tip_train_set, load_hyperparams_from_training, \
     search_hp, get_dataset_with_shorted_classes, \
     get_dataset_features_from_dataset_with_split
@@ -11,11 +11,9 @@ from torch.utils.data import DataLoader
 from zoc.baseline import sorted_zeroshot_weights, get_zeroshot_weight_dict, get_feature_weight_dict
 from zoc.utils import get_mean_std, get_auroc_for_max_probs, get_split_specific_targets, get_ablation_splits
 
+from src.adapters.tip_adapter import init_adapter, run_tip_adapter_finetuned, WeightAdapter, load_adapter
+
 _logger = logging.getLogger(__name__)
-
-
-def extract_full_split_features(shorted_val_loader, clip_model, param):
-    pass
 
 
 def tip_hyperparam_ood_detector(dset,
@@ -25,7 +23,14 @@ def tip_hyperparam_ood_detector(dset,
                                 id_classes_split,
                                 runs,
                                 kshots,
-                                augment_epochs):
+                                augment_epochs,
+                                train_epochs=None,
+                                learning_rate=None,
+                                eps=None,
+                                finetune_adapter=False):
+    if finetune_adapter:
+        assert train_epochs and learning_rate and eps, "Missing params for finetuning"
+
     dataset = dset(data_path=Config.DATAPATH,
                    split='test',
                    transform=clip_transform)
@@ -58,6 +63,7 @@ def tip_hyperparam_ood_detector(dset,
 
         # get the kshot train set
         tip_train_set = create_tip_train_set(dset, seen_labels, kshots)
+        tip_train_set.name = f"{tip_train_set.name}_{runs}_runs_ood"
         _logger.info(f"len train set: {len(tip_train_set)}. Should be: {len(tip_train_set.classes) * kshots} (max)")
         cache_keys, cache_values = get_cache_model(tip_train_set, clip_model, augment_epochs=augment_epochs)
 
@@ -67,7 +73,19 @@ def tip_hyperparam_ood_detector(dset,
         val_features, val_labels, label_features, classes = get_dataset_features_from_dataset_with_split(
             tip_val_set,
             clip_model)
-        alpha, beta = search_hp(cache_keys, cache_values, val_features, val_labels, zeroshot_weights)
+
+        if finetune_adapter:
+            alpha, beta = run_tip_adapter_finetuned(tip_train_set, clip_model,
+                                                    val_features, val_labels,
+                                                    zeroshot_weights, cache_keys,
+                                                    cache_values, alpha, beta,
+                                                    train_epochs, learning_rate,
+                                                    eps)
+            tipf_adapter = WeightAdapter(cache_keys).to(device)
+            tipf_adapter = tipf_adapter.load_state_dict(load_adapter(tip_train_set.name))
+            tipf_adapter.eval()
+        else:
+            alpha, beta = search_hp(cache_keys, cache_values, val_features, val_labels, zeroshot_weights)
 
         clip_probs_max, tip_probs_max = [], []
 
@@ -81,7 +99,13 @@ def tip_hyperparam_ood_detector(dset,
             clip_probs = torch.softmax(clip_logits, dim=-1).squeeze()
 
             # TIP ADAPTER
-            affinity = image_features_for_label @ cache_keys
+            if finetune_adapter:
+                tipf_adapter.eval()
+                affinity = tipf_adapter(image_features_for_label)
+
+            else:
+                affinity = image_features_for_label @ cache_keys
+
             cache_logits = get_cache_logits(affinity, cache_values, beta)
             tip_logits = clip_logits + cache_logits * alpha
             tip_probs = torch.softmax(tip_logits, dim=1).squeeze()

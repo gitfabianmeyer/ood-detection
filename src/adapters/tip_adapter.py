@@ -330,11 +330,7 @@ def run_tip_adapter_finetuned(train_set, model,
                                       shuffle=True,
                                       num_workers=2)
 
-    adapter = WeightAdapter(cache_keys).to(device)
-    adapter.weight = nn.Parameter(cache_keys.t())
-
-    optimizer = torch.optim.AdamW(adapter.parameters(), lr=lr, eps=eps)
-    scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, train_epochs * len(train_loader_shuffle))
+    adapter, optimizer, scheduler = init_adapter(cache_keys, eps, lr, train_epochs, train_loader_shuffle)
 
     best_acc, best_epoch, best_f1 = 0, 0, 0
     losses, learning_rates, accuracies = [], [], []
@@ -400,6 +396,14 @@ def run_tip_adapter_finetuned(train_set, model,
                                       zeroshot_weights=zeroshot_weights,
                                       adapter=adapter)
     return best_alpha, best_beta
+
+
+def init_adapter(cache_keys, eps, lr, train_epochs, train_loader_shuffle):
+    adapter = WeightAdapter(cache_keys).to(device)
+    adapter.weight = nn.Parameter(cache_keys.t())
+    optimizer = torch.optim.AdamW(adapter.parameters(), lr=lr, eps=eps)
+    scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, train_epochs * len(train_loader_shuffle))
+    return adapter, optimizer, scheduler
 
 
 def store_adapter(model, dataset):
