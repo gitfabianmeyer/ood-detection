@@ -3,15 +3,14 @@ import logging
 import torch
 from adapters.tip_adapter import get_cache_logits, get_cache_model, \
     create_tip_train_set, load_hyperparams_from_training, \
-    search_hp, get_dataset_with_shorted_classes, \
-    get_dataset_features_from_dataset_with_split
+    search_hp, get_dataset_with_shorted_classes,\
+    run_tip_adapter_finetuned, WeightAdapter, \
+    load_adapter, get_dataset_features_from_dataset_with_split
 from datasets.zoc_loader import IsolatedClasses
 from ood_detection.config import Config
-from torch.utils.data import DataLoader
 from zoc.baseline import sorted_zeroshot_weights, get_zeroshot_weight_dict, get_feature_weight_dict
 from zoc.utils import get_mean_std, get_auroc_for_max_probs, get_split_specific_targets, get_ablation_splits
 
-from src.adapters.tip_adapter import init_adapter, run_tip_adapter_finetuned, WeightAdapter, load_adapter
 
 _logger = logging.getLogger(__name__)
 
