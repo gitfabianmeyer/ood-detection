@@ -74,10 +74,16 @@ def tip_hyperparam_ood_detector(dset,
             clip_model)
 
         if finetune_adapter:
+            # init alpha and beta according to paper
+
+            # set init residual ratio to 1 ( new & old knowledge balanced)
+            init_alpha = 1.
+            # set sharpness nearly balanced
+            init_beta = 1.17
             alpha, beta = run_tip_adapter_finetuned(tip_train_set, clip_model,
                                                     val_features, val_labels,
                                                     zeroshot_weights, cache_keys,
-                                                    cache_values, alpha, beta,
+                                                    cache_values, init_alpha, init_beta,
                                                     train_epochs, learning_rate,
                                                     eps)
             tipf_adapter = WeightAdapter(cache_keys).to(device)
