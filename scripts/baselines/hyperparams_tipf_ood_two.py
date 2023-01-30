@@ -31,7 +31,7 @@ def main():
 
     for dname, dset in HalfTwoDict.items():
         _logger.info(f"\t\tStarting {dname} run...")
-        run = wandb.init(project=f"thesis-tipf-ood-test-hyperparam-search-{runs}-runs",
+        run = wandb.init(project=f"thesis-tip_tipf-ood-test-hyperparam-search-{runs}-runs",
                          entity="wandbefab",
                          name=dname)
         try:

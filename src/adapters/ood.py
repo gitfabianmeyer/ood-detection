@@ -49,7 +49,7 @@ def tip_hyperparam_ood_detector(dset,
     ablation_splits = get_ablation_splits(dataset.classes, runs, num_id_classes, num_ood_classes)
 
     # run for the ablation splits
-    clip_aucs, tip_aucs = [], []
+    clip_aucs, tip_aucs, tipf_aucs = [], [], []
     for label_idx, split in enumerate(ablation_splits):
         _logger.info(f"Split ({label_idx + 1} / {len(ablation_splits)} ")
 
@@ -79,19 +79,19 @@ def tip_hyperparam_ood_detector(dset,
             init_alpha = 1.
             # set sharpness nearly balanced
             init_beta = 1.17
-            alpha, beta = run_tip_adapter_finetuned(tip_train_set, clip_model,
-                                                    val_features, val_labels,
-                                                    zeroshot_weights, cache_keys,
-                                                    cache_values, init_alpha, init_beta,
-                                                    train_epochs, learning_rate,
-                                                    eps)
+            tipf_alpha, tipf_beta = run_tip_adapter_finetuned(tip_train_set, clip_model,
+                                                              val_features, val_labels,
+                                                              zeroshot_weights, cache_keys,
+                                                              cache_values, init_alpha, init_beta,
+                                                              train_epochs, learning_rate,
+                                                              eps)
             tipf_adapter = WeightAdapter(cache_keys).to(device)
             tipf_adapter.load_state_dict(load_adapter(tip_train_set.name))
             tipf_adapter.eval()
         else:
-            alpha, beta = search_hp(cache_keys, cache_values, val_features, val_labels, zeroshot_weights)
+            tip_alpha, tip_beta = search_hp(cache_keys, cache_values, val_features, val_labels, zeroshot_weights)
 
-        clip_probs_max, tip_probs_max = [], []
+        clip_probs_max, tip_probs_max, tipf_probs_max = [], [], []
 
         for label_idx, semantic_label in enumerate(split):
             # get features
@@ -101,25 +101,27 @@ def tip_hyperparam_ood_detector(dset,
             # calc the logits and softmax
             clip_logits = 100 * test_image_features_for_label @ zeroshot_weights.T
             clip_probs = torch.softmax(clip_logits, dim=-1).squeeze()
-
-            # TIP ADAPTER
-            if finetune_adapter:
-                tipf_adapter.eval()
-                affinity = tipf_adapter(test_image_features_for_label)
-
-            else:
-                affinity = test_image_features_for_label @ cache_keys
-
-            cache_logits = get_cache_logits(affinity, cache_values, beta)
-            tip_logits = clip_logits + cache_logits * alpha
-            tip_probs = torch.softmax(tip_logits, dim=1).squeeze()
+            top_clip_prob, _ = clip_probs.cpu().topk(1, dim=-1)
+            clip_probs_max.extend(top_clip_prob.detach().numpy())
 
             if clip_probs.shape[1] != num_id_classes:
                 _logger.error(f"Z_p.shape: {clip_probs.shape} != id: {num_id_classes}")
                 raise AssertionError
 
-            top_clip_prob, _ = clip_probs.cpu().topk(1, dim=-1)
-            clip_probs_max.extend(top_clip_prob.detach().numpy())
+            # TIP ADAPTER
+            if finetune_adapter:
+                tipf_adapter.eval()
+                tipf_affinity = tipf_adapter(test_image_features_for_label)
+                tipf_cache_logits = get_cache_logits(tipf_affinity, cache_values, tipf_beta)
+                tipf_logits = clip_logits + tipf_cache_logits * tipf_alpha
+                tipf_probs = torch.softmax(tipf_logits, dim=1).squeeze()
+                top_tipf_prob, _ = tipf_probs.cpu().topk(1, dim=-1)
+                tipf_probs_max.extend(top_tipf_prob.detach().numpy())
+
+            tip_affinity = test_image_features_for_label @ cache_keys
+            tip_cache_logits = get_cache_logits(tip_affinity, cache_values, tip_beta)
+            tip_logits = clip_logits + tip_cache_logits * tip_alpha
+            tip_probs = torch.softmax(tip_logits, dim=1).squeeze()
             top_tip_prob, _ = tip_probs.cpu().topk(1, dim=-1)
             tip_probs_max.extend(top_tip_prob.detach().numpy())
 
@@ -130,13 +132,28 @@ def tip_hyperparam_ood_detector(dset,
 
     clip_mean, clip_std = get_mean_std(clip_aucs)
     tip_mean, tip_std = get_mean_std(tip_aucs)
-    metrics = {'clip': clip_mean,
-               'clip_std': clip_std,
-               'tip': tip_mean,
-               'tip_std': tip_std,
-               'alpha': alpha,
-               'beta': beta}
+    if finetune_adapter:
+        tipf_aucs.append(get_auroc_for_max_probs(targets, tipf_probs_max))
+        tipf_mean, tipf_std = get_mean_std(tipf_aucs)
 
+        metrics = {'clip': clip_mean,
+                   'clip_std': clip_std,
+                   'tip': tip_mean,
+                   'tip_std': tip_std,
+                   'tip_alpha': tip_alpha,
+                   'tip_beta': tip_beta,
+                   'tipf': tipf_mean,
+                   'tipf_std': tipf_std,
+                   'tipf_alpha': tipf_alpha,
+                   'tipf_beta': tipf_beta
+                   }
+    else:
+        metrics = {'clip': clip_mean,
+                   'clip_std': clip_std,
+                   'tip': tip_mean,
+                   'tip_std': tip_std,
+                   'tip_alpha': tip_alpha,
+                   'tip_beta': tip_beta}
     return metrics
 
 
