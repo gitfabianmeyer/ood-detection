@@ -38,6 +38,7 @@ class OodSVHN(torchvision.datasets.SVHN):
         self.idx_to_class = {value: key for (key, value) in self.class_to_idx.items()}
         self.templates = templates if templates else mnist_templates
         self.set_split()
+        self.name = 'svhn'
 
     def __getitem__(self, index: int) -> Tuple[Any, Any]:
         """
@@ -60,9 +61,6 @@ class OodSVHN(torchvision.datasets.SVHN):
             target = self.target_transform(target)
 
         return img, target
-    @property
-    def name(self):
-        return 'svhn'
 
     def set_split(self):
         if self.split == 'val':

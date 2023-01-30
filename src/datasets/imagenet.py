@@ -239,10 +239,7 @@ class OodTinyImageNet(TinyImageNetImageFolder):
         self.templates = templates if templates else imagenet_templates
         self.split = split
         self.set_split()
-
-    @property
-    def name(self):
-        return 'imagenet'
+        self.name = 'imagenet'
 
     def set_split(self):
         if self.split == 'val':
@@ -274,9 +271,8 @@ class OodTinyImageNet(TinyImageNetImageFolder):
 
 
 def main():
-    name = "Tiny Imagenet"
     dataset = OodTinyImageNet
-    run_full_distances(name, dataset, lsun=False)
+    run_full_distances(dataset.name, dataset, lsun=False)
 
 
 if __name__ == '__main__':

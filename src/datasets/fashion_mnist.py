@@ -56,6 +56,7 @@ class OodFashionMNIST(CustomFashionMNIST):
         self.split = split
         self.set_split()
         self.idx_to_class = {value: key for (key, value) in self.class_to_idx.items()}
+        self.name = 'fashion mnist'
 
     @property
     def class_to_idx(self):
@@ -73,15 +74,10 @@ class OodFashionMNIST(CustomFashionMNIST):
             self.data, _, self.targets, _ = train_test_split(self.data, self.targets, test_size=Config.TEST_SIZE,
                                                              random_state=42, stratify=self.targets)
 
-    @property
-    def name(self):
-        return 'fashion mnist'
-
 
 def main():
-    name = "Fashion MNIST"
     dataset = OodFashionMNIST
-    run_full_distances(name, dataset, lsun=False)
+    run_full_distances(dataset.name, dataset, lsun=False)
 
 
 if __name__ == '__main__':

@@ -25,6 +25,7 @@ class OodCifar100(torchvision.datasets.CIFAR100):
         self.templates = templates if templates else cifar_templates
         self.idx_to_class = {value: key for (key, value) in self.class_to_idx.items()}
         self.set_split()
+        self.name = 'cifar100'
 
     def set_split(self):
         if self.split == 'val':
@@ -33,14 +34,11 @@ class OodCifar100(torchvision.datasets.CIFAR100):
         elif self.split == 'train':
             self.data, _, self.targets, _ = train_test_split(self.data, self.targets, test_size=Config.TEST_SIZE,
                                                              random_state=42, stratify=self.targets)
-    @property
-    def name(self):
-        return 'cifar100'
+
 
 def main():
-    name = "cifar100"
     dataset = OodCifar100
-    run_full_distances(name, dataset, lsun=False)
+    run_full_distances(dataset.name, dataset, lsun=False)
 
 
 if __name__ == '__main__':

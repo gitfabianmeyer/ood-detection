@@ -26,10 +26,7 @@ class OodCaltech101(torchvision.datasets.Caltech101):
         self.class_to_idx = {value: key for (key, value) in self.idx_to_class.items()}
         self.templates = templates if templates else caltech101_templates
         self.data, self.targets = self.get_split(split)
-
-    @property
-    def name(self):
-        return 'caltech101'
+        self.name = 'caltech101'
 
     def __getitem__(self, idx):
         img = Image.open(self.data[idx])

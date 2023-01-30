@@ -26,10 +26,7 @@ class OodStanfordCars(torchvision.datasets.StanfordCars):
         self.templates = templates if templates else stanfordcars_templates
         self.set_split()
         self.idx_to_class = {value: key for (key, value) in self.class_to_idx.items()}
-
-    @property
-    def name(self):
-        return 'stanford cars'
+        self.name = 'stanford cars'
 
     def set_split(self):
         if self.split == 'val':

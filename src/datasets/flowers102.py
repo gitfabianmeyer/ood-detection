@@ -31,6 +31,7 @@ class OodFlowers102(torchvision.datasets.Flowers102):
         self.targets = np.array(self._labels)
         self.class_to_idx = {cls: i for (i, cls) in enumerate(self.classes)}
         self.idx_to_class = {value: key for (key, value) in self.class_to_idx.items()}
+        self.name = 'flowers102'
 
     def __len__(self) -> int:
         return len(self.data)
@@ -47,15 +48,10 @@ class OodFlowers102(torchvision.datasets.Flowers102):
 
         return image, label
 
-    @property
-    def name(self):
-        return 'flowers102'
-
 
 def main():
-    name = "Flowers102"
     dataset = OodFlowers102
-    run_full_distances(name, dataset, lsun=False)
+    run_full_distances(dataset.name, dataset, lsun=False)
 
 
 if __name__ == '__main__':

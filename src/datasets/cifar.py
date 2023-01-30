@@ -22,10 +22,7 @@ class OodCifar10(torchvision.datasets.CIFAR10):
         self.templates = templates if templates else cifar_templates
         self.idx_to_class = {value: key for (key, value) in self.class_to_idx.items()}
         self.set_split()
-
-    @property
-    def name(self):
-        return 'cifar10'
+        self.name = 'cifar10'
 
     def set_split(self):
         if self.split == 'val':
@@ -37,9 +34,8 @@ class OodCifar10(torchvision.datasets.CIFAR10):
 
 
 def main():
-    name = "cifar10"
     dataset = OodCifar10
-    run_full_distances(name, dataset, lsun=False)
+    run_full_distances(dataset.name, dataset, lsun=False)
 
 
 if __name__ == '__main__':

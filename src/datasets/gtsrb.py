@@ -34,6 +34,7 @@ class OodGTSRB(torchvision.datasets.GTSRB):
         self.data, self.targets = zip(*self._samples)
         self.targets = np.array(self.targets)
         self.set_split()
+        self.name = 'gtsrb'
 
     def __getitem__(self, index: int) -> Tuple[Any, Any]:
 
@@ -61,15 +62,10 @@ class OodGTSRB(torchvision.datasets.GTSRB):
     def __len__(self) -> int:
         return len(self.targets)
 
-    @property
-    def name(self):
-        return 'gtsrb'
-
 
 def main():
-    name = "gtrsb"
     dataset = OodGTSRB
-    run_full_distances(name, dataset, lsun=False)
+    run_full_distances(dataset.name, dataset, lsun=False)
 
 
 if __name__ == '__main__':

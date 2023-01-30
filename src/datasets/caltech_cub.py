@@ -33,10 +33,7 @@ class OodCub2011(Dataset):
                                ' You can use download=True to download it')
 
         self.templates = templates if templates else imagenet_templates
-
-    @property
-    def name(self):
-        return 'caltech cub'
+        self.name = 'caltech cub'
 
     def _load_metadata(self):
         images = []

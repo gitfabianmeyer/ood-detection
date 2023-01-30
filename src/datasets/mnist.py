@@ -243,10 +243,7 @@ class OodMNIST(CustomMNIST):
         ]
         self.idx_to_class = {value: key for (key, value) in self.class_to_idx.items()}
         self.set_split()
-
-    @property
-    def name(self):
-        return 'mnist'
+        self.name = 'mnist'
 
     @property
     def class_to_idx(self):

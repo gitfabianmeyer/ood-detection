@@ -22,6 +22,7 @@ class OodDTD(torchvision.datasets.DTD):
         self.targets = np.array(self._labels)
         self.templates = templates if templates else dtd_templates
         self.idx_to_class = {value: key for (key, value) in self.class_to_idx.items()}
+        self.name = 'dtd'
 
     def __getitem__(self, idx):
         image, label = self.data[idx], self.targets[idx]
@@ -38,15 +39,10 @@ class OodDTD(torchvision.datasets.DTD):
     def __len__(self) -> int:
         return len(self.data)
 
-    @property
-    def name(self):
-        return 'dtd'
-
 
 def main():
-    name = "dtd"
     dataset = OodDTD
-    run_full_distances(name, dataset, lsun=False)
+    run_full_distances(dataset.name, dataset, lsun=False)
 
 
 if __name__ == '__main__':

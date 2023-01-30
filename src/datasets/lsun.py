@@ -220,6 +220,7 @@ class OodLSUN(LSUN):
         self.idx_to_class = {i: cls for (i, cls) in enumerate(self.classes)}
         self.class_to_idx = {value: key for (key, value) in self.idx_to_class.items()}
         self.targets = self.set_targets()
+        self.name = 'lsun'
 
     def __len__(self):
         return len(self.targets)
@@ -248,9 +249,8 @@ class OodLSUN(LSUN):
 
 
 def main():
-    name = "LSUN"
     dataset = OodLSUN
-    run_full_distances(name, dataset, lsun=True)
+    run_full_distances(dataset.name, dataset, lsun=True)
 
 
 if __name__ == '__main__':
