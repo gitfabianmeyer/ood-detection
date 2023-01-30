@@ -88,8 +88,8 @@ def tip_hyperparam_ood_detector(dset,
             tipf_adapter = WeightAdapter(cache_keys).to(device)
             tipf_adapter.load_state_dict(load_adapter(tip_train_set.name))
             tipf_adapter.eval()
-        else:
-            tip_alpha, tip_beta = search_hp(cache_keys, cache_values, val_features, val_labels, zeroshot_weights)
+
+        tip_alpha, tip_beta = search_hp(cache_keys, cache_values, val_features, val_labels, zeroshot_weights)
 
         clip_probs_max, tip_probs_max, tipf_probs_max = [], [], []
 
