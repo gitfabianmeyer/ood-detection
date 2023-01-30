@@ -69,13 +69,14 @@ class IsolatedClass(Dataset):
 
 
 class IsolatedClasses:
-    def __init__(self, dataset, batch_size=1, lsun=False):
+    def __init__(self, dataset, batch_size=1, lsun=False, shuffle=False):
         self.loaders_dict = {}
         self.templates = dataset.templates
         self.lsun = lsun
         self.batch_size = batch_size
 
         self.classes = dataset.classes
+        self.shuffle = shuffle
         self.fill_loaders_dict(dataset)
 
     def fill_loaders_dict(self, full_dataset):
@@ -85,7 +86,7 @@ class IsolatedClasses:
             else:
                 dset = IsolatedClass(full_dataset, label)
 
-            loader = DataLoader(dataset=dset, batch_size=self.batch_size, num_workers=4)
+            loader = DataLoader(dataset=dset, batch_size=self.batch_size, num_workers=4, shuffle=self.shuffle)
             self.loaders_dict[label] = loader
 
     def keys(self):
