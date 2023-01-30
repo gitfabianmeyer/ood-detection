@@ -95,20 +95,20 @@ def tip_hyperparam_ood_detector(dset,
 
         for label_idx, semantic_label in enumerate(split):
             # get features
-            image_features_for_label = feature_weight_dict[semantic_label]
-            image_features_for_label = image_features_for_label.to(torch.float32)
+            test_image_features_for_label = feature_weight_dict[semantic_label]
+            test_image_features_for_label = test_image_features_for_label.to(torch.float32)
 
             # calc the logits and softmax
-            clip_logits = image_features_for_label @ zeroshot_weights.T
+            clip_logits = 100 * test_image_features_for_label @ zeroshot_weights.T
             clip_probs = torch.softmax(clip_logits, dim=-1).squeeze()
 
             # TIP ADAPTER
             if finetune_adapter:
                 tipf_adapter.eval()
-                affinity = tipf_adapter(image_features_for_label)
+                affinity = tipf_adapter(test_image_features_for_label)
 
             else:
-                affinity = image_features_for_label @ cache_keys
+                affinity = test_image_features_for_label @ cache_keys
 
             cache_logits = get_cache_logits(affinity, cache_values, beta)
             tip_logits = clip_logits + cache_logits * alpha

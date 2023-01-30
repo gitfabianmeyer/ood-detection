@@ -29,7 +29,6 @@ class WeightAdapter(nn.Module):
         super(WeightAdapter, self).__init__()
         self.linear1 = nn.Linear(cache_keys.shape[0], cache_keys.shape[1], bias=False).to(torch.float32)
         self.weight = nn.Parameter(cache_keys.t())
-        store_adapter(self, 'test')
 
     def forward(self, x):
         return self.linear1(x)
@@ -117,7 +116,7 @@ def get_label_dict(train_images):
 
 
 def get_truncated_to_min(label_dict, kshots):
-    shortest = min([len(l) for l in label_dict.values()])
+    shortest = min([len(length) for length in label_dict.values()])
     if shortest < kshots:
         kshots = shortest
         _logger.warning(f"Set kshots to min class len: {shortest}")
