@@ -160,9 +160,10 @@ def tip_hyperparam_ood_detector(dset,
     return metrics
 
 
-def pad_list_of_vectors(list_of_vectors, value=-np.inf):
+def pad_list_of_vectors(list_of_vectors, value=-np.inf, max_length=None):
     new_vectors = []
-    max_length = len(max(list_of_vectors, key=len))
+    if not max_length:
+        max_length = len(max(list_of_vectors, key=len))
     for vector in list_of_vectors:
         if len(vector) < max_length:
             zeros = torch.zeros((max_length,))
@@ -172,6 +173,8 @@ def pad_list_of_vectors(list_of_vectors, value=-np.inf):
         else:
             new_vectors.append(vector)
     return torch.stack(new_vectors)
+
+
 def tip_ood_detector(dset,
                      clip_model,
                      clip_transform,
@@ -423,7 +426,7 @@ def adapter_zoc(dset,
 
             # zoc tip
             padded_cache_logits = torch.zeros(zoc_logits_for_semantic_label.shape)
-            padded_cache_logits[:, :tip_affinity.shape[1]] = tip_cache_logits
+            padded_cache_logits[:, :tip_cache_logits.shape[1]] = tip_cache_logits
             toc_logits = zoc_logits_for_semantic_label + padded_cache_logits * tip_alpha
             toc_probs = torch.softmax(toc_logits, dim=1).squeeze()
             toc_probs_sum.extend(torch.sum(toc_probs[:, len(seen_labels):], dim=1).detach().numpy())
@@ -432,7 +435,7 @@ def adapter_zoc(dset,
 
             # zoc tipf
             padded_cache_logits = torch.zeros(zoc_logits_for_semantic_label.shape)
-            padded_cache_logits[:, :tipf_affinity.shape[1]] = tipf_cache_logits
+            padded_cache_logits[:, :tipf_cache_logits.shape[1]] = tipf_cache_logits
             tocf_logits = zoc_logits_for_semantic_label + padded_cache_logits * tipf_alpha
             tocf_probs = torch.softmax(tocf_logits, dim=1).squeeze()
             tocf_probs_sum.extend(torch.sum(tocf_probs[:, len(seen_labels):], dim=1).detach().numpy())
