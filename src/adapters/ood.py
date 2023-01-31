@@ -324,26 +324,27 @@ def adapter_zoc(dset,
         # get shorted val set for the
         tip_val_set = get_dataset_with_shorted_classes(dset, seen_labels, 'val')
         # get features from the shorted val set
-        val_features, val_labels, label_features, classes = get_dataset_features_from_dataset_with_split(
-            tip_val_set,
-            clip_model)
+        # val_features, val_labels, label_features, classes = get_dataset_features_from_dataset_with_split(
+        #     tip_val_set,
+        #     clip_model)
 
         # set init residual ratio to 1 ( new & old knowledge balanced)
         init_alpha = 1.
         # set sharpness nearly balanced
         init_beta = 1.17
-        tipf_alpha, tipf_beta = run_tip_adapter_finetuned(tip_train_set, clip_model,
-                                                          val_features, val_labels,
-                                                          zeroshot_weights, cache_keys,
-                                                          cache_values, init_alpha, init_beta,
-                                                          train_epochs, learning_rate,
-                                                          eps)
+        # tipf_alpha, tipf_beta = run_tip_adapter_finetuned(tip_train_set, clip_model,
+        #                                                   val_features, val_labels,
+        #                                                   zeroshot_weights, cache_keys,
+        #                                                   cache_values, init_alpha, init_beta,
+        #                                                   train_epochs, learning_rate,
+        #                                                   eps)
         tipf_adapter = WeightAdapter(cache_keys).to(device)
-        tipf_adapter.load_state_dict(load_adapter(tip_train_set.name))
+        # tipf_adapter.load_state_dict(load_adapter(tip_train_set.name)) # TODO
         tipf_adapter.eval()
 
-        tip_alpha, tip_beta = search_hp(cache_keys, cache_values, val_features, val_labels, zeroshot_weights)
-
+        # tip_alpha, tip_beta = search_hp(cache_keys, cache_values, val_features, val_labels, zeroshot_weights)
+        tip_alpha, tip_beta = 1., 1.
+        tipf_alpha, tipf_beta = 1., 1.
         # run zoc
         clip_probs_max, tip_probs_max, tipf_probs_max = [], [], []
         zoc_probs_sum, toc_probs_sum, tocf_probs_sum = [], [], [],
@@ -372,7 +373,7 @@ def adapter_zoc(dset,
             loader = isolated_classes_slow_loader[semantic_label]
             for image_idx, image in enumerate(tqdm(loader)):
 
-                if image_idx == 2:
+                if image_idx == 0:
                     break
 
                 clip_out = clip_model.encode_image(image.to(device)).float()
@@ -406,7 +407,8 @@ def adapter_zoc(dset,
                 # now: use normal zoc probs. use zoctip. use zoctipf
 
             # first, pad all to then longest with -inf (neutral element in softmax)
-            zoc_logits_for_semantic_label = pad_list_of_vectors(zoc_logits_for_semantic_label, -np.inf)
+            zoc_logits_for_semantic_label = pad_list_of_vectors(zoc_logits_for_semantic_label, -np.inf)  # TODO
+            zoc_logits_for_semantic_label = torch.rand((len(loader), 200))  # TODO
 
             # TIPF ADAPTER
             tipf_affinity = tipf_adapter(test_image_features_for_label)
