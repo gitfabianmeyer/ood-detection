@@ -293,7 +293,8 @@ def adapter_zoc(dset,
     isolated_classes_fast_loader.templates = ["This is a photo of a {}"]
     _logger.info('Creating the test weight dicts')
     # feature_weight_dict = get_feature_weight_dict(isolated_classes_fast_loader, clip_model, device)
-    feature_weight_dict = {label: torch.rand(len(loader),512) for (label, loader) in isolated_classes_fast_loader.items()} # TODO
+    feature_weight_dict = {label: torch.rand(len(loader.dataset), 512) for (label, loader) in
+                           isolated_classes_fast_loader.items()}  # TODO
     classes_weight_dict = get_zeroshot_weight_dict(isolated_classes_fast_loader, clip_model)
     _logger.info("Done creating weight dicts.")
 
@@ -405,12 +406,12 @@ def adapter_zoc(dset,
             #     zoc_probs_sum.append(torch.sum(zoc_probs[len(seen_labels):]))  # for normal zoc
             #     zoc_logits_for_semantic_label.append(zoc_logits_for_image)  # for toc/f
 
-                # now: use normal zoc probs. use zoctip. use zoctipf
+            # now: use normal zoc probs. use zoctip. use zoctipf
 
             # first, pad all to then longest with -inf (neutral element in softmax)
             # zoc_logits_for_semantic_label = pad_list_of_vectors(zoc_logits_for_semantic_label, -np.inf)  # TODO
             zoc_logits_for_semantic_label = torch.rand((len(loader), 200))  # TODO
-            zoc_probs_sum = [torch.rand((len(loader),))] # TODO
+            zoc_probs_sum = [torch.rand((len(loader),))]  # TODO
 
             # TIPF ADAPTER
             tipf_affinity = tipf_adapter(test_image_features_for_label)
