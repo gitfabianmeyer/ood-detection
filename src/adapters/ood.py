@@ -290,8 +290,8 @@ def adapter_zoc(dset,
     clip_aucs, tip_aucs, tipf_aucs = [], [], []
     zoc_aucs, toc_aucs, tocf_aucs = [], [], []
 
-    for label_idx, split in enumerate(ablation_splits):
-        _logger.info(f"Split ({label_idx + 1} / {len(ablation_splits)} ")
+    for split_idx, split in enumerate(ablation_splits):
+        _logger.info(f"Split ({split_idx + 1} / {len(ablation_splits)} ")
 
         seen_descriptions, seen_labels, unseen_labels = get_ablation_split_classes(num_id_classes, split)
 
@@ -383,7 +383,8 @@ def adapter_zoc(dset,
                 text_features = clip_model.encode_text(all_desc_ids.to(device)).to(torch.float32)
                 text_features /= text_features.norm(dim=-1, keepdim=True)
                 zoc_logits_for_image = 100.0 * image_feature @ text_features.T
-                zoc_probs_sum.append(torch.softmax(zoc_logits_for_image)[:len(seen_labels)])
+                zoc_probs = torch.softmax(zoc_logits_for_image, dim=1)
+                zoc_probs_sum.append(torch.sum(zoc_probs[:len(seen_labels)]))
                 zoc_logits_for_semantic_label.append(zoc_logits_for_image)
                 # now: use normal zoc probs. use zoctip. use zoctipf
 
@@ -410,19 +411,23 @@ def adapter_zoc(dset,
             padded_cache_logits[:, :tip_affinity.shape[1]] = tip_cache_logits
             toc_logits = zoc_logits_for_semantic_label + padded_cache_logits * tip_alpha
             toc_probs = torch.softmax(toc_logits, dim=1).squeeze()
-            toc_probs_sum.extend(torch.sum(toc_probs[:, len(seen_labels)]).detach().numpy())
+            toc_probs_sum.extend(torch.sum(toc_probs[:, :len(seen_labels)], dim=1).detach().numpy())
+            assert toc_probs_sum[0].shape[0] == len(seen_labels), f"shape: {toc_probs_sum[0].shape[0]} is != {len(seen_labels)}"
 
             # zoc tipf
             padded_cache_logits = torch.zeros(zoc_logits_for_semantic_label.shape)
             padded_cache_logits[:, :tipf_affinity.shape[1]] = tipf_cache_logits
             tocf_logits = zoc_logits_for_semantic_label + padded_cache_logits * tipf_alpha
             tocf_probs = torch.softmax(tocf_logits, dim=1).squeeze()
-            tocf_probs_sum.extend(torch.sum(tocf_probs[:, :len(seen_labels)]).detach().numpy())
+            tocf_probs_sum.extend(torch.sum(tocf_probs[:, :len(seen_labels)], dim=1).detach().numpy())
+            assert tocf_probs_sum[0].shape[0] == len(seen_labels), f"shape: {tocf_probs_sum[0].shape[0]} is != {len(seen_labels)}"
 
         targets = get_split_specific_targets(isolated_classes_fast_loader, seen_labels, unseen_labels)
         assert len(targets) == len(zoc_probs_sum)
         assert len(targets) == len(clip_probs_max)
         assert len(targets) == len(toc_probs_sum)
+        assert len(targets) == len(tocf_probs_sum)
+
         clip_aucs.append(get_auroc_for_max_probs(targets, clip_probs_max))
         tip_aucs.append(get_auroc_for_max_probs(targets, tip_probs_max))
         tipf_aucs.append(get_auroc_for_max_probs(targets, tipf_probs_max))

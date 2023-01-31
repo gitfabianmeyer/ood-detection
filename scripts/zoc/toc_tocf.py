@@ -8,10 +8,6 @@ from transformers import BertGenerationTokenizer
 from zoc.utils import get_decoder
 
 from adapters.ood import adapter_zoc
-
-
-from adapters.ood import tip_hyperparam_ood_detector
-
 import clip
 from ood_detection.config import Config
 import logging
