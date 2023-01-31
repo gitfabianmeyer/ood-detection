@@ -37,7 +37,7 @@ def main():
 
     for dname, dset in HalfOneDict.items():
         if dname != 'cifar10':
-            pass
+            continue
         _logger.info(f"\t\tStarting {dname} run...")
         # run = wandb.init(project=f"thesis-toc-ood-test-hyperparam-search-{runs}-runs", # TODO
         #                  entity="wandbefab",

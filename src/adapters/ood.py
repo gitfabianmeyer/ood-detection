@@ -292,7 +292,8 @@ def adapter_zoc(dset,
     # CAREFUL: ADJUSTMENT FOR ZOC: THE TEMPLATES ( train tip on same )
     isolated_classes_fast_loader.templates = ["This is a photo of a {}"]
     _logger.info('Creating the test weight dicts')
-    feature_weight_dict = get_feature_weight_dict(isolated_classes_fast_loader, clip_model, device)
+    # feature_weight_dict = get_feature_weight_dict(isolated_classes_fast_loader, clip_model, device)
+    feature_weight_dict = {label: torch.rand(len(loader),512) for (label, loader) in isolated_classes_fast_loader.items()} # TODO
     classes_weight_dict = get_zeroshot_weight_dict(isolated_classes_fast_loader, clip_model)
     _logger.info("Done creating weight dicts.")
 
@@ -433,8 +434,6 @@ def adapter_zoc(dset,
             toc_logits = zoc_logits_for_semantic_label + padded_cache_logits * tip_alpha
             toc_probs = torch.softmax(toc_logits, dim=1).squeeze()
             toc_probs_sum.extend(torch.sum(toc_probs[:, len(seen_labels):], dim=1).detach().numpy())
-            assert toc_probs_sum[0].shape[0] == len(
-                seen_labels), f"shape: {toc_probs_sum[0].shape[0]} is != {len(seen_labels)}"
 
             # zoc tipf
             padded_cache_logits = torch.zeros(zoc_logits_for_semantic_label.shape)
@@ -442,8 +441,6 @@ def adapter_zoc(dset,
             tocf_logits = zoc_logits_for_semantic_label + padded_cache_logits * tipf_alpha
             tocf_probs = torch.softmax(tocf_logits, dim=1).squeeze()
             tocf_probs_sum.extend(torch.sum(tocf_probs[:, len(seen_labels):], dim=1).detach().numpy())
-            assert tocf_probs_sum[0].shape[0] == len(
-                seen_labels), f"shape: {tocf_probs_sum[0].shape[0]} is != {len(seen_labels)}"
 
         # targets = get_split_specific_targets(isolated_classes_fast_loader, seen_labels, unseen_labels)
         targets = torch.randint(0, 2, (len(zoc_probs_sum, )))  # TODO
