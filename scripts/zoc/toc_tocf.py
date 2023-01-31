@@ -1,13 +1,14 @@
 import os
 
+os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
+os.environ["CUDA_VISIBLE_DEVICES"] = "6"
+
 from clip.simple_tokenizer import SimpleTokenizer
 from transformers import BertGenerationTokenizer
 from zoc.utils import get_decoder
 
-from src.adapters.ood import adapter_zoc
+from adapters.ood import adapter_zoc
 
-os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
-os.environ["CUDA_VISIBLE_DEVICES"] = "6"
 
 from adapters.ood import tip_hyperparam_ood_detector
 
