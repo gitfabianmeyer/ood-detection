@@ -1,5 +1,11 @@
 import os
 
+from clip.simple_tokenizer import SimpleTokenizer
+from transformers import BertGenerationTokenizer
+from zoc.utils import get_decoder
+
+from src.adapters.ood import adapter_zoc
+
 os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
 os.environ["CUDA_VISIBLE_DEVICES"] = "6"
 
@@ -28,6 +34,9 @@ def main():
     failed = []
     clip_model, clip_transform = clip.load(Config.VISION_MODEL)
     device = Config.DEVICE
+    bert_tokenizer = BertGenerationTokenizer.from_pretrained('google/bert_for_seq_generation_L-24_bbc_encoder')
+    clip_tokenizer = SimpleTokenizer()
+    bert_model = get_decoder()
 
     for dname, dset in HalfTwoDict.items():
         _logger.info(f"\t\tStarting {dname} run...")
@@ -35,18 +44,20 @@ def main():
         #                  entity="wandbefab",
         #                  name=dname)
         try:
-            results = tip_hyperparam_ood_detector(dset,
-                                                  clip_model,
-                                                  clip_transform,
-                                                  device,
-                                                  Config.ID_SPLIT,
-                                                  runs,
-                                                  kshots,
-                                                  augment_epochs,
-                                                  train_epochs,
-                                                  lr,
-                                                  eps,
-                                                  finetune_adapter=True)
+            results = adapter_zoc(dset,
+                                  clip_model,
+                                  clip_transform,
+                                  clip_tokenizer,
+                                  bert_tokenizer,
+                                  bert_model,
+                                  device,
+                                  Config.ID_SPLIT,
+                                  augment_epochs,
+                                  runs,
+                                  kshots,
+                                  train_epochs,
+                                  lr,
+                                  eps)
             print(results)
         except Exception as e:
             failed.append(dname)
