@@ -13,16 +13,16 @@ from ood_detection.config import Config
 import logging
 
 import wandb
-from datasets.config import HalfTwoDict
+from datasets.config import HalfTwoDict, HalfOneDict
 
 logging.basicConfig(level=logging.INFO)
 _logger = logging.getLogger(__name__)
 
 run_clearml = False
-runs = 10
-kshots = 16
-train_epochs = 10
-augment_epochs = 10
+runs = 1 # TODO
+kshots = 2
+train_epochs = 1
+augment_epochs = 1
 lr = 0.001
 eps = 1e-4
 
@@ -35,7 +35,9 @@ def main():
     clip_tokenizer = SimpleTokenizer()
     bert_model = get_decoder()
 
-    for dname, dset in HalfTwoDict.items():
+    for dname, dset in HalfOneDict.items():
+        if dname != 'cifar10':
+            pass
         _logger.info(f"\t\tStarting {dname} run...")
         # run = wandb.init(project=f"thesis-toc-ood-test-hyperparam-search-{runs}-runs", # TODO
         #                  entity="wandbefab",

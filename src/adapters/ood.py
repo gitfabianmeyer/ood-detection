@@ -1,5 +1,6 @@
 import logging
 
+import numpy as np
 import torch
 from adapters.tip_adapter import get_cache_logits, get_cache_model, \
     create_tip_train_set, load_hyperparams_from_training, \
@@ -159,6 +160,18 @@ def tip_hyperparam_ood_detector(dset,
     return metrics
 
 
+def pad_list_of_vectors(list_of_vectors, value=-np.inf):
+    new_vectors = []
+    max_length = len(max(list_of_vectors, key=len))
+    for vector in list_of_vectors:
+        if len(vector) < max_length:
+            zeros = torch.zeros((max_length,))
+            zeros[zeros == 0] = value
+            zeros[:len(vector)] = vector
+            new_vectors.append(zeros)
+        else:
+            new_vectors.append(vector)
+    return torch.stack(new_vectors)
 def tip_ood_detector(dset,
                      clip_model,
                      clip_transform,
@@ -382,13 +395,15 @@ def adapter_zoc(dset,
 
                 text_features = clip_model.encode_text(all_desc_ids.to(device)).to(torch.float32)
                 text_features /= text_features.norm(dim=-1, keepdim=True)
-                zoc_logits_for_image = 100.0 * image_feature @ text_features.T
-                zoc_probs = torch.softmax(zoc_logits_for_image, dim=1)
-                zoc_probs_sum.append(torch.sum(zoc_probs[:len(seen_labels)]))
-                zoc_logits_for_semantic_label.append(zoc_logits_for_image)
+                zoc_logits_for_image = (100.0 * image_feature @ text_features.T).squeeze()
+                zoc_probs = torch.softmax(zoc_logits_for_image, dim=0)
+                zoc_probs_sum.append(torch.sum(zoc_probs[len(seen_labels):]))  # for normal zoc
+                zoc_logits_for_semantic_label.append(zoc_logits_for_image)  # for toc/f
+
                 # now: use normal zoc probs. use zoctip. use zoctipf
 
-            zoc_logits_for_semantic_label = torch.stack(zoc_logits_for_semantic_label)
+            # first, pad all to then longest with -inf (neutral element in softmax)
+            zoc_logits_for_semantic_label = pad_list_of_vectors(zoc_logits_for_semantic_label, -np.inf)
 
             # TIPF ADAPTER
             tipf_affinity = tipf_adapter(test_image_features_for_label)
@@ -411,18 +426,21 @@ def adapter_zoc(dset,
             padded_cache_logits[:, :tip_affinity.shape[1]] = tip_cache_logits
             toc_logits = zoc_logits_for_semantic_label + padded_cache_logits * tip_alpha
             toc_probs = torch.softmax(toc_logits, dim=1).squeeze()
-            toc_probs_sum.extend(torch.sum(toc_probs[:, :len(seen_labels)], dim=1).detach().numpy())
-            assert toc_probs_sum[0].shape[0] == len(seen_labels), f"shape: {toc_probs_sum[0].shape[0]} is != {len(seen_labels)}"
+            toc_probs_sum.extend(torch.sum(toc_probs[:, len(seen_labels):], dim=1).detach().numpy())
+            assert toc_probs_sum[0].shape[0] == len(
+                seen_labels), f"shape: {toc_probs_sum[0].shape[0]} is != {len(seen_labels)}"
 
             # zoc tipf
             padded_cache_logits = torch.zeros(zoc_logits_for_semantic_label.shape)
             padded_cache_logits[:, :tipf_affinity.shape[1]] = tipf_cache_logits
             tocf_logits = zoc_logits_for_semantic_label + padded_cache_logits * tipf_alpha
             tocf_probs = torch.softmax(tocf_logits, dim=1).squeeze()
-            tocf_probs_sum.extend(torch.sum(tocf_probs[:, :len(seen_labels)], dim=1).detach().numpy())
-            assert tocf_probs_sum[0].shape[0] == len(seen_labels), f"shape: {tocf_probs_sum[0].shape[0]} is != {len(seen_labels)}"
+            tocf_probs_sum.extend(torch.sum(tocf_probs[:, len(seen_labels):], dim=1).detach().numpy())
+            assert tocf_probs_sum[0].shape[0] == len(
+                seen_labels), f"shape: {tocf_probs_sum[0].shape[0]} is != {len(seen_labels)}"
 
-        targets = get_split_specific_targets(isolated_classes_fast_loader, seen_labels, unseen_labels)
+        # targets = get_split_specific_targets(isolated_classes_fast_loader, seen_labels, unseen_labels)
+        targets = torch.randint(0, 2, (len(zoc_probs_sum, )))  # TODO
         assert len(targets) == len(zoc_probs_sum)
         assert len(targets) == len(clip_probs_max)
         assert len(targets) == len(toc_probs_sum)
