@@ -288,14 +288,12 @@ def adapter_zoc(dset,
 
     # run for the ablation splits
     clip_aucs, tip_aucs, tipf_aucs = [], [], []
+    zoc_aucs, toc_aucs, tocf_aucs = [], [], []
 
     for label_idx, split in enumerate(ablation_splits):
         _logger.info(f"Split ({label_idx + 1} / {len(ablation_splits)} ")
 
-        seen_labels = split[:num_id_classes]
-        seen_descriptions = [f"This is a photo of a {label}" for label in seen_labels]
-        unseen_labels = split[num_id_classes:]
-        _logger.debug(f"Seen labels: {seen_labels}\nOOD Labels: {unseen_labels}")
+        seen_descriptions, seen_labels, unseen_labels = get_ablation_split_classes(num_id_classes, split)
 
         # prep everything for tip(f)
         zeroshot_weights = sorted_zeroshot_weights(classes_weight_dict, seen_labels)
@@ -351,14 +349,16 @@ def adapter_zoc(dset,
                 raise AssertionError
 
             # ZOC
-            # todo: Perform Zoc, collect all logits for semantic label. add tip(f) padded with zeros
-
             zoc_logits_for_semantic_label = []
             isolated_classes_slow_loader = IsolatedClasses(dataset,
                                                            batch_size=1,
                                                            lsun=False)
             loader = isolated_classes_slow_loader[semantic_label]
-            for image in tqdm(loader):
+            for image_idx, image in enumerate(tqdm(loader)):
+
+                if image_idx == 2:
+                    break
+
                 clip_out = clip_model.encode_image(image.to(device)).float()
                 clip_extended_embed = clip_out.repeat(1, 2).type(torch.FloatTensor)
 
@@ -383,11 +383,11 @@ def adapter_zoc(dset,
                 text_features = clip_model.encode_text(all_desc_ids.to(device)).to(torch.float32)
                 text_features /= text_features.norm(dim=-1, keepdim=True)
                 zoc_logits_for_image = 100.0 * image_feature @ text_features.T
+                zoc_probs_sum.append(torch.softmax(zoc_logits_for_image)[:len(seen_labels)])
                 zoc_logits_for_semantic_label.append(zoc_logits_for_image)
                 # now: use normal zoc probs. use zoctip. use zoctipf
 
             zoc_logits_for_semantic_label = torch.stack(zoc_logits_for_semantic_label)
-            zoc_probs_sum.append(torch.sum(zoc_logits_for_semantic_label[]))
 
             # TIPF ADAPTER
             tipf_affinity = tipf_adapter(test_image_features_for_label)
@@ -396,14 +396,6 @@ def adapter_zoc(dset,
             tipf_probs = torch.softmax(tipf_logits, dim=1).squeeze()
             top_tipf_prob, _ = tipf_probs.cpu().topk(1, dim=-1)
             tipf_probs_max.extend(top_tipf_prob.detach().numpy())
-
-            # zoc tipf
-            padded_cache_logits = torch.zeros(zoc_logits_for_semantic_label.shape)
-            padded_cache_logits[:, :tipf_affinity.shape[1]] = tipf_cache_logits
-
-            tocf_logits = zoc_logits_for_semantic_label + padded_cache_logits * tipf_alpha
-            tocf_probs = torch.softmax(tocf_logits, dim=1).squeeze()
-            tocf_probs_sum.extend(torch.sum(top_tipf_prob[:len(seen_labels)]).detach().numpy())
 
             # tip
             tip_affinity = test_image_features_for_label @ cache_keys
@@ -418,10 +410,19 @@ def adapter_zoc(dset,
             padded_cache_logits[:, :tip_affinity.shape[1]] = tip_cache_logits
             toc_logits = zoc_logits_for_semantic_label + padded_cache_logits * tip_alpha
             toc_probs = torch.softmax(toc_logits, dim=1).squeeze()
-            toc_probs_sum.extend(torch.sum(toc_probs[:len(seen_labels)]).detach().numpy())
+            toc_probs_sum.extend(torch.sum(toc_probs[:, len(seen_labels)]).detach().numpy())
+
+            # zoc tipf
+            padded_cache_logits = torch.zeros(zoc_logits_for_semantic_label.shape)
+            padded_cache_logits[:, :tipf_affinity.shape[1]] = tipf_cache_logits
+            tocf_logits = zoc_logits_for_semantic_label + padded_cache_logits * tipf_alpha
+            tocf_probs = torch.softmax(tocf_logits, dim=1).squeeze()
+            tocf_probs_sum.extend(torch.sum(tocf_probs[:, :len(seen_labels)]).detach().numpy())
 
         targets = get_split_specific_targets(isolated_classes_fast_loader, seen_labels, unseen_labels)
-
+        assert len(targets) == len(zoc_probs_sum)
+        assert len(targets) == len(clip_probs_max)
+        assert len(targets) == len(toc_probs_sum)
         clip_aucs.append(get_auroc_for_max_probs(targets, clip_probs_max))
         tip_aucs.append(get_auroc_for_max_probs(targets, tip_probs_max))
         tipf_aucs.append(get_auroc_for_max_probs(targets, tipf_probs_max))
@@ -429,22 +430,33 @@ def adapter_zoc(dset,
         toc_aucs.append(get_auroc_for_ood_probs(targets, toc_probs))
         tocf_aucs.append(get_auroc_for_ood_probs(targets, tocf_probs))
 
-
     clip_mean, clip_std = get_mean_std(clip_aucs)
     tip_mean, tip_std = get_mean_std(tip_aucs)
-
-    tipf_aucs.append(get_auroc_for_max_probs(targets, tipf_probs_max))
     tipf_mean, tipf_std = get_mean_std(tipf_aucs)
+
+    zoc_mean, zoc_std = get_mean_std(zoc_aucs)
+    toc_mean, toc_std = get_mean_std(toc_aucs)
+    tocf_mean, tocf_std = get_mean_std(tocf_aucs)
 
     metrics = {'clip': clip_mean,
                'clip_std': clip_std,
                'tip': tip_mean,
                'tip_std': tip_std,
-               'tip_alpha': tip_alpha,
-               'tip_beta': tip_beta,
                'tipf': tipf_mean,
                'tipf_std': tipf_std,
-               'tipf_alpha': tipf_alpha,
-               'tipf_beta': tipf_beta
+               'zoc': zoc_mean,
+               'zoc_std': zoc_std,
+               'toc': toc_mean,
+               'toc_std': toc_std,
+               'tocf': tocf_mean,
+               'tocf_std': tocf_std
                }
     return metrics
+
+
+def get_ablation_split_classes(num_id_classes, split):
+    seen_labels = split[:num_id_classes]
+    seen_descriptions = [f"This is a photo of a {label}" for label in seen_labels]
+    unseen_labels = split[num_id_classes:]
+    _logger.debug(f"Seen labels: {seen_labels}\nOOD Labels: {unseen_labels}")
+    return seen_descriptions, seen_labels, unseen_labels
