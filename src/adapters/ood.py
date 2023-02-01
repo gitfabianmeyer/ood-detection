@@ -292,9 +292,7 @@ def adapter_zoc(dset,
     # CAREFUL: ADJUSTMENT FOR ZOC: THE TEMPLATES ( train tip on same )
     isolated_classes_fast_loader.templates = ["This is a photo of a {}"]
     _logger.info('Creating the test weight dicts')
-    # feature_weight_dict = get_feature_weight_dict(isolated_classes_fast_loader, clip_model, device)
-    feature_weight_dict = {label: torch.rand(len(loader.dataset), 512) for (label, loader) in
-                           isolated_classes_fast_loader.items()}  # TODO
+    feature_weight_dict = get_feature_weight_dict(isolated_classes_fast_loader, clip_model, device)
     classes_weight_dict = get_zeroshot_weight_dict(isolated_classes_fast_loader, clip_model)
     _logger.info("Done creating weight dicts.")
 
@@ -309,7 +307,7 @@ def adapter_zoc(dset,
     zoc_aucs, toc_aucs, tocf_aucs = [], [], []
 
     for split_idx, split in enumerate(ablation_splits):
-        _logger.info(f"Split ({split_idx + 1} / {len(ablation_splits)} ")
+        _logger.info(f"Split ({split_idx + 1} / {len(ablation_splits)} )")
 
         seen_descriptions, seen_labels, unseen_labels = get_ablation_split_classes(num_id_classes, split)
 
@@ -326,27 +324,25 @@ def adapter_zoc(dset,
         # get shorted val set for the
         tip_val_set = get_dataset_with_shorted_classes(dset, seen_labels, 'val')
         # get features from the shorted val set
-        # val_features, val_labels, label_features, classes = get_dataset_features_from_dataset_with_split(
-        #     tip_val_set,
-        #     clip_model)
+        val_features, val_labels, label_features, classes = get_dataset_features_from_dataset_with_split(
+            tip_val_set,
+            clip_model)
 
         # set init residual ratio to 1 ( new & old knowledge balanced)
         init_alpha = 1.
         # set sharpness nearly balanced
         init_beta = 1.17
-        # tipf_alpha, tipf_beta = run_tip_adapter_finetuned(tip_train_set, clip_model,
-        #                                                   val_features, val_labels,
-        #                                                   zeroshot_weights, cache_keys,
-        #                                                   cache_values, init_alpha, init_beta,
-        #                                                   train_epochs, learning_rate,
-        #                                                   eps)
+        tipf_alpha, tipf_beta = run_tip_adapter_finetuned(tip_train_set, clip_model,
+                                                          val_features, val_labels,
+                                                          zeroshot_weights, cache_keys,
+                                                          cache_values, init_alpha, init_beta,
+                                                          train_epochs, learning_rate,
+                                                          eps)
         tipf_adapter = WeightAdapter(cache_keys).to(device)
-        # tipf_adapter.load_state_dict(load_adapter(tip_train_set.name)) # TODO
+        tipf_adapter.load_state_dict(load_adapter(tip_train_set.name))
         tipf_adapter.eval()
 
-        # tip_alpha, tip_beta = search_hp(cache_keys, cache_values, val_features, val_labels, zeroshot_weights)
-        tip_alpha, tip_beta = 1., 1.
-        tipf_alpha, tipf_beta = 1., 1.
+        tip_alpha, tip_beta = search_hp(cache_keys, cache_values, val_features, val_labels, zeroshot_weights)
         # run zoc
         clip_probs_max, tip_probs_max, tipf_probs_max = [], [], []
         zoc_probs_sum, toc_probs_sum, tocf_probs_sum = [], [], [],
@@ -373,45 +369,40 @@ def adapter_zoc(dset,
                                                            batch_size=1,
                                                            lsun=False)
             loader = isolated_classes_slow_loader[semantic_label]
-            # for image_idx, image in enumerate(tqdm(loader)):
-            #
-            #     if image_idx == 0:
-            #         break
-            #
-            #     clip_out = clip_model.encode_image(image.to(device)).float()
-            #     clip_extended_embed = clip_out.repeat(1, 2).type(torch.FloatTensor)
-            #
-            #     # greedy generation
-            #     target_list, topk_list = greedysearch_generation_topk(clip_extended_embed,
-            #                                                           bert_tokenizer,
-            #                                                           bert_model,
-            #                                                           device)
-            #
-            #     topk_tokens = [bert_tokenizer.decode(int(pred_idx.cpu().numpy())) for pred_idx in topk_list]
-            #
-            #     unique_entities = list(set(topk_tokens) - {semantic_label})
-            #     _logger.debug(f"Semantic label: {semantic_label}Unique Entities: {unique_entities}")
-            #
-            #     all_desc = seen_descriptions + [f"This is a photo of a {label}" for label in unique_entities]
-            #     all_desc_ids = tokenize_for_clip(all_desc, clip_tokenizer)
-            #
-            #     image_feature = clip_out
-            #     image_feature /= image_feature.norm(dim=-1, keepdim=True)
-            #     image_feature = image_feature.to(torch.float32)
-            #
-            #     text_features = clip_model.encode_text(all_desc_ids.to(device)).to(torch.float32)
-            #     text_features /= text_features.norm(dim=-1, keepdim=True)
-            #     zoc_logits_for_image = (100.0 * image_feature @ text_features.T).squeeze()
-            #     zoc_probs = torch.softmax(zoc_logits_for_image, dim=0)
-            #     zoc_probs_sum.append(torch.sum(zoc_probs[len(seen_labels):]))  # for normal zoc
-            #     zoc_logits_for_semantic_label.append(zoc_logits_for_image)  # for toc/f
+            for image_idx, image in enumerate(tqdm(loader)):
+
+                clip_out = clip_model.encode_image(image.to(device)).float()
+                clip_extended_embed = clip_out.repeat(1, 2).type(torch.FloatTensor)
+
+                # greedy generation
+                target_list, topk_list = greedysearch_generation_topk(clip_extended_embed,
+                                                                      bert_tokenizer,
+                                                                      bert_model,
+                                                                      device)
+
+                topk_tokens = [bert_tokenizer.decode(int(pred_idx.cpu().numpy())) for pred_idx in topk_list]
+
+                unique_entities = list(set(topk_tokens) - {semantic_label})
+                _logger.debug(f"Semantic label: {semantic_label}Unique Entities: {unique_entities}")
+
+                all_desc = seen_descriptions + [f"This is a photo of a {label}" for label in unique_entities]
+                all_desc_ids = tokenize_for_clip(all_desc, clip_tokenizer)
+
+                image_feature = clip_out
+                image_feature /= image_feature.norm(dim=-1, keepdim=True)
+                image_feature = image_feature.to(torch.float32)
+
+                text_features = clip_model.encode_text(all_desc_ids.to(device)).to(torch.float32)
+                text_features /= text_features.norm(dim=-1, keepdim=True)
+                zoc_logits_for_image = (100.0 * image_feature @ text_features.T).squeeze()
+                zoc_probs = torch.softmax(zoc_logits_for_image, dim=0)
+                zoc_probs_sum.append(torch.sum(zoc_probs[len(seen_labels):]))  # for normal zoc
+                zoc_logits_for_semantic_label.append(zoc_logits_for_image)  # for toc/f
 
             # now: use normal zoc probs. use zoctip. use zoctipf
 
             # first, pad all to then longest with -inf (neutral element in softmax)
-            # zoc_logits_for_semantic_label = pad_list_of_vectors(zoc_logits_for_semantic_label, -np.inf)  # TODO
-            zoc_logits_for_semantic_label = torch.rand((len(loader), 200))  # TODO
-            zoc_probs_sum = [torch.rand((len(loader),))]  # TODO
+            zoc_logits_for_semantic_label = pad_list_of_vectors(zoc_logits_for_semantic_label, -np.inf)
 
             # TIPF ADAPTER
             tipf_affinity = tipf_adapter(test_image_features_for_label)
@@ -443,19 +434,21 @@ def adapter_zoc(dset,
             tocf_probs = torch.softmax(tocf_logits, dim=1).squeeze()
             tocf_probs_sum.extend(torch.sum(tocf_probs[:, len(seen_labels):], dim=1).detach().numpy())
 
-        # targets = get_split_specific_targets(isolated_classes_fast_loader, seen_labels, unseen_labels)
-        targets = torch.randint(0, 2, (len(zoc_probs_sum, )))  # TODO
-        assert len(targets) == len(zoc_probs_sum)
-        assert len(targets) == len(clip_probs_max)
-        assert len(targets) == len(toc_probs_sum)
-        assert len(targets) == len(tocf_probs_sum)
+        targets = get_split_specific_targets(isolated_classes_fast_loader, seen_labels, unseen_labels)
 
-        clip_aucs.append(get_auroc_for_max_probs(targets, clip_probs_max))
+        assert len(targets) == len(zoc_probs_sum), f"{len(targets)} != {len(zoc_probs_sum)}"
+        assert len(targets) == len(clip_probs_max), f"{len(targets)} != {len(clip_probs_max)}"
+        assert len(targets) == len(toc_probs_sum), f"{len(targets)} != {len(tocf_probs_sum)}"
+        assert len(targets) == len(tocf_probs_sum), f"{len(targets)} != {len(tocf_probs_sum)}"
+        assert len(targets) == len(tip_probs_max), f"{len(targets)} != {len(tip_probs_max)}"
+        assert len(targets) == len(tipf_probs_max), f"{len(targets)} != {len(tipf_probs_max)}"
+
+        clip_aucs.append(get_auroc_for_max_probs(targets, np.array(clip_probs_max)))
         tip_aucs.append(get_auroc_for_max_probs(targets, tip_probs_max))
         tipf_aucs.append(get_auroc_for_max_probs(targets, tipf_probs_max))
         zoc_aucs.append(get_auroc_for_ood_probs(targets, zoc_probs_sum))
-        toc_aucs.append(get_auroc_for_ood_probs(targets, toc_probs))
-        tocf_aucs.append(get_auroc_for_ood_probs(targets, tocf_probs))
+        toc_aucs.append(get_auroc_for_ood_probs(targets, toc_probs_sum))
+        tocf_aucs.append(get_auroc_for_ood_probs(targets, tocf_probs_sum))
 
     clip_mean, clip_std = get_mean_std(clip_aucs)
     tip_mean, tip_std = get_mean_std(tip_aucs)
