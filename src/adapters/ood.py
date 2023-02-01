@@ -426,6 +426,7 @@ def adapter_zoc(dset,
             # zoc tip
             padded_cache_logits = torch.zeros(zoc_logits_for_semantic_label.shape)
             padded_cache_logits[:, :tip_cache_logits.shape[1]] = tip_cache_logits
+            #the magic
             toc_logits = zoc_logits_for_semantic_label + padded_cache_logits * tip_alpha
             toc_probs = torch.softmax(toc_logits, dim=1).squeeze()
             toc_probs_sum.extend(torch.sum(toc_probs[:, len(seen_labels):], dim=1).detach().numpy())
@@ -433,6 +434,7 @@ def adapter_zoc(dset,
             # zoc tipf
             padded_cache_logits = torch.zeros(zoc_logits_for_semantic_label.shape)
             padded_cache_logits[:, :tipf_cache_logits.shape[1]] = tipf_cache_logits
+            # the magic
             tocf_logits = zoc_logits_for_semantic_label + padded_cache_logits * tipf_alpha
             tocf_probs = torch.softmax(tocf_logits, dim=1).squeeze()
             tocf_probs_sum.extend(torch.sum(tocf_probs[:, len(seen_labels):], dim=1).detach().numpy())
