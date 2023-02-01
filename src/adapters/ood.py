@@ -369,18 +369,20 @@ def adapter_zoc(dset,
                                                            batch_size=1,
                                                            lsun=False)
             loader = isolated_classes_slow_loader[semantic_label]
+
             for image_idx, image in enumerate(tqdm(loader)):
+                with torch.no_grad():
 
-                clip_out = clip_model.encode_image(image.to(device)).float()
-                clip_extended_embed = clip_out.repeat(1, 2).type(torch.FloatTensor)
+                    clip_out = clip_model.encode_image(image.to(device)).float()
+                    clip_extended_embed = clip_out.repeat(1, 2).type(torch.FloatTensor)
 
-                # greedy generation
-                target_list, topk_list = greedysearch_generation_topk(clip_extended_embed,
+                    # greedy generation
+                    target_list, topk_list = greedysearch_generation_topk(clip_extended_embed,
                                                                       bert_tokenizer,
                                                                       bert_model,
                                                                       device)
 
-                topk_tokens = [bert_tokenizer.decode(int(pred_idx.cpu().numpy())) for pred_idx in topk_list]
+                    topk_tokens = [bert_tokenizer.decode(int(pred_idx.cpu().numpy())) for pred_idx in topk_list]
 
                 unique_entities = list(set(topk_tokens) - {semantic_label})
                 _logger.debug(f"Semantic label: {semantic_label}Unique Entities: {unique_entities}")
@@ -392,8 +394,9 @@ def adapter_zoc(dset,
                 image_feature /= image_feature.norm(dim=-1, keepdim=True)
                 image_feature = image_feature.to(torch.float32)
 
-                text_features = clip_model.encode_text(all_desc_ids.to(device)).to(torch.float32)
-                text_features /= text_features.norm(dim=-1, keepdim=True)
+                with torch.no_grad():
+                    text_features = clip_model.encode_text(all_desc_ids.to(device)).to(torch.float32)
+                    text_features /= text_features.norm(dim=-1, keepdim=True)
                 zoc_logits_for_image = (100.0 * image_feature @ text_features.T).squeeze()
                 zoc_probs = torch.softmax(zoc_logits_for_image, dim=0)
                 zoc_probs_sum.append(torch.sum(zoc_probs[len(seen_labels):]))  # for normal zoc
