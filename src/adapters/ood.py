@@ -280,7 +280,8 @@ def adapter_zoc(dset,
                 kshots,
                 train_epochs,
                 learning_rate,
-                eps):
+                eps,
+                shorten_classes=None):
     dataset = dset(data_path=Config.DATAPATH,
                    split='test',
                    transform=clip_transform)
@@ -299,6 +300,10 @@ def adapter_zoc(dset,
     # prepare ablation splits...
     num_id_classes = int(len(dataset.classes) * id_classes_split)
     num_ood_classes = len(dataset.classes) - num_id_classes
+    if shorten_classes:
+        _logger.warning(f"SHORTENING CLASSES TO {shorten_classes}")
+        num_id_classes = int(shorten_classes * Config.ID_SPLIT)
+        num_ood_classes = shorten_classes - num_id_classes
     _logger.info(f"ID classes: {num_id_classes}, OOD classes: {num_ood_classes}")
     ablation_splits = get_ablation_splits(dataset.classes, runs, num_id_classes, num_ood_classes)
 
@@ -306,7 +311,7 @@ def adapter_zoc(dset,
     clip_aucs, tip_aucs, tipf_aucs = [], [], []
     zoc_aucs, toc_aucs, tocf_aucs = [], [], []
 
-    for split_idx, split in enumerate(ablation_splits):
+    for split_idx, split in enumerate(tqdm(ablation_splits)):
         _logger.info(f"Split ({split_idx + 1} / {len(ablation_splits)} )")
 
         seen_descriptions, seen_labels, unseen_labels = get_ablation_split_classes(num_id_classes, split)
@@ -370,17 +375,16 @@ def adapter_zoc(dset,
                                                            lsun=False)
             loader = isolated_classes_slow_loader[semantic_label]
 
-            for image_idx, image in enumerate(tqdm(loader)):
+            for image_idx, image in enumerate(loader):
                 with torch.no_grad():
-
                     clip_out = clip_model.encode_image(image.to(device)).float()
                     clip_extended_embed = clip_out.repeat(1, 2).type(torch.FloatTensor)
 
                     # greedy generation
                     target_list, topk_list = greedysearch_generation_topk(clip_extended_embed,
-                                                                      bert_tokenizer,
-                                                                      bert_model,
-                                                                      device)
+                                                                          bert_tokenizer,
+                                                                          bert_model,
+                                                                          device)
 
                     topk_tokens = [bert_tokenizer.decode(int(pred_idx.cpu().numpy())) for pred_idx in topk_list]
 
@@ -426,7 +430,7 @@ def adapter_zoc(dset,
             # zoc tip
             padded_cache_logits = torch.zeros(zoc_logits_for_semantic_label.shape)
             padded_cache_logits[:, :tip_cache_logits.shape[1]] = tip_cache_logits
-            #the magic
+            # the magic
             toc_logits = zoc_logits_for_semantic_label + padded_cache_logits * tip_alpha
             toc_probs = torch.softmax(toc_logits, dim=1).squeeze()
             toc_probs_sum.extend(torch.sum(toc_probs[:, len(seen_labels):], dim=1).detach().numpy())

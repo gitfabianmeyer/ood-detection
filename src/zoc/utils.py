@@ -56,17 +56,14 @@ def tokenize_for_clip(batch_sentences, tokenizer):
     return tokenized_list
 
 
-def get_ablation_splits(classnames, n, id_classes, ood_classes=None):
-    assert ood_classes, 'Missing ood classes when using int split'
+def get_ablation_splits(classnames, n, id_classes, ood_classes):
     if id_classes + ood_classes > len(classnames):
         raise IndexError("Too few classes to build split")
 
     splits = []
     for _ in range(n):
-        base = random.sample(classnames, k=id_classes)
-        leftover = [classname for classname in classnames if classname not in base]
-        oods = random.sample(leftover, k=ood_classes)
-        splits.append(base + oods)
+        base = random.sample(classnames, k=id_classes + ood_classes)
+        splits.append(base[:id_classes]+ base[-ood_classes:])
     for split in splits:
         assert len(split) == len(set(split))
     return splits
