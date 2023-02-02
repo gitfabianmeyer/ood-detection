@@ -3,7 +3,7 @@ import os
 from scripts.baselines.hyperparams_tip_ood import tip_hyperparam_ood_detector
 
 os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
-os.environ["CUDA_VISIBLE_DEVICES"] = "1"
+os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 
 import clip
 from ood_detection.config import Config
@@ -18,8 +18,10 @@ _logger = logging.getLogger(__name__)
 run_clearml = False
 runs = 50
 kshots = 16
-train_epochs = 1
+train_epochs = 20
 augment_epochs = 10
+learning_rate = 0.001
+epsilon = 1e-4
 
 
 def main():
@@ -29,7 +31,7 @@ def main():
 
     for dname, dset in HalfOneDict.items():
         _logger.info(f"\t\tStarting {dname} run...")
-        run = wandb.init(project=f"thesis-tip-ood-test-50-runs",
+        run = wandb.init(project=f"thesis-tip-ood-test-{runs}-runs",
                          entity="wandbefab",
                          name=dname)
         try:
@@ -40,7 +42,11 @@ def main():
                                                   Config.ID_SPLIT,
                                                   runs,
                                                   kshots,
-                                                  augment_epochs)
+                                                  augment_epochs,
+                                                  train_epochs=train_epochs,
+                                                  learning_rate=learning_rate,
+                                                  eps=epsilon,
+                                                  finetune_adapter=True)
             print(results)
         except Exception as e:
             failed.append(dname)
@@ -50,10 +56,6 @@ def main():
         run.finish()
 
     print(f"Failed: {failed}")
-
-
-
-
 
 
 if __name__ == '__main__':
