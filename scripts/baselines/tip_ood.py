@@ -1,9 +1,9 @@
 import os
 
-from scripts.baselines.hyperparams_tip_ood import tip_hyperparam_ood_detector
 
 os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
 os.environ["CUDA_VISIBLE_DEVICES"] = "0"
+from adapters.ood import tip_hyperparam_ood_detector
 
 import clip
 from ood_detection.config import Config
