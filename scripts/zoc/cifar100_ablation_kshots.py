@@ -1,10 +1,11 @@
 import os
 
-from src.zoc.utils import get_zoc_logits_dict
 
 os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
 os.environ["CUDA_VISIBLE_DEVICES"] = "1"
 
+
+from src.zoc.utils import get_zoc_unique_entities, tokenize_for_clip, get_zoc_unique_entities
 import logging
 from collections import defaultdict
 from tqdm import tqdm
@@ -12,7 +13,6 @@ from tqdm import tqdm
 import numpy as np
 import torch
 import wandb
-
 
 from adapters.tip_adapter import create_tip_train_set, get_cache_model, get_dataset_with_shorted_classes, \
     get_dataset_features_from_dataset_with_split, run_tip_adapter_finetuned, WeightAdapter, load_adapter, search_hp, \
@@ -122,8 +122,13 @@ def adapter_zoc_ablation(dset,
     _logger.info(f"ID classes: {num_id_classes}, OOD classes: {num_ood_classes}")
 
     all_seen_descriptions = [f"This is a photo of a {label}" for label in dataset.classes]
-    zoc_logits_dict = get_zoc_logits_dict(dataset, all_seen_descriptions, clip_model, clip_tokenizer, bert_tokenizer,
-                                          bert_model, device)
+    zoc_unique_entities = get_zoc_unique_entities(dataset, all_seen_descriptions, clip_model, clip_tokenizer,
+                                              bert_tokenizer,
+                                              bert_model, device)
+
+    isolated_classes_slow_loader = IsolatedClasses(dataset,
+                                                   batch_size=1,
+                                                   lsun=False)
 
     for kshot in kshots:
 
@@ -136,7 +141,7 @@ def adapter_zoc_ablation(dset,
         for split_idx, split in enumerate(tqdm(ablation_splits)):
             _logger.info(f"Split ({split_idx + 1} / {len(ablation_splits)} )")
 
-            _, seen_labels, unseen_labels = get_ablation_split_classes(num_id_classes, split)
+            seen_descriptions, seen_labels, unseen_labels = get_ablation_split_classes(num_id_classes, split)
 
             # prep everything for tip(f)
             zeroshot_weights = sorted_zeroshot_weights(classes_weight_dict, seen_labels)
@@ -191,8 +196,23 @@ def adapter_zoc_ablation(dset,
                     raise AssertionError
 
                 # ZOC
-                zoc_logits_for_semantic_label = zoc_logits_dict[semantic_label]
-                for zoc_logits_for_image in zoc_logits_for_semantic_label:
+                zoc_entities_for_semantic_label = zoc_unique_entities[semantic_label]
+
+                zoc_logits_for_semantic_label = []
+
+                loader = isolated_classes_slow_loader[semantic_label]
+                for image, unique_entities in zip(loader, zoc_entities_for_semantic_label):
+                    all_desc = seen_descriptions + [f"This is a photo of a {label}" for label in unique_entities]
+                    all_desc_ids = tokenize_for_clip(all_desc, clip_tokenizer)
+                    with torch.no_grad():
+                        image_feature = clip_model.encode_image(image.to(device)).float()
+                        image_feature /= image_feature.norm(dim=-1, keepdim=True)
+                        image_feature = image_feature.to(torch.float32)
+                        text_features = clip_model.encode_text(all_desc_ids.to(device)).to(torch.float32)
+                        text_features /= text_features.norm(dim=-1, keepdim=True)
+
+                    zoc_logits_for_image = (100.0 * image_feature @ text_features.T).squeeze().cpu()
+                    zoc_entities_for_semantic_label.append(zoc_logits_for_image)
                     zoc_probs = torch.softmax(zoc_logits_for_image, dim=0)
                     zoc_probs_sum.append(torch.sum(zoc_probs[len(seen_labels):]))  # for normal zoc
 

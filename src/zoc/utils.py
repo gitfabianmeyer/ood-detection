@@ -362,11 +362,11 @@ def get_feature_dict_from_isolated_classes(isolated_classes: IsolatedClasses, cl
     return feature_dict
 
 @torch.no_grad()
-def get_zoc_logits_dict(dataset, seen_descriptions, clip_model, clip_tokenizer, bert_tokenizer, bert_model, device):
+def get_zoc_unique_entities(dataset, seen_descriptions, clip_model, clip_tokenizer, bert_tokenizer, bert_model, device):
     isolated_classes_slow_loader = IsolatedClasses(dataset,
                                                    batch_size=1,
                                                    lsun=False)
-    zoc_logits_dict = defaultdict(list)
+    zoc_unique_entities = defaultdict(list)
 
     for semantic_label in tqdm(dataset.classes):
         loader = isolated_classes_slow_loader[semantic_label]
@@ -382,6 +382,7 @@ def get_zoc_logits_dict(dataset, seen_descriptions, clip_model, clip_tokenizer, 
 
             topk_tokens = [bert_tokenizer.decode(int(pred_idx.cpu().numpy())) for pred_idx in topk_list]
             unique_entities = list(set(topk_tokens) - {semantic_label})
+            zoc_unique_entities[semantic_label].append(unique_entities)
             all_desc = seen_descriptions + [f"This is a photo of a {label}" for label in unique_entities]
             all_desc_ids = tokenize_for_clip(all_desc, clip_tokenizer)
 
