@@ -148,7 +148,7 @@ def adapter_zoc_ablation(dset,
 
             # get the kshot train set
             tip_train_set = create_tip_train_set(dset, seen_labels, kshots)
-            tip_train_set.name = f"{tip_train_set.name}_{runs_per_setting}-runs_ood_split-{split_idx}"
+            tip_train_set.name = f"{tip_train_set.name}_ablation_splits"
             _logger.info(f"len train set: {len(tip_train_set)}. Should be: {len(tip_train_set.classes) * kshots} (max)")
             cache_keys, cache_values = get_cache_model(tip_train_set, clip_model, augment_epochs=augment_epochs)
 
