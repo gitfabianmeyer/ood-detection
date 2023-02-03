@@ -5,7 +5,7 @@ os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
 os.environ["CUDA_VISIBLE_DEVICES"] = "1"
 
 
-from src.zoc.utils import get_zoc_unique_entities, tokenize_for_clip, get_zoc_unique_entities
+from zoc.utils import get_zoc_unique_entities, tokenize_for_clip, get_zoc_unique_entities
 import logging
 from collections import defaultdict
 from tqdm import tqdm
