@@ -21,9 +21,7 @@ from zoc.utils import image_decoder
 
 _logger = logging.getLogger(__name__)
 splits = [(.4, .6), ]
-clearml_model = False
-MODEL_PATH = "/home/fmeyer/ZOC/trained_models/COCO/ViT-B32/"
-
+runs = 10
 
 def run_single_dataset_ood(isolated_classes, clip_model, clip_tokenizer, bert_tokenizer, bert_model,
                            id_classes=.6, runs=5):
