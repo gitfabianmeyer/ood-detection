@@ -64,7 +64,7 @@ def get_ablation_splits(classnames, n, id_classes, ood_classes):
     splits = []
     for _ in range(n):
         base = random.sample(classnames, k=id_classes + ood_classes)
-        splits.append(base[:id_classes]+ base[-ood_classes:])
+        splits.append(base[:id_classes] + base[-ood_classes:])
     for split in splits:
         assert len(split) == len(set(split))
     return splits
@@ -357,9 +357,10 @@ def get_feature_dict_from_isolated_classes(isolated_classes: IsolatedClasses, cl
     max_per_class = max_len // len(isolated_classes.classes)
     feature_dict = {}
     for cls in tqdm(isolated_classes.classes):
-        feature_dict[cls] = get_image_batch_features(isolated_classes[cls],clip_model, max_per_class)
+        feature_dict[cls] = get_image_batch_features(isolated_classes[cls], clip_model, max_per_class)
 
     return feature_dict
+
 
 @torch.no_grad()
 def get_zoc_unique_entities(dataset, seen_descriptions, clip_model, clip_tokenizer, bert_tokenizer, bert_model, device):
@@ -383,16 +384,5 @@ def get_zoc_unique_entities(dataset, seen_descriptions, clip_model, clip_tokeniz
             topk_tokens = [bert_tokenizer.decode(int(pred_idx.cpu().numpy())) for pred_idx in topk_list]
             unique_entities = list(set(topk_tokens) - {semantic_label})
             zoc_unique_entities[semantic_label].append(unique_entities)
-            all_desc = seen_descriptions + [f"This is a photo of a {label}" for label in unique_entities]
-            all_desc_ids = tokenize_for_clip(all_desc, clip_tokenizer)
 
-            image_feature = clip_out
-            image_feature /= image_feature.norm(dim=-1, keepdim=True)
-            image_feature = image_feature.to(torch.float32)
-
-            text_features = clip_model.encode_text(all_desc_ids.to(device)).to(torch.float32)
-            text_features /= text_features.norm(dim=-1, keepdim=True)
-            zoc_logits_for_image = (100.0 * image_feature @ text_features.T).squeeze().cpu()
-            zoc_logits_dict[semantic_label].append(zoc_logits_for_image)
-
-    return zoc_logits_dict
+    return zoc_unique_entities
