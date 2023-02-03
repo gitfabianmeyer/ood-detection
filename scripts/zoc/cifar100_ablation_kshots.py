@@ -5,7 +5,6 @@ os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
 os.environ["CUDA_VISIBLE_DEVICES"] = "1"
 
 
-from zoc.utils import get_zoc_unique_entities, tokenize_for_clip, get_zoc_unique_entities
 import logging
 from collections import defaultdict
 from tqdm import tqdm
@@ -25,7 +24,7 @@ from adapters.ood import get_ablation_split_classes, pad_list_of_vectors
 
 from clip.simple_tokenizer import SimpleTokenizer
 from transformers import BertGenerationTokenizer
-from zoc.utils import get_decoder, get_ablation_splits, get_zoc_logits_dict, \
+from zoc.utils import get_decoder, get_ablation_splits, get_zoc_unique_entities, tokenize_for_clip, \
     get_auroc_for_ood_probs, get_auroc_for_max_probs, get_mean_std, get_split_specific_targets
 import clip
 from ood_detection.config import Config
