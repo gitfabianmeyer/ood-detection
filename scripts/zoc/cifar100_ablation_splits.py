@@ -54,7 +54,7 @@ def main():
             continue
 
         _logger.info(f"\t\tStarting {dname} run...")
-        run = wandb.init(project=f"thesis-{dname}_kshot-ablation-{runs}-runs",
+        run = wandb.init(project=f"thesis-{dname}_splits-ablation-{runs}-runs",
                          entity="wandbefab",
                          name=dname)
         try:
