@@ -3,7 +3,7 @@ import os
 from src.zoc.utils import get_zoc_logits_dict
 
 os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
-os.environ["CUDA_VISIBLE_DEVICES"] = "1"
+os.environ["CUDA_VISIBLE_DEVICES"] = "2"
 
 import logging
 from collections import defaultdict
@@ -12,7 +12,6 @@ from tqdm import tqdm
 import numpy as np
 import torch
 import wandb
-
 
 from adapters.tip_adapter import create_tip_train_set, get_cache_model, get_dataset_with_shorted_classes, \
     get_dataset_features_from_dataset_with_split, run_tip_adapter_finetuned, WeightAdapter, load_adapter, search_hp, \
@@ -36,11 +35,12 @@ _logger = logging.getLogger(__name__)
 
 run_clearml = False
 runs = 10
-kshots = [2, 4, 6, 8, 16, 32, 64, 128]
+kshots = 16
 train_epochs = 20
 augment_epochs = 10
 lr = 0.001
 eps = 1e-4
+id_splits = np.linspace(0.01, 0.99, 25)
 
 
 def main():
@@ -67,7 +67,7 @@ def main():
                                            bert_tokenizer,
                                            bert_model,
                                            device,
-                                           Config.ID_SPLIT,
+                                           id_splits,
                                            augment_epochs,
                                            runs,
                                            kshots,
@@ -89,7 +89,7 @@ def adapter_zoc_ablation(dset,
                          bert_tokenizer,
                          bert_model,
                          device,
-                         id_classes_split,
+                         id_classes_splits,
                          augment_epochs,
                          runs_per_setting,
                          kshots,
@@ -105,6 +105,11 @@ def adapter_zoc_ablation(dset,
                                                    batch_size=512,
                                                    lsun=False)
 
+    # get all zoc logits
+    all_seen_descriptions = [f"This is a photo of a {label}" for label in dataset.classes]
+    zoc_logits_dict = get_zoc_logits_dict(dataset, all_seen_descriptions, clip_model, clip_tokenizer, bert_tokenizer,
+                                          bert_model, device)
+
     # CAREFUL: ADJUSTMENT FOR ZOC: THE TEMPLATES ( train tip on same )
     isolated_classes_fast_loader.templates = ["This is a photo of a {}"]
     _logger.info('Creating the test weight dicts')
@@ -113,19 +118,17 @@ def adapter_zoc_ablation(dset,
     _logger.info("Done creating weight dicts.")
 
     # prepare ablation splits...
-    num_id_classes = int(len(dataset.classes) * id_classes_split)
-    num_ood_classes = len(dataset.classes) - num_id_classes
-    if shorten_classes:
-        _logger.warning(f"SHORTENING CLASSES TO {shorten_classes}")
-        num_id_classes = int(shorten_classes * Config.ID_SPLIT)
-        num_ood_classes = shorten_classes - num_id_classes
-    _logger.info(f"ID classes: {num_id_classes}, OOD classes: {num_ood_classes}")
 
-    all_seen_descriptions = [f"This is a photo of a {label}" for label in dataset.classes]
-    zoc_logits_dict = get_zoc_logits_dict(dataset, all_seen_descriptions, clip_model, clip_tokenizer, bert_tokenizer,
-                                          bert_model, device)
+    for id_classes_split in id_classes_splits:
+        num_id_classes = int(len(dataset.classes) * id_classes_split)
+        _logger.info(f"SPLIT: {num_id_classes}")
 
-    for kshot in kshots:
+        num_ood_classes = len(dataset.classes) - num_id_classes
+        if shorten_classes:
+            _logger.warning(f"SHORTENING CLASSES TO {shorten_classes}")
+            num_id_classes = int(shorten_classes * Config.ID_SPLIT)
+            num_ood_classes = shorten_classes - num_id_classes
+        _logger.info(f"ID classes: {num_id_classes}, OOD classes: {num_ood_classes}")
 
         ablation_splits = get_ablation_splits(dataset.classes, runs_per_setting, num_id_classes, num_ood_classes)
 
@@ -143,7 +146,7 @@ def adapter_zoc_ablation(dset,
             zeroshot_weights = zeroshot_weights.to(torch.float32)
 
             # get the kshot train set
-            tip_train_set = create_tip_train_set(dset, seen_labels, kshot)
+            tip_train_set = create_tip_train_set(dset, seen_labels, kshots)
             tip_train_set.name = f"{tip_train_set.name}_{runs_per_setting}-runs_ood_split-{split_idx}"
             _logger.info(f"len train set: {len(tip_train_set)}. Should be: {len(tip_train_set.classes) * kshots} (max)")
             cache_keys, cache_values = get_cache_model(tip_train_set, clip_model, augment_epochs=augment_epochs)
@@ -270,7 +273,8 @@ def adapter_zoc_ablation(dset,
                    'toc_std': toc_std,
                    'tocf': tocf_mean,
                    'tocf_std': tocf_std,
-                   'shots': kshot
+                   'id_classes': num_id_classes,
+                   'ood_classes': num_ood_classes
                    }
         wandb.log(metrics)
 

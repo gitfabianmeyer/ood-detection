@@ -1,5 +1,6 @@
 import logging
 import random
+from collections import defaultdict
 from typing import Dict
 
 import numpy as np
@@ -359,3 +360,38 @@ def get_feature_dict_from_isolated_classes(isolated_classes: IsolatedClasses, cl
         feature_dict[cls] = get_image_batch_features(isolated_classes[cls],clip_model, max_per_class)
 
     return feature_dict
+
+@torch.no_grad()
+def get_zoc_logits_dict(dataset, seen_descriptions, clip_model, clip_tokenizer, bert_tokenizer, bert_model, device):
+    isolated_classes_slow_loader = IsolatedClasses(dataset,
+                                                   batch_size=1,
+                                                   lsun=False)
+    zoc_logits_dict = defaultdict(list)
+
+    for semantic_label in tqdm(dataset.classes):
+        loader = isolated_classes_slow_loader[semantic_label]
+        for image_idx, image in enumerate(loader):
+            clip_out = clip_model.encode_image(image.to(device)).float()
+            clip_extended_embed = clip_out.repeat(1, 2).type(torch.FloatTensor)
+
+            # greedy generation
+            target_list, topk_list = greedysearch_generation_topk(clip_extended_embed,
+                                                                  bert_tokenizer,
+                                                                  bert_model,
+                                                                  device)
+
+            topk_tokens = [bert_tokenizer.decode(int(pred_idx.cpu().numpy())) for pred_idx in topk_list]
+            unique_entities = list(set(topk_tokens) - {semantic_label})
+            all_desc = seen_descriptions + [f"This is a photo of a {label}" for label in unique_entities]
+            all_desc_ids = tokenize_for_clip(all_desc, clip_tokenizer)
+
+            image_feature = clip_out
+            image_feature /= image_feature.norm(dim=-1, keepdim=True)
+            image_feature = image_feature.to(torch.float32)
+
+            text_features = clip_model.encode_text(all_desc_ids.to(device)).to(torch.float32)
+            text_features /= text_features.norm(dim=-1, keepdim=True)
+            zoc_logits_for_image = (100.0 * image_feature @ text_features.T).squeeze().cpu()
+            zoc_logits_dict[semantic_label].append(zoc_logits_for_image)
+
+    return zoc_logits_dict
