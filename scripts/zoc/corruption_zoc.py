@@ -54,7 +54,7 @@ def run_all(args):
     clip_tokenizer = SimpleTokenizer()
 
     _logger.info('Loading decoder model')
-    bert_model = get_decoder(clearml_model, Config.MODEL_PATH)
+    bert_model = get_decoder(clearml_model)
 
     for dname, dset in CorruptionSets.items():
         for cname, ccorr in THESIS_CORRUPTIONS.items():

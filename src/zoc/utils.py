@@ -315,14 +315,14 @@ def get_result_mean_dict(acc_probs_sum, auc_list_max, auc_list_mean, auc_list_su
     return metrics
 
 
-def get_decoder(clearml_model=False, MODEL_PATH="/home/fmeyer/ZOC/trained_models/COCO/ViT-B32/"):
+def get_decoder(clearml_model=False):
     if clearml_model:
         from clearml import Task
         artifact_task = Task.get_task(project_name='ma_fmeyer', task_name='Train Decoder')
 
         model_path = artifact_task.artifacts['model'].get_local_copy()
     else:
-        model_path = MODEL_PATH
+        model_path = Config.MODEL_PATH
 
     bert_config = BertGenerationConfig.from_pretrained("google/bert_for_seq_generation_L-24_bbc_encoder")
     bert_config.is_decoder = True
