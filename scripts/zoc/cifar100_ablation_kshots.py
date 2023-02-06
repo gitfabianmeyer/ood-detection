@@ -211,7 +211,7 @@ def adapter_zoc_ablation(dset,
                         text_features /= text_features.norm(dim=-1, keepdim=True)
 
                     zoc_logits_for_image = (100.0 * image_feature @ text_features.T).squeeze().cpu()
-                    zoc_entities_for_semantic_label.append(zoc_logits_for_image)
+                    zoc_logits_for_semantic_label.append(zoc_logits_for_image)
                     zoc_probs = torch.softmax(zoc_logits_for_image, dim=0)
                     zoc_probs_sum.append(torch.sum(zoc_probs[len(seen_labels):]))  # for normal zoc
 
