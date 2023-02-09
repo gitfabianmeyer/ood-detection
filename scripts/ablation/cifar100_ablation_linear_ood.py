@@ -158,6 +158,7 @@ def adapter_zoc_ablation(dset,
             # linear stuff
             linear_classifier = get_trained_linear_classifier(tip_train_set, tip_val_set, seen_labels, clip_model,
                                                               device)
+            linear_classifier.eval()
             # set init residual ratio to 1 ( new & old knowledge balanced)
             init_alpha = 1.
             # set sharpness nearly balanced
