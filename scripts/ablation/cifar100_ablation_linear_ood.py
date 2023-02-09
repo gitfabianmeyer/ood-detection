@@ -46,7 +46,7 @@ def main():
     device = Config.DEVICE
 
     for dname, dset in DATASETS_DICT.items():
-        if dname != 'cifar100':
+        if dname != 'cifar10':
             continue
 
         _logger.info(f"\t\tStarting {dname} run...")
