@@ -335,13 +335,13 @@ def run_tip_adapter_finetuned(train_set, model,
     losses, learning_rates, accuracies = [], [], []
 
     # finetune and store everythin
-    for epoch in range(train_epochs):
+    for epoch in tqdm(range(train_epochs)):
         _logger.info(f"Training epoch\t{epoch}/{train_epochs}")
         adapter.train()
 
         batch_losses = []
 
-        for i, (images, targets) in enumerate(tqdm(train_loader_shuffle)):
+        for i, (images, targets) in enumerate(train_loader_shuffle):
             images = images.to(device)
             targets = targets.to(device)
             with torch.no_grad():

@@ -288,7 +288,7 @@ def baseline_detector_no_temperature_featuredict(feature_dict,
     return metrics_list
 
 
-def train_id_classifier(train_set, eval_set):
+def train_id_classifier(train_set, eval_set, epochs=10, learning_rate=0.001, wandb_logging=True):
     device = Config.DEVICE
     classifier = LinearClassifier(train_set.features_dim, len(train_set.labels)).to(device)
 
@@ -299,12 +299,14 @@ def train_id_classifier(train_set, eval_set):
                              batch_size=512,
                              shuffle=True)
 
-    epochs = 10
-    learning_rate = 0.001
+    early_stopping = 0
+    max_epoch_without_improvement = 3
+    epochs = epochs
+    learning_rate = learning_rate
     optimizer = AdamW(params=classifier.parameters(), lr=learning_rate)
     criterion = CrossEntropyLoss()
 
-    best_eval_loss = np.inf
+    best_val_loss = np.inf
     for epoch in tqdm(range(1, epochs + 1)):
 
         epoch_results = {}
@@ -344,19 +346,28 @@ def train_id_classifier(train_set, eval_set):
 
             epoch_val_loss += eval_loss
 
-            if epoch_val_loss < best_eval_loss:
-                best_eval_loss = epoch_val_loss
+            if epoch_val_loss < best_val_loss:
+                best_val_loss = epoch_val_loss
                 best_classifier = classifier
+            else:
+                early_stopping +=1
+                _logger.info(f"No improvement on val loss ( {early_stopping} / {max_epoch_without_improvement}")
+                if early_stopping == max_epoch_without_improvement+1:
+                    _logger.info(F"Hit the maximum epoch without improvement {max_epoch_without_improvement}. Exiting")
+                    return best_classifier
+
 
             _, indices = torch.topk(torch.softmax(eval_preds, dim=-1), k=1)
             eval_accs.append(accuracy_score(eval_targets.to('cpu').numpy(), indices.to('cpu').numpy()))
 
         _logger.info(f"Epoch {epoch} Eval Acc: {np.mean(eval_accs)}")
-        epoch_results["val accuracy"] = np.mean(eval_accs)
-        epoch_results["val loss"] = epoch_val_loss
-        epoch_results["train loss per image"] = epoch_val_loss / len(eval_loader)
+        if wandb_logging:
 
-        wandb.log(epoch_results)
+            epoch_results["val accuracy"] = np.mean(eval_accs)
+            epoch_results["val loss"] = epoch_val_loss
+            epoch_results["train loss per image"] = epoch_val_loss / len(eval_loader)
+
+            wandb.log(epoch_results)
     return best_classifier
 
 
