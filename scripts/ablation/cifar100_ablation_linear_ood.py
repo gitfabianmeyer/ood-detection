@@ -197,7 +197,7 @@ def adapter_zoc_ablation(dset,
                 with torch.no_grad():
                     linear_logits = linear_classifier(test_image_features_for_label)
                 top_linear_prob, _ = linear_logits.cpu().topk(1, dim=-1)
-                linear_probs_max.extend(top_linear_prob)
+                linear_probs_max.extend(top_linear_prob.detach().numpy())
 
                 # TIPF ADAPTER
                 tipf_affinity = tipf_adapter(test_image_features_for_label)
