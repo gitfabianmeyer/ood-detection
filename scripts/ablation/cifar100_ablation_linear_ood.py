@@ -73,10 +73,13 @@ def main():
     print(f"Failed: {failed}")
 
 
-def get_trained_linear_classifier(train_set, val_set, seen_labels):
-    feature_weight_dict_train = get_feature_weight_dict(train_set)
-    feature_weight_dict_val = get_feature_weight_dict(val_set)
+def get_trained_linear_classifier(train_set, val_set, seen_labels, clip_model=None, device=None):
     class_to_idx_mapping = train_set.class_to_idx
+    train_set_loaders = IsolatedClasses(train_set)
+    val_set_loaders = IsolatedClasses(val_set)
+
+    feature_weight_dict_train = get_feature_weight_dict(train_set_loaders, clip_model, device)
+    feature_weight_dict_val = get_feature_weight_dict(val_set_loaders)
     linear_train_set = FeatureSet(feature_weight_dict_train, seen_labels, class_to_idx_mapping)
     linea_val_set = FeatureSet(feature_weight_dict_val, seen_labels, class_to_idx_mapping)
 
@@ -151,7 +154,7 @@ def adapter_zoc_ablation(dset,
                 clip_model)
 
             # linear stuff
-            linear_classifier = get_trained_linear_classifier(tip_train_set, tip_val_set, seen_labels)
+            linear_classifier = get_trained_linear_classifier(tip_train_set, tip_val_set, seen_labels, clip_model, device)
             # set init residual ratio to 1 ( new & old knowledge balanced)
             init_alpha = 1.
             # set sharpness nearly balanced
