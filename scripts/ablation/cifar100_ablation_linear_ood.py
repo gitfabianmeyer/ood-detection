@@ -16,7 +16,7 @@ from adapters.tip_adapter import create_tip_train_set, get_cache_model, get_data
     get_cache_logits
 from datasets.zoc_loader import IsolatedClasses
 from ood_detection.ood_utils import sorted_zeroshot_weights
-from zoc.baseline import get_feature_weight_dict, get_zeroshot_weight_dict, train_id_classifier
+from zoc.baseline import get_feature_weight_dict, get_zeroshot_weight_dict, train_id_classifier, FeatureSet
 
 from adapters.ood import get_ablation_split_classes, pad_list_of_vectors
 
@@ -73,6 +73,16 @@ def main():
     print(f"Failed: {failed}")
 
 
+def get_trained_linear_classifier(train_set, val_set, seen_labels):
+    feature_weight_dict_train = get_feature_weight_dict(train_set)
+    feature_weight_dict_val = get_feature_weight_dict(val_set)
+    class_to_idx_mapping = train_set.class_to_idx
+    linear_train_set = FeatureSet(feature_weight_dict_train, seen_labels, class_to_idx_mapping)
+    linea_val_set = FeatureSet(feature_weight_dict_val, seen_labels, class_to_idx_mapping)
+
+    linear_classifier = train_id_classifier(linear_train_set, linea_val_set, epochs=20, learning_rate=0.001,
+                                            wandb_logging=False)
+    return linear_classifier
 def adapter_zoc_ablation(dset,
                          clip_model,
                          clip_transform,
@@ -128,7 +138,7 @@ def adapter_zoc_ablation(dset,
             # get the kshot train set
             tip_train_set = create_tip_train_set(dset, seen_labels, kshot)
             tip_train_set.name = f"{tip_train_set.name}_ablation_kshot"
-            _logger.info(f"len train set: {len(tip_train_set)}. Should be: {len(tip_train_set.classes) * kshots} (max)")
+            _logger.info(f"len train set: {len(tip_train_set)}. Should be: {len(tip_train_set.classes) * kshot} (max)")
             cache_keys, cache_values = get_cache_model(tip_train_set, clip_model, augment_epochs=augment_epochs)
 
             # get shorted val set for the
@@ -139,9 +149,7 @@ def adapter_zoc_ablation(dset,
                 clip_model)
 
             # linear stuff
-            linear_classifier = train_id_classifier(tip_train_set, tip_val_set, epochs=20, learning_rate=0.001,
-                                                    wandb_logging=False)
-
+            linear_classifier = get_trained_linear_classifier(tip_train_set, tip_val_set, seen_labels)
             # set init residual ratio to 1 ( new & old knowledge balanced)
             init_alpha = 1.
             # set sharpness nearly balanced
