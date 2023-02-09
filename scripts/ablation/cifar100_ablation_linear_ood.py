@@ -111,11 +111,9 @@ def adapter_zoc_ablation(dset,
     # CAREFUL: ADJUSTMENT FOR ZOC: THE TEMPLATES ( train tip on same )
     isolated_classes_fast_loader.templates = ["This is a photo of a {}"]
     _logger.info('Creating the test weight dicts')
-    # feature_weight_dict = get_feature_weight_dict(isolated_classes_fast_loader, clip_model, device)
-    # classes_weight_dict = get_zeroshot_weight_dict(isolated_classes_fast_loader, clip_model)
+    feature_weight_dict = get_feature_weight_dict(isolated_classes_fast_loader, clip_model, device)
+    classes_weight_dict = get_zeroshot_weight_dict(isolated_classes_fast_loader, clip_model)
 
-    feature_weight_dict = {key: torch.rand((20, 512)) for key in dataset.classes}
-    classes_weight_dict = {key: torch.rand((512,)) for key in dataset.classes}
 
     _logger.info("Done creating weight dicts.")
 
@@ -142,7 +140,7 @@ def adapter_zoc_ablation(dset,
 
             # prep everything for tip(f)
             zeroshot_weights = sorted_zeroshot_weights(classes_weight_dict, seen_labels)
-            zeroshot_weights = zeroshot_weights.to(torch.float32)
+            zeroshot_weights = zeroshot_weights.to(torch.float32).to(device)
 
             # get the kshot train set
             tip_train_set = create_tip_train_set(dset, seen_labels, kshot)
