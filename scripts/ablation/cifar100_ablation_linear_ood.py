@@ -33,7 +33,7 @@ _logger = logging.getLogger(__name__)
 
 run_clearml = False
 runs = 10
-kshots = [2, 4, 6, 8, 16, 32, 64, 128]
+kshots = [2, 4, 6, 8, 16, 32, 64, 128, 256, 512]
 train_epochs = 20
 augment_epochs = 10
 lr = 0.001
@@ -83,6 +83,8 @@ def get_trained_linear_classifier(train_set, val_set, seen_labels):
     linear_classifier = train_id_classifier(linear_train_set, linea_val_set, epochs=20, learning_rate=0.001,
                                             wandb_logging=False)
     return linear_classifier
+
+
 def adapter_zoc_ablation(dset,
                          clip_model,
                          clip_transform,
