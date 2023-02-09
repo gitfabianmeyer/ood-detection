@@ -46,13 +46,13 @@ def main():
     device = Config.DEVICE
 
     for dname, dset in DATASETS_DICT.items():
-        if dname != 'cifar10':
+        if dname != 'cifar100':
             continue
 
         _logger.info(f"\t\tStarting {dname} run...")
-        # run = wandb.init(project=f"thesis-{dname}_kshot-linear_ablation-{runs}-runs",
-        #                  entity="wandbefab",
-        #                  name=dname)
+        run = wandb.init(project=f"thesis-{dname}_kshot-linear_ablation-{runs}-runs",
+                         entity="wandbefab",
+                         name=dname)
         try:
             results = adapter_zoc_ablation(dset,
                                            clip_model,
@@ -69,7 +69,7 @@ def main():
         except Exception as e:
             failed.append(dname)
             raise e
-        # run.finish()
+        run.finish()
     print(f"Failed: {failed}")
 
 
@@ -194,7 +194,7 @@ def adapter_zoc_ablation(dset,
                     raise AssertionError
 
                 # linear
-                linear_logits = linear_classifier(test_image_features_for_label)
+                linear_logits = linear_classifier(test_image_features_for_label).detach()
                 top_linear_prob, _ = linear_logits.cpu().topk(1, dim=-1)
                 linear_probs_max.extend(top_linear_prob)
 
@@ -241,7 +241,7 @@ def adapter_zoc_ablation(dset,
                    'linear_std': linear_std,
                    'shots': kshot
                    }
-        # wandb.log(metrics)
+        wandb.log(metrics)
 
 
 if __name__ == '__main__':
