@@ -50,9 +50,9 @@ def main():
             continue
 
         _logger.info(f"\t\tStarting {dname} run...")
-        run = wandb.init(project=f"thesis-{dname}_kshot-linear_ablation-{runs}-runs",
-                         entity="wandbefab",
-                         name=dname)
+        # run = wandb.init(project=f"thesis-{dname}_kshot-linear_ablation-{runs}-runs",
+        #                  entity="wandbefab",
+        #                  name=dname)
         try:
             results = adapter_zoc_ablation(dset,
                                            clip_model,
@@ -69,7 +69,7 @@ def main():
         except Exception as e:
             failed.append(dname)
             raise e
-        run.finish()
+        # run.finish()
     print(f"Failed: {failed}")
 
 
@@ -111,8 +111,12 @@ def adapter_zoc_ablation(dset,
     # CAREFUL: ADJUSTMENT FOR ZOC: THE TEMPLATES ( train tip on same )
     isolated_classes_fast_loader.templates = ["This is a photo of a {}"]
     _logger.info('Creating the test weight dicts')
-    feature_weight_dict = get_feature_weight_dict(isolated_classes_fast_loader, clip_model, device)
-    classes_weight_dict = get_zeroshot_weight_dict(isolated_classes_fast_loader, clip_model)
+    # feature_weight_dict = get_feature_weight_dict(isolated_classes_fast_loader, clip_model, device)
+    # classes_weight_dict = get_zeroshot_weight_dict(isolated_classes_fast_loader, clip_model)
+
+    feature_weight_dict = {key: torch.rand((20, 512)) for key in dataset.classes}
+    classes_weight_dict = {key: torch.rand((512,)) for key in dataset.classes}
+
     _logger.info("Done creating weight dicts.")
 
     # prepare ablation splits...
@@ -154,7 +158,8 @@ def adapter_zoc_ablation(dset,
                 clip_model)
 
             # linear stuff
-            linear_classifier = get_trained_linear_classifier(tip_train_set, tip_val_set, seen_labels, clip_model, device)
+            linear_classifier = get_trained_linear_classifier(tip_train_set, tip_val_set, seen_labels, clip_model,
+                                                              device)
             # set init residual ratio to 1 ( new & old knowledge balanced)
             init_alpha = 1.
             # set sharpness nearly balanced
@@ -237,7 +242,7 @@ def adapter_zoc_ablation(dset,
                    'linear_std': linear_std,
                    'shots': kshot
                    }
-        wandb.log(metrics)
+        # wandb.log(metrics)
 
 
 if __name__ == '__main__':

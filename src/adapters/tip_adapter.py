@@ -134,7 +134,7 @@ def get_kshot_train_set(dataset, kshots):
     imgs, targets = get_truncated_to_min(label_dict, kshots)
 
     dataset.data = imgs
-    dataset.targets = targets
+    dataset.targets = np.array(targets).squeeze()
     return dataset
 
 
