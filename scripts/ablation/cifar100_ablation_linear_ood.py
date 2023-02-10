@@ -1,7 +1,7 @@
 import os
 
 os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
-os.environ["CUDA_VISIBLE_DEVICES"] = "4"
+os.environ["CUDA_VISIBLE_DEVICES"] = "6"
 
 import logging
 from collections import defaultdict
@@ -26,14 +26,14 @@ from zoc.utils import get_decoder, get_ablation_splits, get_zoc_unique_entities,
     get_auroc_for_ood_probs, get_auroc_for_max_probs, get_mean_std, get_split_specific_targets
 import clip
 from ood_detection.config import Config
-from datasets.config import DATASETS_DICT, HalfOneDict
+from datasets.config import KshotSets
 
 logging.basicConfig(level=logging.INFO)
 _logger = logging.getLogger(__name__)
 
 run_clearml = False
 runs = 10
-kshots = [2, 4, 6, 8, 16, 32, 64, 128, 256, 512]
+kshots = [2, 4, 6, 8, 16, 32, 64]
 train_epochs = 20
 augment_epochs = 10
 lr = 0.001
@@ -45,7 +45,10 @@ def main():
     clip_model, clip_transform = clip.load(Config.VISION_MODEL)
     device = Config.DEVICE
 
-    for dname, dset in HalfOneDict.items():
+    for dname, dset in KshotSets.items():
+        if dname in ['svhn', 'mnist', 'fashion mnist']:
+            continue
+
         _logger.info(f"\t\tStarting {dname} run...")
         run = wandb.init(project=f"thesis-kshot-linear_ablation-{runs}-runs",
                          entity="wandbefab",

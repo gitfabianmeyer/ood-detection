@@ -51,3 +51,13 @@ CorruptionSets['caltech101'] = OodCaltech101
 CorruptionSets["caltech cub"] = OodCub2011
 CorruptionSets["dtd"] = OodDTD
 CorruptionSets["flowers102"] = OodFlowers102
+
+# sets where every class has >64 samples
+KshotSets = collections.OrderedDict()
+KshotSets["cifar10"] = OodCifar10
+KshotSets["cifar100"] = OodCifar100
+KshotSets["fashion mnist"] = OodFashionMNIST
+KshotSets["gtsrb"] = OodGTSRB
+KshotSets["imagenet"] = OodTinyImageNet
+KshotSets["mnist"] = OodMNIST
+KshotSets["svhn"] = OodSVHN
