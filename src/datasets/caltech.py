@@ -29,10 +29,8 @@ class OodCaltech101(torchvision.datasets.Caltech101):
         self.name = 'caltech101'
 
     def __getitem__(self, idx):
-        print("called getitem")
         img = Image.open(self.data[idx])
         if self.transform is not None:
-            print('in transform')
             img = self.transform(img)
         target = self.targets[idx]
         if self.target_transform is not None:
