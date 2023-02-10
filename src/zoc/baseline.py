@@ -8,6 +8,7 @@ import wandb
 from datasets.zoc_loader import IsolatedClasses
 from ood_detection.classification_utils import zeroshot_classifier
 from ood_detection.config import Config
+from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import accuracy_score
 from torch.nn import CrossEntropyLoss
 from torch.optim import Adam, AdamW
@@ -350,24 +351,40 @@ def train_id_classifier(train_set, eval_set, epochs=10, learning_rate=0.001, wan
                 best_val_loss = epoch_val_loss
                 best_classifier = classifier
             else:
-                early_stopping +=1
+                early_stopping += 1
                 _logger.info(f"No improvement on val loss ( {early_stopping} / {max_epoch_without_improvement}")
-                if early_stopping == max_epoch_without_improvement+1:
+                if early_stopping == max_epoch_without_improvement + 1:
                     _logger.info(F"Hit the maximum epoch without improvement {max_epoch_without_improvement}. Exiting")
                     return best_classifier
-
 
             _, indices = torch.topk(torch.softmax(eval_preds, dim=-1), k=1)
             eval_accs.append(accuracy_score(eval_targets.to('cpu').numpy(), indices.to('cpu').numpy()))
 
         _logger.info(f"Epoch {epoch} Eval Acc: {np.mean(eval_accs)}")
         if wandb_logging:
-
             epoch_results["val accuracy"] = np.mean(eval_accs)
             epoch_results["val loss"] = epoch_val_loss
             epoch_results["train loss per image"] = epoch_val_loss / len(eval_loader)
 
             wandb.log(epoch_results)
+    return best_classifier
+
+
+def train_log_reg_classifier(train_set, eval_set):
+    # hyperparams
+    max_iter = 110
+    cs = [0.001, 0.01, 0.1, 1, 10, 100, 1000]
+
+    best_classifier = None
+    best_score = 0
+    for c in cs:
+        classifier = LogisticRegression(max_iter=max_iter, solver='sag', tol=0.0001, C=c, penalty='l2')
+        classifier.fit(train_set.features, train_set.targets)
+        score = classifier.score(eval_set.features, eval_set.targets)
+        print(f"Eval score ( c: {c}) for log reg: {score}")
+        if score > best_score:
+            best_classifier = classifier
+            best_score = score
     return best_classifier
 
 
