@@ -46,11 +46,8 @@ def main():
     device = Config.DEVICE
 
     for dname, dset in HalfOneDict.items():
-        if dname == 'cifar100':
-            continue
-
         _logger.info(f"\t\tStarting {dname} run...")
-        run = wandb.init(project=f"thesis-{dname}_kshot-linear_ablation-{runs}-runs",
+        run = wandb.init(project=f"thesis-_kshot-linear_ablation-{runs}-runs",
                          entity="wandbefab",
                          name=dname)
         try:
