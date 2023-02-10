@@ -1,7 +1,7 @@
 import os
 
 os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
-os.environ["CUDA_VISIBLE_DEVICES"] = "4"
+os.environ["CUDA_VISIBLE_DEVICES"] = "5"
 
 import logging
 from collections import defaultdict
@@ -26,7 +26,7 @@ from zoc.utils import get_decoder, get_ablation_splits, get_zoc_unique_entities,
     get_auroc_for_ood_probs, get_auroc_for_max_probs, get_mean_std, get_split_specific_targets
 import clip
 from ood_detection.config import Config
-from datasets.config import DATASETS_DICT, HalfOneDict
+from datasets.config import DATASETS_DICT, HalfTwoDict
 
 logging.basicConfig(level=logging.INFO)
 _logger = logging.getLogger(__name__)
@@ -45,7 +45,7 @@ def main():
     clip_model, clip_transform = clip.load(Config.VISION_MODEL)
     device = Config.DEVICE
 
-    for dname, dset in HalfOneDict.items():
+    for dname, dset in HalfTwoDict.items():
         if dname == 'cifar100':
             continue
 
