@@ -21,6 +21,8 @@ def main():
     clip_model, clip_transfrom = clip.load(Config.VISION_MODEL)
 
     for dname, dset in DATASETS_DICT.items():
+        if dname != 'cifar10':
+            continue
         _logger.info(dname)
         log_reg_stuff(dset, clip_model, clip_transfrom, Config.ID_SPLIT, 1)
         break
