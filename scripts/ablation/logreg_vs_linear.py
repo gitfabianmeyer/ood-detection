@@ -80,18 +80,15 @@ def logreg_vs_linear(dataset, clip_model, clip_transform, id_split, runs):
             image_features_for_label = feature_weight_dict_test[semantic_label]
             # calc the logits and softmaxs
             linear_logits = linear_classifier(image_features_for_label.to(torch.float32).to(device))
-            top_prob, _ = linear_logits.cpu().topk(1, dim=-1)
+            top_lin_prob, _ = linear_logits.cpu().topk(1, dim=-1)
 
             logistic_logits = logistic_classifier.predict_proba(image_features_for_label.cpu())
             top_log_logits, _ = torch.topk(torch.Tensor(logistic_logits), 1, -1)
 
-            print(top_prob[:10])
-            print(top_log_logits[:10])
-
             # detection score is accumulative sum of probs of generated entities
             # careful, only for this setting axis=1
-            linear_probs_max.extend(top_prob.detach().numpy())
-            logreg_probs_max.extend(top_prob.detach().numpy())
+            linear_probs_max.extend(top_lin_prob.detach().numpy())
+            logreg_probs_max.extend(top_log_logits.detach().numpy())
 
         targets = get_split_specific_targets(isolated_classes, seen_labels, unseen_labels)
 
