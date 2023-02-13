@@ -1,5 +1,7 @@
 import os
 
+import wandb
+
 os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
 os.environ["CUDA_VISIBLE_DEVICES"] = "6"
 
@@ -16,19 +18,21 @@ from zoc.utils import get_ablation_splits, get_split_specific_targets, get_auroc
 from datasets.config import DATASETS_DICT
 _logger = logging.getLogger(__name__)
 
-
+runs = 10
 def main():
     clip_model, clip_transfrom = clip.load(Config.VISION_MODEL)
 
     for dname, dset in DATASETS_DICT.items():
-        if dname != 'cifar10':
-            continue
+        run = wandb.init(project=f"thesis-logreg_linear_ablation-{runs}-runs",
+                         entity="wandbefab",
+                         name=dname)
         _logger.info(dname)
-        log_reg_stuff(dset, clip_model, clip_transfrom, Config.ID_SPLIT, 1)
-        break
+        result = logreg_vs_linear(dset, clip_model, clip_transfrom, Config.ID_SPLIT, runs)
+        wandb.log(result)
+        run.finish()
 
 
-def log_reg_stuff(dataset, clip_model, clip_transform, id_split, runs):
+def logreg_vs_linear(dataset, clip_model, clip_transform, id_split, runs):
     device = Config.DEVICE
     train_dataset = dataset(Config.DATAPATH,
                             split='train',
@@ -93,11 +97,11 @@ def log_reg_stuff(dataset, clip_model, clip_transform, id_split, runs):
 
         linear_aucs.append(get_auroc_for_max_probs(targets, linear_probs_max))
         logistic_aucs.append(get_auroc_for_max_probs(targets, logreg_probs_max))
-        break
 
-    print(f" linear: {np.mean(linear_aucs)}")
-    print(f" logistic: {np.mean(logistic_aucs)}")
-    return True
+    result = {"logreg": np.mean(logistic_aucs), "logreg_std": np.std(logistic_aucs), "linear": np.mean(linear_aucs),
+              "linear_std": np.std(linear_aucs)}
+
+    return result
 
 
 if __name__ == '__main__':
