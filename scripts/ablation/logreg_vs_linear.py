@@ -10,14 +10,10 @@ import numpy as np
 import torch
 from datasets.zoc_loader import IsolatedClasses
 from ood_detection.config import Config
-from zoc.baseline import get_feature_weight_dict, FeatureSet
-from zoc.utils import get_ablation_splits, get_split_specific_targets, fill_auc_lists, fill_f_acc_lists, \
-    get_result_mean_dict
+from zoc.baseline import get_feature_weight_dict, FeatureSet, train_id_classifier, train_log_reg_classifier
+from zoc.utils import get_ablation_splits, get_split_specific_targets, get_auroc_for_max_probs
 
-from src.datasets.config import DATASETS_DICT
-from src.zoc.baseline import train_id_classifier, train_log_reg_classifier
-from src.zoc.utils import get_auroc_for_max_probs
-
+from datasets.config import DATASETS_DICT
 _logger = logging.getLogger(__name__)
 
 
@@ -26,22 +22,22 @@ def main():
 
     for dname, dset in DATASETS_DICT.items():
         _logger.info(dname)
-        log_reg_stuff(dset, clip_model, clip_transfrom, 10, 1)
+        log_reg_stuff(dset, clip_model, clip_transfrom, Config.ID_SPLIT, 1)
         break
 
 
-def log_reg_stuff(dataset, clip_model, clip_transform, id_classes, runs):
+def log_reg_stuff(dataset, clip_model, clip_transform, id_split, runs):
     device = Config.DEVICE
     train_dataset = dataset(Config.DATAPATH,
                             split='train',
                             transform=clip_transform)
 
+    id_classes = int(id_split*len(train_dataset.classes))
     ood_classes = len(train_dataset.classes) - id_classes
     isolated_classes = IsolatedClasses(train_dataset,
                                        batch_size=512)
     feature_weight_dict_train = get_feature_weight_dict(isolated_classes, clip_model, device)
 
-    classes = train_dataset.classes
     isolated_classes = IsolatedClasses(dataset(Config.DATAPATH,
                                                split='val',
                                                transform=clip_transform),
