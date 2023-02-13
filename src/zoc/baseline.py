@@ -375,6 +375,10 @@ def train_log_reg_classifier(train_set, eval_set):
     max_iter = 110
     cs = [0.001, 0.01, 0.1, 1, 10, 100, 1000]
 
+    if train_set.features.is_cuda:
+        train_set.features.cpu()
+    if eval_set.features.is_cuda:
+        eval_set.features.cpu()
     best_classifier = None
     best_score = 0
     for c in cs:
