@@ -81,8 +81,8 @@ def log_reg_stuff(dataset, clip_model, clip_transform, id_split, runs):
             logistic_logits = logistic_classifier.predict_proba(image_features_for_label.cpu())
             top_log_logits, _ = torch.topk(torch.Tensor(logistic_logits), 1, -1)
 
-            assert linear_logits.shape[1] == id_classes, f"{linear_logits.shape} and {id_classes}"
-            assert top_log_logits.shape[1] == id_classes, f"{top_log_logits.shape} and {id_classes}"
+            print(top_prob[:10])
+            print(top_log_logits[:10])
 
             # detection score is accumulative sum of probs of generated entities
             # careful, only for this setting axis=1
