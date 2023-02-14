@@ -85,7 +85,7 @@ def get_clip_zeroshot_score(clip_model, id_set, ood_set):
             imgs = imgs.to(device)
             targets = targets.to(device)
 
-            image_features = clip_model.encode_images(imgs)
+            image_features = clip_model.encode_image(imgs)
             image_features /= image_features.norm(dim=-1, keepdim=True)
             image_features_full.extend(image_features)
 
