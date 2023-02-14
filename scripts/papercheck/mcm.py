@@ -82,7 +82,6 @@ def get_clip_zeroshot_score(clip_model, id_set, ood_set):
                             batch_size=3)
 
         for imgs, _ in loader:
-
             imgs = imgs.to(device)
 
             image_features = clip_model.encode_image(imgs)
@@ -95,6 +94,7 @@ def get_clip_zeroshot_score(clip_model, id_set, ood_set):
         top_clip_prob, _ = clip_probs.cpu().topk(1, dim=-1)
         top_probs.extend(top_clip_prob)
 
+    top_probs = torch.stack(top_probs).squeeze()
     targets = torch.Tensor([0] * len(id_set) + [1] * len(ood_set))
     score = get_auroc_for_max_probs(targets, top_probs)
     _logger.info(f"Clip AUROC: {score:.3f}")
