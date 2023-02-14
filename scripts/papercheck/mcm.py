@@ -1,4 +1,5 @@
 import os
+
 os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
 os.environ["CUDA_VISIBLE_DEVICES"] = "6"
 
@@ -69,7 +70,8 @@ def get_zoc_scores(in_distribution, loader, seen_labels, clip_model, clip_tokeni
 
 
 @torch.no_grad()
-def get_clip_zeroshot_score(id_set, ood_set, clip_model):
+def get_clip_zeroshot_score(clip_model, id_set, ood_set):
+    device = Config.DEVICE
     zeroshot_weights = zeroshot_classifier(id_set.classes, id_set.templates, clip_model)
 
     top_probs = []
@@ -110,7 +112,7 @@ def run_zoc_and_clip(id_set, ood_set):
                           split='test')
 
     _logger.info("Running clip")
-    auroc_clip_score = get_clip_zeroshot_score()
+    auroc_clip_score = get_clip_zeroshot_score(clip_model, id_set, ood_set)
     _logger.info("Running zoc")
     auroc_zoc_score = get_all_zoc_scores(clip_model, id_dataset, ood_dataset)
 
