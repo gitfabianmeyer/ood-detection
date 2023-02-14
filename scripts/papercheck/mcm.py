@@ -112,7 +112,7 @@ def run_zoc_and_clip(id_set, ood_set):
                           split='test')
 
     _logger.info("Running clip")
-    auroc_clip_score = get_clip_zeroshot_score(clip_model, id_set, ood_set)
+    auroc_clip_score = get_clip_zeroshot_score(clip_model, id_dataset, ood_dataset)
     _logger.info("Running zoc")
     auroc_zoc_score = get_all_zoc_scores(clip_model, id_dataset, ood_dataset)
 
