@@ -66,7 +66,7 @@ def get_zoc_scores(in_distribution, loader, seen_labels, clip_model, clip_tokeni
 
 
 @torch.no_grad()
-def get_clip_zeroshot_score(clip_model, id_set, ood_set):
+def get_clip_zeroshot_score(clip_model, id_set, ood_set, temperature):
     device = Config.DEVICE
     zeroshot_weights = zeroshot_classifier(id_set.classes, id_set.templates, clip_model)
 
@@ -85,7 +85,7 @@ def get_clip_zeroshot_score(clip_model, id_set, ood_set):
             image_features_full.append(image_features)
 
         image_features_full = torch.cat(image_features_full, dim=0)
-        zsw = 100 * image_features_full.to(torch.float32) @ zeroshot_weights.T
+        zsw = temperature * image_features_full.to(torch.float32) @ zeroshot_weights.T
         clip_probs = torch.softmax(zsw, dim=-1).squeeze()
         top_clip_prob, _ = clip_probs.cpu().topk(1, dim=-1)
         top_probs.extend(top_clip_prob)
@@ -98,7 +98,7 @@ def get_clip_zeroshot_score(clip_model, id_set, ood_set):
 
 
 @torch.no_grad()
-def run_zoc_and_clip(id_set, ood_set):
+def run_zoc_and_clip(id_set, ood_set, temp):
     clip_model, clip_transform = clip.load(Config.VISION_MODEL)
     id_dataset = id_set(Config.DATAPATH,
                         transform=clip_transform,
@@ -107,14 +107,14 @@ def run_zoc_and_clip(id_set, ood_set):
                           transform=clip_transform,
                           split='test')
 
-    _logger.info("Running zoc")
-    auroc_zoc_score = get_all_zoc_scores(clip_model, id_dataset, ood_dataset)
+    # _logger.info("Running zoc")
+    # auroc_zoc_score = get_all_zoc_scores(clip_model, id_dataset, ood_dataset)
     _logger.info("Running clip")
-    auroc_clip_score = get_clip_zeroshot_score(clip_model, id_dataset, ood_dataset)
+    auroc_clip_score = get_clip_zeroshot_score(clip_model, id_dataset, ood_dataset, temp)
 
-
-    results = {'clip': np.mean(auroc_clip_score), 'clip_std': np.std(auroc_clip_score), 'zoc': np.mean(auroc_zoc_score),
-               'zoc_std': np.std(auroc_zoc_score)}
+    results = {'clip': np.mean(auroc_clip_score), 'clip_std': np.std(auroc_clip_score), 'temp': temp}
+               # 'zoc': np.mean(auroc_zoc_score),
+               # 'zoc_std': np.std(auroc_zoc_score)}
 
     return results
 
@@ -152,12 +152,13 @@ def main():
     id_set = datasets[in_dist]
     ood_set = datasets[oo_dist]
 
-    run = wandb.init(project=f"thesis-far_ood",
+    run = wandb.init(project=f"thesis-far_ood-temp",
                      entity="wandbefab",
                      name=f"{in_dist}_{oo_dist}")
 
-    results = run_zoc_and_clip(id_set, ood_set)
-    wandb.log(results)
+    for temp in np.linspace(1., 100., 50):
+        results = run_zoc_and_clip(id_set, ood_set, temp)
+        wandb.log(results)
     run.finish()
 
 
