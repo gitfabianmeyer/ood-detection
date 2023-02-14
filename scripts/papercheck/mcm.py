@@ -44,7 +44,7 @@ def get_zoc_scores(in_distribution, loader, seen_labels, clip_model, clip_tokeni
         topk_tokens = [bert_tokenizer.decode(int(pred_idx.cpu().numpy())) for pred_idx in topk_list]
 
         if in_distribution:
-            semantic_label = loader.dataset.idx_to_class[target]
+            semantic_label = loader.dataset.idx_to_class[int(target)]
             unique_entities = list(set(topk_tokens) - {semantic_label})
         else:
             unique_entities = list(set(topk_tokens))
@@ -111,10 +111,11 @@ def run_zoc_and_clip(id_set, ood_set):
                           transform=clip_transform,
                           split='test')
 
-    _logger.info("Running clip")
-    auroc_clip_score = get_clip_zeroshot_score(clip_model, id_dataset, ood_dataset)
     _logger.info("Running zoc")
     auroc_zoc_score = get_all_zoc_scores(clip_model, id_dataset, ood_dataset)
+    _logger.info("Running clip")
+    auroc_clip_score = get_clip_zeroshot_score(clip_model, id_dataset, ood_dataset)
+
 
     results = {'clip': np.mean(auroc_clip_score), 'clip_std': np.std(auroc_clip_score), 'zoc': np.mean(auroc_zoc_score),
                'zoc_std': np.std(auroc_zoc_score)}
