@@ -79,18 +79,18 @@ def get_clip_zeroshot_score(clip_model, id_set, ood_set):
         image_features_full = []
         loader = DataLoader(dataset,
                             shuffle=False,
-                            batch_size=512)
+                            batch_size=3)
 
-        for imgs, targets in loader:
+        for imgs, _ in loader:
+
             imgs = imgs.to(device)
-            targets = targets.to(device)
 
             image_features = clip_model.encode_image(imgs)
             image_features /= image_features.norm(dim=-1, keepdim=True)
-            image_features_full.extend(image_features)
+            image_features_full.append(image_features)
 
         image_features_full = torch.cat(image_features_full, dim=0)
-        zsw = 100 * image_features_full.to(torch.float32) @ zeroshot_weights
+        zsw = 100 * image_features_full.to(torch.float32) @ zeroshot_weights.T
         clip_probs = torch.softmax(zsw, dim=-1).squeeze()
         top_clip_prob, _ = clip_probs.cpu().topk(1, dim=-1)
         top_probs.extend(top_clip_prob)
