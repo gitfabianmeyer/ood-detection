@@ -62,10 +62,9 @@ def get_zoc_scores(in_distribution, loader, seen_labels, clip_model, clip_tokeni
 
         # detection score is accumulative sum of probs of generated entities
         ood_prob_sum = np.sum(zeroshot_probs[id_length:].detach().cpu().numpy())
-        print(ood_prob_sum)
         ood_probs_sum.append(ood_prob_sum)
 
-    return np.array(ood_prob_sum)
+    return np.array(ood_probs_sum)
 
 
 @torch.no_grad()
