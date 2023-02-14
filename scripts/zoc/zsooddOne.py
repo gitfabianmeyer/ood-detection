@@ -78,7 +78,7 @@ def run_all(args):
                                                   id_classes=split[0],
                                                   runs=args.runs_ood)
             metrics_dict['id split'] = split[0]
-            run = wandb.init(project="thesis-zsoodd_all_classes_five_runs",
+            run = wandb.init(project=f"thesis-zsoodd_all_classes_{args.runs}_runs",
                              entity="wandbefab",
                              name=dname + ' split-' + str(split))
             wandb.log(metrics_dict)

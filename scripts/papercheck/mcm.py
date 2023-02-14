@@ -30,8 +30,6 @@ def get_zoc_scores(in_distribution, loader, seen_labels, clip_model, clip_tokeni
     seen_descriptions = [f"This is a photo of a {label}" for label in seen_labels]
     ood_probs_sum = []
     for idx, (image, target) in enumerate(tqdm(loader)):
-        if idx == 2:
-            break
         clip_out = clip_model.encode_image(image.to(device)).float()
         clip_extended_embed = clip_out.repeat(1, 2).type(torch.FloatTensor)
 
@@ -141,8 +139,7 @@ def get_all_zoc_scores(clip_model, id_dataset, ood_set):
                                 device)
 
     full = id_scores + ood_scores
-    targets = torch.Tensor([0] * 2 + [1] * 2)
-    # targets = torch.Tensor([0] * len(id_scores) + [1] * len(ood_scores)) # TODO
+    targets = torch.Tensor([0] * len(id_scores) + [1] * len(ood_scores))
     auroc_zoc_score = get_auroc_for_ood_probs(targets, full)
     _logger.info(f"ZOC AUROC: {auroc_zoc_score:.3f}")
 
@@ -155,14 +152,13 @@ def main():
     id_set = datasets[in_dist]
     ood_set = datasets[oo_dist]
 
-    # run = wandb.init(project=f"thesis-far_ood",
-    #                  entity="wandbefab",
-    #                  name=f"{in_dist}_{oo_dist}")
+    run = wandb.init(project=f"thesis-far_ood",
+                     entity="wandbefab",
+                     name=f"{in_dist}_{oo_dist}")
 
     results = run_zoc_and_clip(id_set, ood_set)
-    print(results)
-    # wandb.log(results)
-    # run.finish()
+    wandb.log(results)
+    run.finish()
 
 
 if __name__ == '__main__':
