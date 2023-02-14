@@ -139,7 +139,7 @@ def get_all_zoc_scores(clip_model, id_dataset, ood_set):
     _logger.info(f"Encoding images for OOD")
     ood_scores = get_zoc_scores(False, ood_loader, seen_labels, clip_model, clip_tokenizer, bert_tokenizer, bert_model,
                                 device)
-    full = torch.cat((id_scores, ood_scores), dim=0)
+    full = id_scores + ood_scores
     targets = torch.Tensor([0] * 2 + [1] * 2)
     # targets = torch.Tensor([0] * len(id_scores) + [1] * len(ood_scores)) # TODO
     auroc_zoc_score = get_auroc_for_ood_probs(targets, full)
