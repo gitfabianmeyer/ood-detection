@@ -49,8 +49,6 @@ def get_zoc_scores(in_distribution, loader, seen_labels, clip_model, clip_tokeni
         else:
             unique_entities = list(set(topk_tokens))
 
-        _logger.debug(f"Semantic label: {semantic_label}Unique Entities: {unique_entities}")
-
         all_desc = seen_descriptions + [f"This is a photo of a {label}" for label in unique_entities]
         all_desc_ids = tokenize_for_clip(all_desc, clip_tokenizer)
 
