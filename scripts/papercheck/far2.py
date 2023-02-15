@@ -62,7 +62,7 @@ def main():
                             split='test')
 
         id_set_features = get_set_features(id_dataset, clip_model)
-        zeroshot_weights = zeroshot_classifier(id_set.classes, ['a photo of a {}'], clip_model)
+        zeroshot_weights = zeroshot_classifier(id_dataset.classes, ['a photo of a {}'], clip_model)
 
         for od_name, od_set in DATASETS_DICT.items():
             if od_name == id_name:
