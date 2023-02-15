@@ -55,7 +55,7 @@ def get_set_features(dataset, clip_model):
 
 def main():
     clip_model, clip_transform = clip.load(Config.VISION_MODEL)
-    temperatures = np.logspace(1, 100, num=25, base=2.0)
+    temperatures = np.logspace(np.log2(1), np.log2(100), num=25, base=2.0)
     for id_name, id_set in HalfOneDict.items():
         id_dataset = id_set(Config.DATAPATH,
                             transform=clip_transform,
