@@ -63,7 +63,6 @@ def main():
 
         id_set_features = get_set_features(id_dataset, clip_model)
         zeroshot_weights = zeroshot_classifier(id_dataset.classes, ['a photo of a {}'], clip_model)
-
         for od_name, od_set in DATASETS_DICT.items():
             if od_name == id_name:
                 continue
@@ -75,9 +74,8 @@ def main():
                                  split='test')
 
             ood_set_features = get_set_features(ood_dataset, clip_model)
-
             for temp in temperatures:
-                auroc_clip_score = get_clip_auroc_from_features(id_set_features, ood_set_features, zeroshot_weights)
+                auroc_clip_score = get_clip_auroc_from_features(id_set_features, ood_set_features, zeroshot_weights, temp)
                 wandb.log({'clip': auroc_clip_score,
                            'temperature': temp})
             run.finish()

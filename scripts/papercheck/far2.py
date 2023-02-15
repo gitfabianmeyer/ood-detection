@@ -10,7 +10,7 @@ import numpy as np
 import torch
 import wandb
 from clip.simple_tokenizer import SimpleTokenizer
-from datasets.config import HalfTwoDict
+from datasets.config import HalfTwoDict, DATASETS_DICT
 from ood_detection.classification_utils import zeroshot_classifier
 from ood_detection.config import Config
 from torch.utils.data import DataLoader
@@ -77,7 +77,7 @@ def main():
             ood_set_features = get_set_features(ood_dataset, clip_model)
 
             for temp in temperatures:
-                auroc_clip_score = get_clip_auroc_from_features(id_set_features, ood_set_features, zeroshot_weights)
+                auroc_clip_score = get_clip_auroc_from_features(id_set_features, ood_set_features, zeroshot_weights, temp)
                 wandb.log({'clip': auroc_clip_score,
                            'temperature': temp})
             run.finish()
