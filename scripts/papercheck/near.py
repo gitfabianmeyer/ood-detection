@@ -112,9 +112,9 @@ def main():
                                              isolated_classes,
                                              Config.ID_SPLIT,
                                              50,
-                                             1.,
+                                             0.01,
                                              100.,
-                                             25, )
+                                             50, )
         run.finish()
 
 
