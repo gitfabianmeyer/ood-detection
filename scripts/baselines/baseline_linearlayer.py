@@ -18,7 +18,7 @@ def run_all(args):
     clip_model, clip_transform = clip.load(Config.VISION_MODEL)
     for dname, dset in DATASETS_DICT.items():
         _logger.info(f"---------------Running {dname}--------------")
-        run = wandb.init(project=f"thesis-zoc_baseline_{args.classifier_type}_full_classes_test_sets",
+        run = wandb.init(project=f"thesis-ood_baseline_{args.classifier_type}_full_classes_test_sets",
                          entity="wandbefab",
                          name=dname)
 
