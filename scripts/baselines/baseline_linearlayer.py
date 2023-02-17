@@ -33,7 +33,6 @@ def run_all(args):
 
 def main():
     import argparse
-    import logging
 
     parser = argparse.ArgumentParser()
     parser.add_argument('--runs', type=int, default=5)
