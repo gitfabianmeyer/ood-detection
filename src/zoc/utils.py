@@ -5,6 +5,7 @@ from typing import Dict
 
 import numpy as np
 import torch
+from adapters.oodd import get_cosine_similarity_matrix_for_normed_features
 from adapters.tip_adapter import get_train_transform, get_kshot_train_set, WeightAdapter, get_cache_model
 from ood_detection.config import Config
 from sklearn.metrics import roc_auc_score, f1_score, accuracy_score
@@ -97,10 +98,10 @@ def image_decoder(clip_model,
                   bert_tokenizer,
                   bert_model,
                   device,
-                  isolated_classes: IsolatedClasses = None,
-                  id_classes=6,
-                  ood_classes=4,
-                  runs=1):
+                  isolated_classes: IsolatedClasses,
+                  id_classes,
+                  ood_classes,
+                  runs):
     ablation_splits = get_ablation_splits(isolated_classes.classes, n=runs, id_classes=id_classes,
                                           ood_classes=ood_classes)
 
@@ -111,48 +112,23 @@ def image_decoder(clip_model,
         _logger.debug(f"Seen labels: {seen_labels}\nOOD Labels: {split[id_classes:]}")
         seen_descriptions = [f"This is a photo of a {label}" for label in seen_labels]
 
-        ood_probs_sum, ood_probs_mean, ood_probs_max = [], [], []
+
         f_probs_sum, acc_probs_sum, id_probs_sum = [], [], []
 
+        ood_probs_sum, ood_probs_mean, ood_probs_max = [], [], []
         for i, semantic_label in enumerate(split):
-            _logger.info(f"Encoding images for label {semantic_label}")
             loader = isolated_classes[semantic_label]
             for idx, image in enumerate(tqdm(loader)):
                 clip_out = clip_model.encode_image(image.to(device)).float()
-                clip_extended_embed = clip_out.repeat(1, 2).type(torch.FloatTensor)
+                ood_prob_max, ood_prob_mean, ood_prob_sum = get_mean_max_sum_for_zoc_image(bert_model, bert_tokenizer,
+                                                                                           clip_model, clip_tokenizer,
+                                                                                           device, id_classes, clip_out,
+                                                                                           seen_descriptions,
+                                                                                           seen_labels)
 
-                # greedy generation
-                target_list, topk_list = greedysearch_generation_topk(clip_extended_embed,
-                                                                      bert_tokenizer,
-                                                                      bert_model,
-                                                                      device)
-
-                topk_tokens = [bert_tokenizer.decode(int(pred_idx.cpu().numpy())) for pred_idx in topk_list]
-
-                unique_entities = list(set(topk_tokens) - {semantic_label})
-                _logger.debug(f"Semantic label: {semantic_label}Unique Entities: {unique_entities}")
-
-                all_desc = seen_descriptions + [f"This is a photo of a {label}" for label in unique_entities]
-                all_desc_ids = tokenize_for_clip(all_desc, clip_tokenizer)
-
-                image_feature = clip_out
-                image_feature /= image_feature.norm(dim=-1, keepdim=True)
-
-                text_features = clip_model.encode_text(all_desc_ids.to(device)).float()
-                text_features /= text_features.norm(dim=-1, keepdim=True)
-                zeroshot_probs = (100.0 * image_feature @ text_features.T).softmax(dim=-1).squeeze()
-
-                # detection score is accumulative sum of probs of generated entities
-                ood_prob_sum = np.sum(zeroshot_probs[id_classes:].detach().cpu().numpy())
                 ood_probs_sum.append(ood_prob_sum)
-
-                ood_prob_mean = np.mean(zeroshot_probs[id_classes:].detach().cpu().numpy())
                 ood_probs_mean.append(ood_prob_mean)
-
-                top_prob, _ = zeroshot_probs.cpu().topk(1, dim=-1)
-                ood_probs_max.append(top_prob.detach().numpy())
-
-                id_probs_sum.append(1. - ood_prob_sum)
+                ood_probs_max.append(ood_prob_max.detach().numpy())
 
         targets = get_split_specific_targets(isolated_classes, seen_labels, unseen_labels)
         fill_auc_lists(auc_list_max, auc_list_mean, auc_list_sum, ood_probs_mean, ood_probs_max, ood_probs_sum,
@@ -162,6 +138,41 @@ def image_decoder(clip_model,
     metrics = get_result_mean_dict(acc_probs_sum, auc_list_max, auc_list_mean, auc_list_sum, f_probs_sum)
 
     return metrics
+
+
+def get_zoc_probs(image_features, bert_model, bert_tokenizer, clip_model, clip_tokenizer, device, seen_descriptions,
+                  seen_labels):
+    text_features = get_caption_features_from_image_features(image_features, seen_descriptions,
+                                                             seen_labels, bert_model,
+                                                             bert_tokenizer, clip_model,
+                                                             clip_tokenizer, device)
+    image_features /= image_features.norm(dim=-1, keepdim=True)
+    zeroshot_probs = get_cosine_similarity_matrix_for_normed_features(image_features, text_features, 100)
+    return zeroshot_probs
+
+
+def get_caption_features_from_image_features(image_features, seen_descriptions, seen_labels, bert_model, bert_tokenizer,
+                                             clip_model, clip_tokenizer, device):
+    clip_extended_embed = image_features.repeat(1, 2).type(torch.FloatTensor)
+    # greedy generation
+    target_list, topk_list = greedysearch_generation_topk(clip_extended_embed,
+                                                          bert_tokenizer,
+                                                          bert_model,
+                                                          device)
+    topk_tokens = [bert_tokenizer.decode(int(pred_idx.cpu().numpy())) for pred_idx in topk_list]
+    unique_entities = list(set(topk_tokens) - {seen_labels})
+    all_desc = seen_descriptions + [f"This is a photo of a {label}" for label in unique_entities]
+    all_desc_ids = tokenize_for_clip(all_desc, clip_tokenizer)
+    text_features = clip_model.encode_text(all_desc_ids.to(device)).float()
+    text_features /= text_features.norm(dim=-1, keepdim=True)
+    return text_features
+
+
+def get_sum_max_mean_probs(zeroshot_probs, id_classes):
+    ood_prob_sum = np.sum(zeroshot_probs[id_classes:].detach().cpu().numpy())
+    ood_prob_mean = np.mean(zeroshot_probs[id_classes:].detach().cpu().numpy())
+    ood_max_prob, _ = zeroshot_probs.cpu().topk(1, dim=-1)
+    return ood_prob_sum, ood_max_prob, ood_prob_mean
 
 
 @torch.no_grad()
@@ -187,46 +198,18 @@ def image_decoder_featuredict(clip_model,
         ood_probs_sum, ood_probs_mean, ood_probs_max = [], [], []
         f_probs_sum, acc_probs_sum, id_probs_sum = [], [], []
 
-        for i, semantic_label in enumerate(split):
-            _logger.info(f"Iterating images for label {semantic_label}")
+        for semantic_label in split:
             image_features = feature_dict[semantic_label]
-            for idx, image in enumerate(tqdm(image_features)):
-                clip_out = image
-                clip_extended_embed = clip_out.repeat(1, 2).type(torch.FloatTensor)
+            for image in tqdm(image_features):
+                ood_prob_max, ood_prob_mean, ood_prob_sum = get_mean_max_sum_for_zoc_image(bert_model, bert_tokenizer,
+                                                                                           clip_model, clip_tokenizer,
+                                                                                           device, id_classes, image,
+                                                                                           seen_descriptions,
+                                                                                           seen_labels)
 
-                # greedy generation
-                target_list, topk_list = greedysearch_generation_topk(clip_extended_embed,
-                                                                      bert_tokenizer,
-                                                                      bert_model,
-                                                                      device)
-
-                topk_tokens = [bert_tokenizer.decode(int(pred_idx.cpu().numpy())) for pred_idx in topk_list]
-
-                unique_entities = list(set(topk_tokens) - {semantic_label})
-                _logger.debug(f"Semantic label: {semantic_label}Unique Entities: {unique_entities}")
-
-                all_desc = seen_descriptions + [f"This is a photo of a {label}" for label in unique_entities]
-                all_desc_ids = tokenize_for_clip(all_desc, clip_tokenizer)
-
-                image_feature = clip_out
-                image_feature /= image_feature.norm(dim=-1, keepdim=True)
-
-                text_features = clip_model.encode_text(all_desc_ids.to(device)).float()
-                text_features /= text_features.norm(dim=-1, keepdim=True)
-                zeroshot_probs = (100.0 * image_feature.to(torch.float32) @ text_features.to(torch.float32).T).softmax(
-                    dim=-1).squeeze()
-
-                # detection score is accumulative sum of probs of generated entities
-                ood_prob_sum = np.sum(zeroshot_probs[id_classes:].detach().cpu().numpy())
                 ood_probs_sum.append(ood_prob_sum)
-
-                ood_prob_mean = np.mean(zeroshot_probs[id_classes:].detach().cpu().numpy())
                 ood_probs_mean.append(ood_prob_mean)
-
-                top_prob, _ = zeroshot_probs.cpu().topk(1, dim=-1)
-                ood_probs_max.append(top_prob.detach().numpy())
-
-                id_probs_sum.append(1. - ood_prob_sum)
+                ood_probs_max.append(ood_prob_max.detach().numpy())
 
         targets = get_split_specific_targets(feature_dict, seen_labels, unseen_labels)
         fill_auc_lists(auc_list_max, auc_list_mean, auc_list_sum, ood_probs_mean, ood_probs_max, ood_probs_sum,
@@ -236,6 +219,20 @@ def image_decoder_featuredict(clip_model,
     metrics = get_result_mean_dict(acc_probs_sum, auc_list_max, auc_list_mean, auc_list_sum, f_probs_sum)
 
     return metrics
+
+
+def get_mean_max_sum_for_zoc_image(bert_model, bert_tokenizer,
+                                   clip_model, clip_tokenizer,
+                                   device, id_classes,
+                                   image_features, seen_descriptions,
+                                   seen_labels):
+    zeroshot_probs = get_zoc_probs(image_features, bert_model,
+                                   bert_tokenizer, clip_model,
+                                   clip_tokenizer, device,
+                                   seen_descriptions, seen_labels)
+    # detection score is accumulative sum of probs of generated entities
+    ood_prob_sum, ood_prob_max, ood_prob_mean = get_sum_max_mean_probs(zeroshot_probs, id_classes)
+    return ood_prob_max, ood_prob_mean, ood_prob_sum
 
 
 def get_id_datasets(dataset, id_classes, kshots=16):
@@ -337,33 +334,19 @@ def get_decoder(clearml_model=False):
     return bert_model
 
 
-@torch.no_grad()
-def get_image_batch_features(loader, clip_model, stop_at=None):
-    features = []
-    for images in loader:
-        images = images.to(Config.DEVICE)
-        batch_features = clip_model.encode_image(images)
-        batch_features /= batch_features.norm(dim=1, keepdim=True)
-        features.append(batch_features)
-        if len(features) >= stop_at:
-            print(f"Reached max {stop_at} for class {loader.name}")
-            break
-
-    return torch.cat(features)
-
-
 def get_feature_dict_from_isolated_classes(isolated_classes: IsolatedClasses, clip_model, max_len=50000):
     _logger.info("Start creating image features...")
     max_per_class = max_len // len(isolated_classes.classes)
     feature_dict = {}
     for cls in tqdm(isolated_classes.classes):
-        feature_dict[cls] = get_image_batch_features(isolated_classes[cls], clip_model, max_per_class)
+        feature_dict[cls] = get_image_features_for_isolated_class_loader(isolated_classes[cls], clip_model,
+                                                                         max_per_class)
 
     return feature_dict
 
 
 @torch.no_grad()
-def get_zoc_unique_entities(dataset, seen_descriptions, clip_model, clip_tokenizer, bert_tokenizer, bert_model, device):
+def get_zoc_unique_entities(dataset, clip_model, bert_tokenizer, bert_model, device):
     isolated_classes_slow_loader = IsolatedClasses(dataset,
                                                    batch_size=1,
                                                    lsun=False)

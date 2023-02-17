@@ -1,31 +1,32 @@
 import os
 
+from adapters.oodd import get_cosine_similarity_matrix_for_normed_features
 
 os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
 os.environ["CUDA_VISIBLE_DEVICES"] = "6"
 
 
 import logging
-from collections import defaultdict
 from tqdm import tqdm
 
 import numpy as np
 import torch
 import wandb
 
+from zeroshot.classification import get_normalized_image_features
 from adapters.tip_adapter import create_tip_train_set, get_cache_model, get_dataset_with_shorted_classes, \
-    get_dataset_features_from_dataset_with_split, run_tip_adapter_finetuned, WeightAdapter, load_adapter, search_hp, \
-    get_cache_logits
-from datasets.zoc_loader import IsolatedClasses
+    get_dataset_features_from_dataset_with_split, run_tip_adapter_finetuned, search_hp, \
+    get_cache_logitsfrom datasets.zoc_loader import IsolatedClasses
 from ood_detection.ood_utils import sorted_zeroshot_weights
 from zoc.baseline import get_feature_weight_dict, get_zeroshot_weight_dict
 
-from adapters.ood import get_ablation_split_classes, pad_list_of_vectors
+from adapters.ood import get_ablation_split_classes, pad_list_of_vectors, get_top_tip_probability
 
 from clip.simple_tokenizer import SimpleTokenizer
 from transformers import BertGenerationTokenizer
 from zoc.utils import get_decoder, get_ablation_splits, get_zoc_unique_entities, tokenize_for_clip, \
-    get_auroc_for_ood_probs, get_auroc_for_max_probs, get_mean_std, get_split_specific_targets
+    get_auroc_for_ood_probs, get_auroc_for_max_probs, get_mean_std, get_split_specific_targets, \
+    get_caption_features_from_image_features
 import clip
 from ood_detection.config import Config
 from datasets.config import DATASETS_DICT
@@ -59,7 +60,7 @@ def main():
                          entity="wandbefab",
                          name=dname)
         try:
-            results = adapter_zoc_ablation(dset,
+            results = kshot_adapter_zoc_ablation(dset,
                                            clip_model,
                                            clip_transform,
                                            clip_tokenizer,
@@ -73,7 +74,7 @@ def main():
                                            train_epochs,
                                            lr,
                                            eps)
-            print(results)
+            wandb.log(results)
         except Exception as e:
             failed.append(dname)
             raise e
@@ -81,7 +82,7 @@ def main():
     print(f"Failed: {failed}")
 
 
-def adapter_zoc_ablation(dset,
+def kshot_adapter_zoc_ablation(dset,
                          clip_model,
                          clip_transform,
                          clip_tokenizer,
@@ -163,15 +164,12 @@ def adapter_zoc_ablation(dset,
             init_alpha = 1.
             # set sharpness nearly balanced
             init_beta = 1.17
-            tipf_alpha, tipf_beta = run_tip_adapter_finetuned(tip_train_set, clip_model,
+            tipf_alpha, tipf_beta, tipf_adapter = run_tip_adapter_finetuned(tip_train_set, clip_model,
                                                               val_features, val_labels,
                                                               zeroshot_weights, cache_keys,
                                                               cache_values, init_alpha, init_beta,
                                                               train_epochs, learning_rate,
                                                               eps)
-            tipf_adapter = WeightAdapter(cache_keys).to(device)
-            tipf_adapter.load_state_dict(load_adapter(tip_train_set.name))
-            tipf_adapter.eval()
 
             tip_alpha, tip_beta = search_hp(cache_keys, cache_values, val_features, val_labels, zeroshot_weights)
             # run zoc
@@ -185,7 +183,7 @@ def adapter_zoc_ablation(dset,
                 test_image_features_for_label = test_image_features_for_label.to(torch.float32)
 
                 # calc the logits and softmax
-                clip_logits = 100 * test_image_features_for_label @ zeroshot_weights.T
+                clip_logits = get_cosine_similarity_matrix_for_normed_features(test_image_features_for_label, zeroshot_weights, 100)
                 clip_probs = torch.softmax(clip_logits, dim=-1).squeeze()
                 top_clip_prob, _ = clip_probs.cpu().topk(1, dim=-1)
                 clip_probs_max.extend(top_clip_prob.detach().numpy())
@@ -201,14 +199,15 @@ def adapter_zoc_ablation(dset,
 
                 loader = isolated_classes_slow_loader[semantic_label]
                 for image, unique_entities in zip(loader, zoc_entities_for_semantic_label):
-                    all_desc = seen_descriptions + [f"This is a photo of a {label}" for label in unique_entities]
-                    all_desc_ids = tokenize_for_clip(all_desc, clip_tokenizer)
-                    with torch.no_grad():
-                        image_feature = clip_model.encode_image(image.to(device)).float()
-                        image_feature /= image_feature.norm(dim=-1, keepdim=True)
-                        image_feature = image_feature.to(torch.float32)
-                        text_features = clip_model.encode_text(all_desc_ids.to(device)).to(torch.float32)
-                        text_features /= text_features.norm(dim=-1, keepdim=True)
+
+
+                    text_features = get_caption_features_from_image_features(image, seen_descriptions,
+                                                                             seen_labels, bert_model,
+                                                                             bert_tokenizer, clip_model,
+                                                                             clip_tokenizer, device)
+                    image_feature = get_normalized_image_features(clip_model, image)
+
+
 
                     zoc_logits_for_image = (100.0 * image_feature @ text_features.T).squeeze().cpu()
                     zoc_logits_for_semantic_label.append(zoc_logits_for_image)
@@ -291,7 +290,7 @@ def adapter_zoc_ablation(dset,
                    'tocf_std': tocf_std,
                    'shots': kshot
                    }
-        wandb.log(metrics)
+        return metrics
 
 
 if __name__ == '__main__':

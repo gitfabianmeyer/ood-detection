@@ -37,17 +37,9 @@ def get_feature_weight_dict(isolated_classes, clip_model, device):
     weights_dict = {}
     for cls in isolated_classes.classes:
         loader = isolated_classes[cls]
-        image_feature_list = []
-        for images in tqdm(loader):
-            images = images.to(device)
-            image_features = clip_model.encode_image(images)
-            image_features /= image_features.norm(dim=-1, keepdim=True)
 
-            image_feature_list.append(image_features)
-        # for i in range(3):
-        #     image_feature_list.append(torch.rand(3, 512))
-
-        weights_dict[cls] = torch.cat(image_feature_list).half()
+        features = get_image_features_for_isolated_class_loader(loader, clip_model)
+        weights_dict[cls] = features.half()
 
     return weights_dict
 

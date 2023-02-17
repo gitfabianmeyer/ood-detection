@@ -8,7 +8,7 @@ import logging
 import wandb
 from datasets.config import DATASETS_DICT
 
-from adapters.tip_adapter import clip_tip_adapter
+from adapters.tip_adapter import full_clip_tip_classification
 
 logging.basicConfig(level=logging.INFO)
 _logger = logging.getLogger(__name__)
@@ -29,7 +29,7 @@ def main():
     for dname, dset in DATASETS_DICT.items():
         _logger.info(f"\t\tStarting {dname} run...")
         try:
-            results = clip_tip_adapter(dataset=dset,
+            results = full_clip_tip_classification(dataset=dset,
                                        kshots=kshots,
                                        train_epochs=train_epochs,
                                        init_alpha=init_alpha,

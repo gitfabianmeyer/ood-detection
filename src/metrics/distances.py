@@ -7,7 +7,7 @@ import numpy as np
 import torch
 from datasets import corruptions
 from datasets.classnames import imagenet_templates
-from datasets.zoc_loader import single_isolated_class_loader, IsolatedClasses
+from datasets.zoc_loader import IsolatedClasses
 from ood_detection.config import Config
 from ood_detection.classification_utils import zeroshot_classifier, classify
 from sklearn.metrics.pairwise import rbf_kernel
@@ -15,11 +15,10 @@ import torch.nn.functional as F
 from torchvision.transforms import Compose
 from tqdm import tqdm
 
-from metrics.distances_utils import id_ood_printer, \
-    shape_printer, dataset_name_printer, mean_std_printer, \
-    distance_name_printer, accuracy_printer, debug_scores
-from metrics.metrics_logging import wandb_log
+from metrics.distances_utils import id_ood_printer, mean_std_printer, \
+    distance_name_printer, accuracy_printer
 from zoc.baseline import sorted_zeroshot_weights
+from zoc.utils import get_image_features_for_isolated_class_loader
 
 _logger = logging.getLogger(__name__)
 _logger.setLevel(logging.INFO)
@@ -37,25 +36,11 @@ class Distancer:
         self.get_feature_dict()
         self.targets = self.get_dataset_targets()
 
-    @torch.no_grad()
-    def get_image_batch_features(self, loader, stop_at=None):
-        features = []
-        for images in loader:
-            images = images.to(self.device)
-            batch_features = self.clip_model.encode_image(images)
-            batch_features /= batch_features.norm(dim=1, keepdim=True)
-            features.append(batch_features)
-            if len(features) >= stop_at:
-                print(f"Reached max {stop_at} for class {loader.name}")
-                break
-
-        return torch.cat(features)
-
     def get_feature_dict(self, max_len=20000):
         _logger.info("Start creating image features...")
         max_per_class = max_len // len(self.classes)
         for cls in tqdm(self.classes):
-            self.feature_dict[cls] = self.get_image_batch_features(self.dataloaders[cls], max_per_class)
+            self.feature_dict[cls] = get_image_features_for_isolated_class_loader(self.dataloaders[cls], self.clip_model, max_per_class)
 
     def get_mmd(self):
         distance_name_printer("MMD")

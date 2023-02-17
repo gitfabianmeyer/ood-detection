@@ -12,7 +12,7 @@ from ood_detection.config import Config
 from tqdm import tqdm
 from zoc.baseline import sorted_zeroshot_weights, get_zeroshot_weight_dict, get_feature_weight_dict
 from zoc.utils import get_mean_std, get_auroc_for_max_probs, get_split_specific_targets, get_ablation_splits, \
-    greedysearch_generation_topk, tokenize_for_clip, get_auroc_for_ood_probs
+    get_auroc_for_ood_probs
 
 _logger = logging.getLogger(__name__)
 
@@ -60,7 +60,6 @@ def tip_hyperparam_ood_detector(dset,
         unseen_labels = split[num_id_classes:]
         _logger.debug(f"Seen labels: {seen_labels}\nOOD Labels: {unseen_labels}")
         zeroshot_weights = sorted_zeroshot_weights(classes_weight_dict, seen_labels)
-        zeroshot_weights = zeroshot_weights.to(torch.float32)
 
         # get the kshot train set
         tip_train_set = create_tip_train_set(dset, seen_labels, kshots)
@@ -75,34 +74,27 @@ def tip_hyperparam_ood_detector(dset,
             tip_val_set,
             clip_model)
 
-        if finetune_adapter:
-            # init alpha and beta according to paper
-
-            # set init residual ratio to 1 ( new & old knowledge balanced)
-            init_alpha = 1.
-            # set sharpness nearly balanced
-            init_beta = 1.17
-            tipf_alpha, tipf_beta = run_tip_adapter_finetuned(tip_train_set, clip_model,
-                                                              val_features, val_labels,
-                                                              zeroshot_weights, cache_keys,
-                                                              cache_values, init_alpha, init_beta,
-                                                              train_epochs, learning_rate,
-                                                              eps)
-            tipf_adapter = WeightAdapter(cache_keys).to(device)
-            tipf_adapter.load_state_dict(load_adapter(tip_train_set.name))
-            tipf_adapter.eval()
+        tipf_alpha, tipf_beta, adpter = run_tip_adapter_finetuned(tip_train_set, clip_model,
+                                                                  val_features, val_labels,
+                                                                  zeroshot_weights, cache_keys,
+                                                                  cache_values, train_epochs,
+                                                                  learning_rate, eps)
+        tipf_adapter = WeightAdapter(cache_keys).to(device)
+        tipf_adapter.load_state_dict(load_adapter(tip_train_set.name))
+        tipf_adapter.eval()
 
         tip_alpha, tip_beta = search_hp(cache_keys, cache_values, val_features, val_labels, zeroshot_weights)
 
         clip_probs_max, tip_probs_max, tipf_probs_max = [], [], []
 
-        for label_idx, semantic_label in enumerate(split):
+        for semantic_label in split:
             # get features
             test_image_features_for_label = feature_weight_dict[semantic_label]
             test_image_features_for_label = test_image_features_for_label.to(torch.float32)
 
             # calc the logits and softmax
-            clip_logits = 100 * test_image_features_for_label @ zeroshot_weights.T
+            clip_logits = get_cosine_similarity_matrix_for_normed_features(test_image_features_for_label,
+                                                                           zeroshot_weights, 100)
             clip_probs = torch.softmax(clip_logits, dim=-1).squeeze()
             top_clip_prob, _ = clip_probs.cpu().topk(1, dim=-1)
             clip_probs_max.extend(top_clip_prob.detach().numpy())
@@ -111,25 +103,16 @@ def tip_hyperparam_ood_detector(dset,
                 _logger.error(f"Z_p.shape: {clip_probs.shape} != id: {num_id_classes}")
                 raise AssertionError
 
-            # TIP ADAPTER
-            if finetune_adapter:
-                tipf_adapter.eval()
-                tipf_affinity = tipf_adapter(test_image_features_for_label)
-                tipf_cache_logits = get_cache_logits(tipf_affinity, cache_values, tipf_beta)
-                tipf_logits = clip_logits + tipf_cache_logits * tipf_alpha
-                tipf_probs = torch.softmax(tipf_logits, dim=1).squeeze()
-                top_tipf_prob, _ = tipf_probs.cpu().topk(1, dim=-1)
-                tipf_probs_max.extend(top_tipf_prob.detach().numpy())
+            tipf_adapter.eval()
+            tipf_affinity = tipf_adapter(test_image_features_for_label)
+            top_tipf_prob = get_top_tip_probability(cache_values, clip_logits, tipf_affinity, tipf_alpha, tipf_beta)
+            tipf_probs_max.extend(top_tipf_prob)
 
             tip_affinity = test_image_features_for_label @ cache_keys
-            tip_cache_logits = get_cache_logits(tip_affinity, cache_values, tip_beta)
-            tip_logits = clip_logits + tip_cache_logits * tip_alpha
-            tip_probs = torch.softmax(tip_logits, dim=1).squeeze()
-            top_tip_prob, _ = tip_probs.cpu().topk(1, dim=-1)
-            tip_probs_max.extend(top_tip_prob.detach().numpy())
+            top_tip_prob = get_top_tip_probability(cache_values, clip_logits, tip_affinity, tip_alpha, tip_beta)
+            tip_probs_max.extend(top_tip_prob)
 
         targets = get_split_specific_targets(isolated_classes, seen_labels, unseen_labels)
-
         clip_aucs.append(get_auroc_for_max_probs(targets, clip_probs_max))
         tip_aucs.append(get_auroc_for_max_probs(targets, tip_probs_max))
 
@@ -158,6 +141,14 @@ def tip_hyperparam_ood_detector(dset,
                    'tip_alpha': tip_alpha,
                    'tip_beta': tip_beta}
     return metrics
+
+
+def get_top_tip_probability(cache_values, clip_logits, affinity, alpha, beta):
+    cache_logits = get_cache_logits(affinity, cache_values, beta)
+    logits = clip_logits + cache_logits * alpha
+    probs = torch.softmax(logits, dim=1).squeeze()
+    top_prob, _ = probs.cpu().topk(1, dim=-1)
+    return top_prob.detach().numpy()
 
 
 def pad_list_of_vectors(list_of_vectors, value=-np.inf, max_length=None):
@@ -267,6 +258,10 @@ def tip_ood_detector(dset,
 # 2. Run zoc
 # 3. Add Knowledge to known classes
 # 4. Get the aurocs
+def get_cosine_similarity_matrix_for_normed_features(image_features, text_features, temperature):
+    return (temperature * image_features.to(torch.float32) @ text_features.T.to(torch.float32)).cpu()
+
+
 def adapter_zoc(dset,
                 clip_model,
                 clip_transform,
@@ -281,9 +276,10 @@ def adapter_zoc(dset,
                 train_epochs,
                 learning_rate,
                 eps,
-                shorten_classes=None):
+                shorten_classes=None,
+                split='test'):
     dataset = dset(data_path=Config.DATAPATH,
-                   split='test',
+                   split=split,
                    transform=clip_transform)
     # prepare features ...
     isolated_classes_fast_loader = IsolatedClasses(dataset,
@@ -299,12 +295,12 @@ def adapter_zoc(dset,
 
     # prepare ablation splits...
     num_id_classes = int(len(dataset.classes) * id_classes_split)
-    num_ood_classes = len(dataset.classes) - num_id_classes
     if shorten_classes:
         _logger.warning(f"SHORTENING CLASSES TO {shorten_classes}")
         num_id_classes = int(shorten_classes * Config.ID_SPLIT)
-        num_ood_classes = shorten_classes - num_id_classes
-    _logger.info(f"ID classes: {num_id_classes}, OOD classes: {num_ood_classes}")
+        _logger.info(f"ID classes: {num_id_classes}, OOD classes: {shorten_classes - num_id_classes}")
+    else:
+        _logger.info(f"ID classes: {num_id_classes}, OOD classes: {len(dataset.classes) - num_id_classes}")
     ablation_splits = get_ablation_splits(dataset.classes, runs, num_id_classes, num_ood_classes)
 
     # run for the ablation splits
@@ -333,16 +329,11 @@ def adapter_zoc(dset,
             tip_val_set,
             clip_model)
 
-        # set init residual ratio to 1 ( new & old knowledge balanced)
-        init_alpha = 1.
-        # set sharpness nearly balanced
-        init_beta = 1.17
         tipf_alpha, tipf_beta = run_tip_adapter_finetuned(tip_train_set, clip_model,
                                                           val_features, val_labels,
                                                           zeroshot_weights, cache_keys,
-                                                          cache_values, init_alpha, init_beta,
-                                                          train_epochs, learning_rate,
-                                                          eps)
+                                                          cache_values, train_epochs,
+                                                          learning_rate, eps)
         tipf_adapter = WeightAdapter(cache_keys).to(device)
         tipf_adapter.load_state_dict(load_adapter(tip_train_set.name))
         tipf_adapter.eval()
@@ -359,7 +350,9 @@ def adapter_zoc(dset,
             test_image_features_for_label = test_image_features_for_label.to(torch.float32)
 
             # calc the logits and softmax
-            clip_logits = 100 * test_image_features_for_label @ zeroshot_weights.T
+
+            clip_logits = get_cosine_similarity_matrix_for_normed_features(test_image_features_for_label,
+                                                                           zeroshot_weights, 100)
             clip_probs = torch.softmax(clip_logits, dim=-1).squeeze()
             top_clip_prob, _ = clip_probs.cpu().topk(1, dim=-1)
             clip_probs_max.extend(top_clip_prob.detach().numpy())
@@ -378,30 +371,18 @@ def adapter_zoc(dset,
             for image_idx, image in enumerate(loader):
                 with torch.no_grad():
                     clip_out = clip_model.encode_image(image.to(device)).float()
-                    clip_extended_embed = clip_out.repeat(1, 2).type(torch.FloatTensor)
 
-                    # greedy generation
-                    target_list, topk_list = greedysearch_generation_topk(clip_extended_embed,
-                                                                          bert_tokenizer,
-                                                                          bert_model,
-                                                                          device)
-
-                    topk_tokens = [bert_tokenizer.decode(int(pred_idx.cpu().numpy())) for pred_idx in topk_list]
-
-                unique_entities = list(set(topk_tokens) - {semantic_label})
-                _logger.debug(f"Semantic label: {semantic_label}Unique Entities: {unique_entities}")
-
-                all_desc = seen_descriptions + [f"This is a photo of a {label}" for label in unique_entities]
-                all_desc_ids = tokenize_for_clip(all_desc, clip_tokenizer)
-
+                # get id/ood label features
+                text_features = get_caption_features_from_image_features(clip_out, seen_descriptions, seen_labels,
+                                                                         bert_model, bert_tokenizer, clip_model,
+                                                                         clip_tokenizer, device)
+                # get image features
                 image_feature = clip_out
                 image_feature /= image_feature.norm(dim=-1, keepdim=True)
                 image_feature = image_feature.to(torch.float32)
 
-                with torch.no_grad():
-                    text_features = clip_model.encode_text(all_desc_ids.to(device)).to(torch.float32)
-                    text_features /= text_features.norm(dim=-1, keepdim=True)
-                zoc_logits_for_image = (100.0 * image_feature @ text_features.T).squeeze().cpu()
+                zoc_logits_for_image = get_cosine_similarity_matrix_for_normed_features(image_feature, text_features,
+                                                                                        100)
                 zoc_probs = torch.softmax(zoc_logits_for_image, dim=0)
                 zoc_probs_sum.append(torch.sum(zoc_probs[len(seen_labels):]))  # for normal zoc
                 zoc_logits_for_semantic_label.append(zoc_logits_for_image)  # for toc/f

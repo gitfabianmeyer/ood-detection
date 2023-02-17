@@ -1,5 +1,7 @@
 import os
 
+from src.zoc.utils import get_caption_features_from_image_features
+
 os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
 os.environ["CUDA_VISIBLE_DEVICES"] = "6"
 
@@ -31,30 +33,11 @@ def get_zoc_scores(in_distribution, loader, seen_labels, clip_model, clip_tokeni
     ood_probs_sum = []
     for idx, (image, target) in enumerate(tqdm(loader)):
         clip_out = clip_model.encode_image(image.to(device)).float()
-        clip_extended_embed = clip_out.repeat(1, 2).type(torch.FloatTensor)
-
-        # greedy generation
-        target_list, topk_list = greedysearch_generation_topk(clip_extended_embed,
-                                                              bert_tokenizer,
-                                                              bert_model,
-                                                              device)
-
-        topk_tokens = [bert_tokenizer.decode(int(pred_idx.cpu().numpy())) for pred_idx in topk_list]
-
-        if in_distribution:
-            semantic_label = loader.dataset.idx_to_class[int(target)]
-            unique_entities = list(set(topk_tokens) - {semantic_label})
-        else:
-            unique_entities = list(set(topk_tokens))
-
-        all_desc = seen_descriptions + [f"This is a photo of a {label}" for label in unique_entities]
-        all_desc_ids = tokenize_for_clip(all_desc, clip_tokenizer)
-
+        text_features = get_caption_features_from_image_features(clip_out, seen_descriptions, seen_labels, bert_model,
+                                                                 bert_tokenizer, clip_model, clip_tokenizer, device)
         image_feature = clip_out
         image_feature /= image_feature.norm(dim=-1, keepdim=True)
 
-        text_features = clip_model.encode_text(all_desc_ids.to(device)).float()
-        text_features /= text_features.norm(dim=-1, keepdim=True)
         zeroshot_probs = (100.0 * image_feature.to(torch.float32) @ text_features.T.to(torch.float32)).softmax(
             dim=-1).squeeze()
 

@@ -19,6 +19,9 @@ from torchvision import transforms
 from ood_detection.classification_utils import zeroshot_classifier, get_dataset_features
 from ood_detection.config import Config
 
+from src.adapters.oodd import get_cosine_similarity_matrix_for_normed_features
+from src.zeroshot.classification import get_normalized_image_features
+
 _logger = logging.getLogger()
 device = Config.DEVICE
 
@@ -38,7 +41,18 @@ def zeroshot(clip_logits, test_labels):
     return get_acc_f1(clip_logits, test_labels)
 
 
-def clip_tip_adapter(dataset, kshots, train_epochs, init_alpha, init_beta, lr, eps, augment_epochs):
+def get_acc_f1_for_adapter(image_features, cache_keys, cache_values, clip_logits, targets, alpha, beta, adapter=None):
+    if adapter:
+        affinity = adapter(image_features)
+    else:
+        affinity = image_features @ cache_keys
+    cache_logits_test = get_cache_logits(affinity, cache_values, beta)
+    tip_logits = clip_logits + cache_logits_test * alpha
+    acc_tip, f1_tip = get_acc_f1(tip_logits, targets)
+    return acc_tip, f1_tip
+
+
+def full_clip_tip_classification(dataset, kshots, train_epochs, init_alpha, init_beta, lr, eps, augment_epochs):
     _logger.info("Initializing everything...")
     clip_model, clip_transform = clip.load(Config.VISION_MODEL)
     clip_model.eval()
@@ -53,8 +67,8 @@ def clip_tip_adapter(dataset, kshots, train_epochs, init_alpha, init_beta, lr, e
                                                                                         clip_transform, 'val')
 
     # zeroshot
-    clip_logits_val = 100. * val_features @ label_features.t()
-    val_zsa, val_f1 = zeroshot(clip_logits_val, val_labels)
+    clip_logits_val = get_cosine_similarity_matrix_for_normed_features(val_features, label_features, 100)
+    val_zsa, val_f1 = get_acc_f1(clip_logits_val, val_labels)
     _logger.info(f'CLIP ZEROSHOT ACCURACY: {val_zsa:.3f}\tF1: {val_f1:.3f}')
 
     # tip adapter
@@ -67,12 +81,12 @@ def clip_tip_adapter(dataset, kshots, train_epochs, init_alpha, init_beta, lr, e
                                                     init_alpha,
                                                     init_beta)
 
-    tipf_best_alpha, tipf_best_beta = run_tip_adapter_finetuned(train_set, clip_model,
-                                                                val_features, val_labels,
-                                                                label_features, cache_keys,
-                                                                cache_values, init_alpha,
-                                                                init_beta, train_epochs,
-                                                                lr, eps)
+    tipf_best_alpha, tipf_best_beta, adapter = run_tip_adapter_finetuned(train_set, clip_model,
+                                                                         val_features, val_labels,
+                                                                         label_features, cache_keys,
+                                                                         cache_values, init_alpha,
+                                                                         init_beta, train_epochs,
+                                                                         lr, eps)
 
     # load test features, the adapter with weights, and run everything
 
@@ -81,25 +95,19 @@ def clip_tip_adapter(dataset, kshots, train_epochs, init_alpha, init_beta, lr, e
                                                                                           clip_transform,
                                                                                           'test')
     # zeroshot
-    clip_logits_test = 100. * test_features @ label_features.t()
-    zsa, f1 = zeroshot(clip_logits_test, test_labels)
+    clip_logits_test = get_cosine_similarity_matrix_for_normed_features(test_features, test_labels, 100)
+    zsa, f1 = get_acc_f1(clip_logits_test, test_labels)
 
     # tip
-    affinity = test_features @ cache_keys
-    cache_logits_test = get_cache_logits(affinity, cache_values, tip_best_beta)
-    tip_logits = clip_logits_test + cache_logits_test * tip_best_alpha
-    acc_tip_no, f1_tip_no = zeroshot(tip_logits, test_labels)
+    acc_tip, f1_tip = get_acc_f1_for_adapter(test_features, cache_keys, cache_values, clip_logits_test, test_labels,
+                                             tip_best_alpha, tip_best_beta)
 
     # tipf
-    adapter = WeightAdapter(cache_keys).to(device)
-    adapter.load_state_dict(load_adapter(train_set.name))
-    affinity = adapter(test_features)
-    cache_logits_test = get_cache_logits(affinity, cache_values, tipf_best_beta)
-    tipf_logits = clip_logits_test + cache_logits_test * tipf_best_alpha
-    acc_tip_fine, f1_tip_fine = zeroshot(tipf_logits, test_labels)
+    acc_tipf, f1_tipf = get_acc_f1_for_adapter(test_features, cache_keys, cache_values, clip_logits_test, test_labels,
+                                               tipf_best_alpha, tipf_best_beta, adapter)
 
-    results = {"ZEROSHOT": zsa, "zf1": f1, "TIP ADAPTER": acc_tip_no, "TIP F1": f1_tip_no,
-               "TIP-F ADAPTER": acc_tip_fine, "TIP-F F1": f1_tip_fine,
+    results = {"ZEROSHOT": zsa, "zf1": f1, "TIP ADAPTER": acc_tip, "TIP F1": f1_tip,
+               "TIP-F ADAPTER": acc_tipf, "TIP-F F1": f1_tipf,
                "tip_best_alpha": tip_best_alpha, "tip_best_beta": tip_best_beta,
                "tipf_best_alpha": tipf_best_alpha, "tipf_best_beta": tipf_best_beta}
     return results
@@ -129,7 +137,7 @@ def get_truncated_to_min(label_dict, kshots):
     return imgs, targets
 
 
-def get_kshot_train_set(dataset, kshots):
+def get_kshot_set(dataset, kshots):
     label_dict = get_label_dict(dataset)
     imgs, targets = get_truncated_to_min(label_dict, kshots)
 
@@ -145,7 +153,7 @@ def get_tip_adapter_train_set(dataset, kshots):
                       split='train',
                       transform=train_transform)
 
-    return get_kshot_train_set(dataset, kshots)
+    return get_kshot_set(dataset, kshots)
 
 
 @torch.no_grad()
@@ -194,7 +202,7 @@ def get_cache_model(train_set, model, augment_epochs=10):
 def create_tip_train_set(dset, seen_labels, kshots, split='train'):
     dataset = get_dataset_with_shorted_classes(dset, seen_labels, split)
 
-    dataset = get_kshot_train_set(dataset, kshots)
+    dataset = get_kshot_set(dataset, kshots)
     return dataset
 
 
@@ -278,7 +286,8 @@ def search_hp(cache_keys, cache_values, features, labels, zeroshot_weights, adap
         for alpha in np.linspace(.1, 5, 10):
 
             cache_logits = ((-1) * (beta - beta * affinity)).exp() @ cache_values
-            clip_logits = 100. * features @ zeroshot_weights.t()
+
+            clip_logits = get_cosine_similarity_matrix_for_normed_features(features, zeroshot_weights, 100)
             tip_logits = clip_logits + cache_logits * alpha
             acc, _ = get_acc_f1(tip_logits, labels)  # eval only on acc
 
@@ -319,10 +328,14 @@ def run_tip_adapter(val_features, val_labels, zeroshot_weights, cache_keys, cach
 def run_tip_adapter_finetuned(train_set, model,
                               val_features, val_labels,
                               zeroshot_weights, cache_keys,
-                              cache_values, alpha, beta,
-                              train_epochs, lr,
+                              cache_values, train_epochs, lr,
                               eps):
     _logger.info(f"Running TIP Adapter - FINETUNING")
+
+    # set init residual ratio to 1 ( new & old knowledge balanced)
+    init_alpha = 1.
+    # set sharpness nearly balanced
+    init_beta = 1.17
 
     train_loader_shuffle = DataLoader(train_set,
                                       batch_size=128,
@@ -334,7 +347,7 @@ def run_tip_adapter_finetuned(train_set, model,
     best_acc, best_epoch, best_f1 = 0, 0, 0
     losses, learning_rates, accuracies = [], [], []
 
-    # finetune and store everythin
+    # finetune and store everything
     for epoch in tqdm(range(train_epochs)):
         _logger.info(f"Training epoch\t{epoch}/{train_epochs}")
         adapter.train()
@@ -342,19 +355,14 @@ def run_tip_adapter_finetuned(train_set, model,
         batch_losses = []
 
         for i, (images, targets) in enumerate(train_loader_shuffle):
-            images = images.to(device)
-            targets = targets.to(device)
-            with torch.no_grad():
-                image_features = model.encode_image(images)
-                image_features /= image_features.norm(dim=-1, keepdim=True)
+            image_features = get_normalized_image_features(model, images)
 
             affinity = adapter(image_features.to(torch.float32))
-            cache_logits = get_cache_logits(affinity, cache_values, beta)
+            cache_logits = get_cache_logits(affinity, cache_values, init_beta)
+            clip_logits = get_cosine_similarity_matrix_for_normed_features(image_features, zeroshot_weights, 100)
+            tip_logits = clip_logits + cache_logits * init_alpha
 
-            clip_logits = 100. * image_features.to(torch.float32) @ zeroshot_weights.t()
-            tip_logits = clip_logits + cache_logits * alpha
-
-            loss = F.cross_entropy(tip_logits, targets)
+            loss = F.cross_entropy(tip_logits, targets.to(device))
             batch_losses.append(loss.detach().item())
 
             optimizer.zero_grad()
@@ -381,6 +389,7 @@ def run_tip_adapter_finetuned(train_set, model,
             best_acc = acc
             best_f1 = f1
             _logger.info(f"New best acc: {best_acc:.3f} \t(f1: {best_f1:.3f})")
+            best_adapter = adapter
             store_adapter(adapter, train_set.name)
 
     # search the best alpha and beta
@@ -394,7 +403,7 @@ def run_tip_adapter_finetuned(train_set, model,
                                       labels=val_labels,
                                       zeroshot_weights=zeroshot_weights,
                                       adapter=adapter)
-    return best_alpha, best_beta
+    return best_alpha, best_beta, best_adapter.eval()
 
 
 def init_adapter(cache_keys, eps, lr, train_epochs, train_loader_shuffle):
