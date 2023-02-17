@@ -5,6 +5,7 @@ from collections import defaultdict
 import numpy as np
 import torch
 import wandb
+from adapters.oodd import get_cosine_similarity_matrix_for_normed_features
 from datasets.zoc_loader import IsolatedClasses
 from ood_detection.classification_utils import zeroshot_classifier
 from ood_detection.config import Config
@@ -14,6 +15,7 @@ from torch.nn import CrossEntropyLoss
 from torch.optim import Adam, AdamW
 from torch.utils.data import Dataset, DataLoader
 from tqdm import tqdm
+from zeroshot.classification import get_image_features_for_isolated_class_loader
 from zoc.utils import get_ablation_splits, get_split_specific_targets, fill_auc_lists, fill_f_acc_lists, \
     get_result_mean_dict
 
@@ -59,10 +61,11 @@ def get_zeroshot_weight_dict(isolated_classes, clip_model):
 @torch.no_grad()
 def baseline_detector(clip_model,
                       device,
-                      isolated_classes: IsolatedClasses = None,
-                      id_classes=6,
-                      ood_classes=4,
-                      runs=1, ):
+                      isolated_classes: IsolatedClasses,
+                      id_classes,
+                      ood_classes,
+                      runs,
+                      temperature):
     feature_weight_dict = get_feature_weight_dict(isolated_classes, clip_model, device)
     classes_weight_dict = get_zeroshot_weight_dict(isolated_classes, clip_model)
 
@@ -91,9 +94,9 @@ def baseline_detector(clip_model,
                 # get features
                 image_features_for_label = feature_weight_dict[semantic_label]
                 # calc the logits and softmaxs
-                zeroshot_probs = (temperature * image_features_for_label.to(torch.float32) @ zeroshot_weights.T.to(
-                    torch.float32)).softmax(dim=-1).squeeze()
-
+                zeroshot_probs = get_cosine_similarity_matrix_for_normed_features(image_features_for_label,
+                                                                                  zeroshot_weights,
+                                                                                  temperature)
                 assert zeroshot_probs.shape[1] == id_classes
                 # detection score is accumulative sum of probs of generated entities
                 # careful, only for this setting axis=1
@@ -121,167 +124,7 @@ def baseline_detector(clip_model,
     return metrics_list
 
 
-@torch.no_grad()
-def baseline_detector_no_temperature(dset,
-                                     clip_model,
-                                     clip_transform,
-                                     device,
-                                     id_classes_split=.4,
-                                     runs=10):
-    dataset = dset(data_path=Config.DATAPATH,
-                   split='test',
-                   transform=clip_transform)
-    isolated_classes = IsolatedClasses(dataset,
-                                       batch_size=512,
-                                       lsun=False)
-
-    feature_weight_dict = get_feature_weight_dict(isolated_classes, clip_model, device)
-    classes_weight_dict = get_zeroshot_weight_dict(isolated_classes, clip_model)
-
-    for i in range(runs):
-
-        shorted_classes = random.sample(dataset.classes, 10)
-        _logger.info(f"Running with shorted classlist: {shorted_classes}")
-        num_id_classes = int(len(shorted_classes) * id_classes_split)
-        num_ood_classes = len(shorted_classes) - num_id_classes
-
-        ablation_splits = [shorted_classes[:num_id_classes] + shorted_classes[num_id_classes:]]
-        metrics_list = defaultdict(list)
-        # for each temperature..
-
-        auc_list_sum, auc_list_mean, auc_list_max = [], [], []
-        for i, split in enumerate(ablation_splits):
-            _logger.info(f"Current class split: {split} ({i} / {len(ablation_splits)} ")
-
-            seen_labels = split[:num_id_classes]
-            unseen_labels = split[num_id_classes:]
-            _logger.info(f"Seen labels: {seen_labels}\nOOD Labels: {unseen_labels}")
-
-            zeroshot_weights = sorted_zeroshot_weights(classes_weight_dict, seen_labels)
-            print(zeroshot_weights.shape)
-            ood_probs_sum, ood_probs_mean, ood_probs_max = [], [], []
-            f_probs_sum, acc_probs_sum, id_probs_sum = [], [], []
-
-            for i, semantic_label in enumerate(split):
-                # get features
-                image_features_for_label = feature_weight_dict[semantic_label]
-                print(image_features_for_label.shape)
-                # calc the logits and softmaxs
-                zeroshot_probs = (image_features_for_label.to(torch.float32) @ zeroshot_weights.T.to(
-                    torch.float32)).softmax(dim=-1).squeeze()
-
-                if zeroshot_probs.shape[1] != num_id_classes:
-                    _logger.error(f"Z_p.shape: {zeroshot_probs.shape} != id: {num_id_classes}")
-                    raise AssertionError
-                # detection score is accumulative sum of probs of generated entities
-                # careful, only for this setting axis=1
-                ood_prob_sum = np.sum(zeroshot_probs.detach().cpu().numpy(), axis=1)
-                ood_probs_sum.extend(ood_prob_sum)
-
-                ood_prob_mean = np.mean(zeroshot_probs.detach().cpu().numpy(), axis=1)
-                ood_probs_mean.extend(ood_prob_mean)
-
-                top_prob, _ = zeroshot_probs.cpu().topk(1, dim=-1)
-                ood_probs_max.extend(top_prob.detach().numpy())
-
-                id_probs_sum.extend(1. - ood_prob_sum)
-
-            targets = get_split_specific_targets(isolated_classes, seen_labels, unseen_labels)
-            fill_auc_lists(auc_list_max, auc_list_mean, auc_list_sum, ood_probs_mean, ood_probs_max, ood_probs_sum,
-                           targets)
-            fill_f_acc_lists(acc_probs_sum, f_probs_sum, id_probs_sum, ood_probs_sum, targets)
-
-        metrics = get_result_mean_dict(acc_probs_sum, auc_list_max, auc_list_mean, auc_list_sum, f_probs_sum)
-
-        for key, value in metrics.items():
-            metrics_list[key].append(value)
-
-    return metrics_list
-
-
-@torch.no_grad()
-def baseline_detector_no_temperature_featuredict(feature_dict,
-                                                 dset,
-                                                 clip_model,
-                                                 clip_transform,
-                                                 device,
-                                                 id_classes_split=.4,
-                                                 runs=10):
-    dataset = dset(data_path=Config.DATAPATH,
-                   split='test',
-                   transform=clip_transform)
-    isolated_classes = IsolatedClasses(dataset,
-                                       batch_size=512,
-                                       lsun=False)
-
-    feature_weight_dict = feature_dict
-    # classes stay the same
-    classes_weight_dict = get_zeroshot_weight_dict(isolated_classes, clip_model)
-
-    for run_idx in range(runs):
-
-        # shorted_classes = random.sample(dataset.classes, 10)
-        # _logger.info(f"Running with shorted classlist: {shorted_classes}")
-
-        classes = dataset.classes
-
-        num_id_classes = int(len(classes) * id_classes_split)
-        num_ood_classes = len(classes) - num_id_classes
-
-        ablation_splits = get_ablation_splits(classes, n=5, id_classes=num_id_classes, ood_classes=num_ood_classes)
-        metrics_list = defaultdict(list)
-        # for each temperature..
-
-        auc_list_sum, auc_list_mean, auc_list_max = [], [], []
-        for split_idx, split in enumerate(ablation_splits):
-            _logger.info(f"Current class split: {split} ({split_idx} / {len(ablation_splits)} ")
-
-            seen_labels = split[:num_id_classes]
-            unseen_labels = split[num_id_classes:]
-            _logger.info(f"Seen labels: {seen_labels}\nOOD Labels: {unseen_labels}")
-
-            zeroshot_weights = sorted_zeroshot_weights(classes_weight_dict, seen_labels)
-            assert zeroshot_weights.shape[0] == num_id_classes
-            ood_probs_sum, ood_probs_mean, ood_probs_max = [], [], []
-            f_probs_sum, acc_probs_sum, id_probs_sum = [], [], []
-
-            for i, semantic_label in enumerate(split):
-                # get features
-                image_features_for_label = feature_weight_dict[semantic_label]
-                # calc the logits and softmaxs
-                zeroshot_probs = (image_features_for_label.to(torch.float32) @ zeroshot_weights.T.to(
-                    torch.float32)).softmax(dim=-1).squeeze()
-
-                if zeroshot_probs.shape[1] != num_id_classes:
-                    _logger.error(f"Z_p.shape: {zeroshot_probs.shape} != id: {num_id_classes}")
-                    raise AssertionError
-                # detection score is accumulative sum of probs of generated entities
-                # careful, only for this setting axis=1
-                ood_prob_sum = np.sum(zeroshot_probs.detach().cpu().numpy(), axis=1)
-                ood_probs_sum.extend(ood_prob_sum)
-
-                ood_prob_mean = np.mean(zeroshot_probs.detach().cpu().numpy(), axis=1)
-                ood_probs_mean.extend(ood_prob_mean)
-
-                top_prob, _ = zeroshot_probs.cpu().topk(1, dim=-1)
-                ood_probs_max.extend(top_prob.detach().numpy())
-
-                id_probs_sum.extend(1. - ood_prob_sum)
-
-            targets = get_split_specific_targets(isolated_classes, seen_labels, unseen_labels)
-            fill_auc_lists(auc_list_max, auc_list_mean, auc_list_sum, ood_probs_mean, ood_probs_max, ood_probs_sum,
-                           targets)
-            fill_f_acc_lists(acc_probs_sum, f_probs_sum, id_probs_sum, ood_probs_sum, targets)
-
-        metrics = get_result_mean_dict(acc_probs_sum, auc_list_max, auc_list_mean, auc_list_sum, f_probs_sum)
-
-        for key, value in metrics.items():
-            metrics_list[key].append(value)
-
-    return metrics_list
-
-
-def train_id_classifier(train_set, eval_set, epochs=10, learning_rate=0.001, wandb_logging=True):
+def train_linear_id_classifier(train_set, eval_set, epochs=10, learning_rate=0.001):
     device = Config.DEVICE
     classifier = LinearClassifier(train_set.features_dim, len(train_set.labels)).to(device)
 
@@ -294,15 +137,12 @@ def train_id_classifier(train_set, eval_set, epochs=10, learning_rate=0.001, wan
 
     early_stopping = 0
     max_epoch_without_improvement = 3
-    epochs = epochs
-    learning_rate = learning_rate
     optimizer = AdamW(params=classifier.parameters(), lr=learning_rate)
     criterion = CrossEntropyLoss()
 
     best_val_loss = np.inf
     for epoch in tqdm(range(1, epochs + 1)):
 
-        epoch_results = {}
         epoch_loss = 0.
         # train
         for image_features, targets in tqdm(train_loader):
@@ -320,12 +160,7 @@ def train_id_classifier(train_set, eval_set, epochs=10, learning_rate=0.001, wan
 
             optimizer.step()
 
-        epoch_results["epoch"] = epoch
-        epoch_results["train loss"] = epoch_loss
-        epoch_results["train loss per image"] = epoch_loss / len(train_loader)
-
         # eval
-
         epoch_val_loss = 0.
         eval_accs = []
         for eval_features, eval_targets in tqdm(eval_loader):
@@ -353,20 +188,11 @@ def train_id_classifier(train_set, eval_set, epochs=10, learning_rate=0.001, wan
             eval_accs.append(accuracy_score(eval_targets.to('cpu').numpy(), indices.to('cpu').numpy()))
 
         _logger.info(f"Epoch {epoch} Eval Acc: {np.mean(eval_accs)}")
-        if wandb_logging:
-            epoch_results["val accuracy"] = np.mean(eval_accs)
-            epoch_results["val loss"] = epoch_val_loss
-            epoch_results["train loss per image"] = epoch_val_loss / len(eval_loader)
 
-            wandb.log(epoch_results)
     return best_classifier
 
 
-def train_log_reg_classifier(train_set, eval_set):
-    # hyperparams
-    max_iter = 110
-    cs = [0.001, 0.01, 0.1, 1, 10, 100, 1000]
-
+def train_log_reg_classifier(train_set, eval_set, max_iter=110, cs=[0.001, 0.01, 0.1, 1, 10, 100, 1000]):
     if train_set.features.is_cuda:
         train_set.features = train_set.features.cpu()
     if eval_set.features.is_cuda:
@@ -384,7 +210,8 @@ def train_log_reg_classifier(train_set, eval_set):
     return best_classifier
 
 
-def linear_layer_detector(dataset, clip_model, clip_transform, id_classes, ood_classes, runs):
+def linear_layer_detector(classifier_type, dataset, clip_model, clip_transform, id_classes, ood_classes, runs):
+    assert classifier_type in ['linear', 'logistic']
     device = Config.DEVICE
     train_dataset = dataset(Config.DATAPATH,
                             split='train',
@@ -415,18 +242,11 @@ def linear_layer_detector(dataset, clip_model, clip_transform, id_classes, ood_c
         train_set = FeatureSet(feature_weight_dict_train, seen_labels, class_to_idx_mapping)
         val_set = FeatureSet(feature_weight_dict_val, seen_labels, class_to_idx_mapping)
 
-        linear_layer_run = wandb.init(project="thesis-baseline_linear_clip_training_logs",
-                                      entity="wandbefab",
-                                      name=train_dataset.name,
-                                      tags=[
-                                          'linear probe',
-                                          'oodd',
-                                          'baseline'
-                                      ])
-        classifier = train_id_classifier(train_set, val_set)
-        linear_layer_run.finish()
-        _logger.info("Finished finetuning linear layer")
-        # eval for ood detection
+        if classifier_type == 'linear':
+            classifier = train_linear_id_classifier(train_set, val_set)
+
+        else:
+            classifier = train_log_reg_classifier(train_set, val_set)
 
         isolated_classes = IsolatedClasses(dataset(Config.DATAPATH,
                                                    split='test',
@@ -440,21 +260,13 @@ def linear_layer_detector(dataset, clip_model, clip_transform, id_classes, ood_c
             # get features
             image_features_for_label = feature_weight_dict_test[semantic_label]
             # calc the logits and softmaxs
-            logits = classifier(image_features_for_label.to(torch.float32).to(device))
-
-            assert logits.shape[1] == id_classes
-            # detection score is accumulative sum of probs of generated entities
-            # careful, only for this setting axis=1
-            ood_prob_sum = np.sum(logits.detach().cpu().numpy(), axis=1)
-            ood_probs_sum.extend(ood_prob_sum)
-
-            ood_prob_mean = np.mean(logits.detach().cpu().numpy(), axis=1)
-            ood_probs_mean.extend(ood_prob_mean)
+            if classifier_type == 'linear':
+                logits = classifier(image_features_for_label.to(torch.float32).to(device))
+            else:
+                logits = classifier(image_features_for_label.cpu())
 
             top_prob, _ = logits.cpu().topk(1, dim=-1)
             ood_probs_max.extend(top_prob.detach().numpy())
-
-            id_probs_sum.extend(1. - ood_prob_sum)
 
         targets = get_split_specific_targets(isolated_classes, seen_labels, unseen_labels)
         fill_auc_lists(auc_list_max, auc_list_mean, auc_list_sum, ood_probs_mean, ood_probs_max, ood_probs_sum,

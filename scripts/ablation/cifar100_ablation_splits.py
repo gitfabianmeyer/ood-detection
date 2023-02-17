@@ -1,36 +1,19 @@
 import os
 
-from adapters.oodd import get_cosine_similarity_matrix_for_normed_features
-
-from src.zoc.ablation import splits_adapter_zoc_ablation
-
 os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
 os.environ["CUDA_VISIBLE_DEVICES"] = "7"
 
 import logging
-from collections import defaultdict
-from tqdm import tqdm
-
 import numpy as np
-import torch
 import wandb
-
-from adapters.tip_adapter import create_tip_train_set, get_cache_model, get_dataset_with_shorted_classes, \
-    get_dataset_features_from_dataset_with_split, run_tip_adapter_finetuned, WeightAdapter, load_adapter, search_hp, \
-    get_cache_logits
-from datasets.zoc_loader import IsolatedClasses
-from ood_detection.ood_utils import sorted_zeroshot_weights
-from zoc.baseline import get_feature_weight_dict, get_zeroshot_weight_dict
-
-from adapters.ood import get_ablation_split_classes, pad_list_of_vectors
 
 from clip.simple_tokenizer import SimpleTokenizer
 from transformers import BertGenerationTokenizer
-from zoc.utils import get_decoder, get_ablation_splits, get_zoc_unique_entities, tokenize_for_clip, \
-    get_auroc_for_ood_probs, get_auroc_for_max_probs, get_mean_std, get_split_specific_targets
+from zoc.utils import get_decoder
 import clip
 from ood_detection.config import Config
 from datasets.config import DATASETS_DICT
+from zoc.ablation import splits_adapter_zoc_ablation
 
 logging.basicConfig(level=logging.INFO)
 _logger = logging.getLogger(__name__)
