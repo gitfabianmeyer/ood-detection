@@ -19,8 +19,8 @@ from torchvision import transforms
 from ood_detection.classification_utils import zeroshot_classifier, get_dataset_features
 from ood_detection.config import Config
 
-from src.adapters.oodd import get_cosine_similarity_matrix_for_normed_features
-from src.zeroshot.classification import get_normalized_image_features
+from adapters.oodd import get_cosine_similarity_matrix_for_normed_features
+from zeroshot.classification import get_normalized_image_features
 
 _logger = logging.getLogger()
 device = Config.DEVICE
