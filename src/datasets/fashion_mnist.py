@@ -5,7 +5,6 @@ from sklearn.model_selection import train_test_split
 import logging
 from datasets.mnist import CustomMNIST
 from datasets.classnames import mnist_templates
-from metrics.distances import run_full_distances
 
 logging.basicConfig(level=logging.INFO)
 
