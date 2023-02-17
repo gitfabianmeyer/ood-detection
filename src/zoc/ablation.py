@@ -15,20 +15,22 @@ from adapters.oodd import pad_list_of_vectors
 from ood_detection.baseline import get_trained_linear_classifier
 from ood_detection.config import Config
 from ood_detection.ood_utils import sorted_zeroshot_weights
+
 _logger = logging.getLogger(__name__)
 
+
 def linear_adapter_zoc_ablation(dset,
-                         clip_model,
-                         clip_transform,
-                         device,
-                         id_classes_split,
-                         augment_epochs,
-                         runs_per_setting,
-                         kshots,
-                         train_epochs,
-                         learning_rate,
-                         eps,
-                         shorten_classes=None):
+                                clip_model,
+                                clip_transform,
+                                device,
+                                id_classes_split,
+                                augment_epochs,
+                                runs_per_setting,
+                                kshots,
+                                train_epochs,
+                                learning_rate,
+                                eps,
+                                shorten_classes=None):
     dataset = dset(data_path=Config.DATAPATH,
                    split='test',
                    transform=clip_transform)
@@ -164,21 +166,23 @@ def linear_adapter_zoc_ablation(dset,
                    'shots': kshot
                    }
         return
+
+
 def splits_adapter_zoc_ablation(dset,
-                         clip_model,
-                         clip_transform,
-                         clip_tokenizer,
-                         bert_tokenizer,
-                         bert_model,
-                         device,
-                         id_classes_splits,
-                         augment_epochs,
-                         runs_per_setting,
-                         kshots,
-                         train_epochs,
-                         learning_rate,
-                         eps,
-                         shorten_classes=None):
+                                clip_model,
+                                clip_transform,
+                                clip_tokenizer,
+                                bert_tokenizer,
+                                bert_model,
+                                device,
+                                id_classes_splits,
+                                augment_epochs,
+                                runs_per_setting,
+                                kshots,
+                                train_epochs,
+                                learning_rate,
+                                eps,
+                                shorten_classes=None):
     dataset = dset(data_path=Config.DATAPATH,
                    split='test',
                    transform=clip_transform)
@@ -367,20 +371,20 @@ def splits_adapter_zoc_ablation(dset,
 
 
 def kshot_adapter_zoc_ablation(dset,
-                         clip_model,
-                         clip_transform,
-                         clip_tokenizer,
-                         bert_tokenizer,
-                         bert_model,
-                         device,
-                         id_classes_split,
-                         augment_epochs,
-                         runs_per_setting,
-                         kshots,
-                         train_epochs,
-                         learning_rate,
-                         eps,
-                         shorten_classes=None):
+                               clip_model,
+                               clip_transform,
+                               clip_tokenizer,
+                               bert_tokenizer,
+                               bert_model,
+                               device,
+                               id_classes_split,
+                               augment_epochs,
+                               runs_per_setting,
+                               kshots,
+                               train_epochs,
+                               learning_rate,
+                               eps,
+                               shorten_classes=None):
     dataset = dset(data_path=Config.DATAPATH,
                    split='test',
                    transform=clip_transform)
@@ -407,8 +411,8 @@ def kshot_adapter_zoc_ablation(dset,
 
     all_seen_descriptions = [f"This is a photo of a {label}" for label in dataset.classes]
     zoc_unique_entities = get_zoc_unique_entities(dataset, all_seen_descriptions, clip_model, clip_tokenizer,
-                                              bert_tokenizer,
-                                              bert_model, device)
+                                                  bert_tokenizer,
+                                                  bert_model, device)
 
     isolated_classes_slow_loader = IsolatedClasses(dataset,
                                                    batch_size=1,
@@ -449,11 +453,11 @@ def kshot_adapter_zoc_ablation(dset,
             # set sharpness nearly balanced
             init_beta = 1.17
             tipf_alpha, tipf_beta, tipf_adapter = run_tip_adapter_finetuned(tip_train_set, clip_model,
-                                                              val_features, val_labels,
-                                                              zeroshot_weights, cache_keys,
-                                                              cache_values, init_alpha, init_beta,
-                                                              train_epochs, learning_rate,
-                                                              eps)
+                                                                            val_features, val_labels,
+                                                                            zeroshot_weights, cache_keys,
+                                                                            cache_values, init_alpha, init_beta,
+                                                                            train_epochs, learning_rate,
+                                                                            eps)
 
             tip_alpha, tip_beta = search_hp(cache_keys, cache_values, val_features, val_labels, zeroshot_weights)
             # run zoc
@@ -467,7 +471,8 @@ def kshot_adapter_zoc_ablation(dset,
                 test_image_features_for_label = test_image_features_for_label.to(torch.float32)
 
                 # calc the logits and softmax
-                clip_logits = get_cosine_similarity_matrix_for_normed_features(test_image_features_for_label, zeroshot_weights, 100)
+                clip_logits = get_cosine_similarity_matrix_for_normed_features(test_image_features_for_label,
+                                                                               zeroshot_weights, 100)
                 clip_probs = torch.softmax(clip_logits, dim=-1).squeeze()
                 top_clip_prob, _ = clip_probs.cpu().topk(1, dim=-1)
                 clip_probs_max.extend(top_clip_prob.detach().numpy())
@@ -483,15 +488,14 @@ def kshot_adapter_zoc_ablation(dset,
 
                 loader = isolated_classes_slow_loader[semantic_label]
                 for image, unique_entities in zip(loader, zoc_entities_for_semantic_label):
-
-
                     text_features = get_caption_features_from_image_features(image, seen_descriptions,
                                                                              seen_labels, bert_model,
                                                                              bert_tokenizer, clip_model,
                                                                              clip_tokenizer, device)
                     image_feature = get_normalized_image_features(clip_model, image)
 
-                    zoc_logits_for_image = get_cosine_similarity_matrix_for_normed_features(image_feature, text_features, 100)
+                    zoc_logits_for_image = get_cosine_similarity_matrix_for_normed_features(image_feature,
+                                                                                            text_features, 100)
                     zoc_logits_for_semantic_label.append(zoc_logits_for_image)
                     zoc_probs = torch.softmax(zoc_logits_for_image, dim=0)
                     zoc_probs_sum.append(torch.sum(zoc_probs[len(seen_labels):]))  # for normal zoc
