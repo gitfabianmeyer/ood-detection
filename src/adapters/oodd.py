@@ -14,6 +14,8 @@ from zoc.baseline import sorted_zeroshot_weights, get_zeroshot_weight_dict, get_
 from zoc.utils import get_mean_std, get_auroc_for_max_probs, get_split_specific_targets, get_ablation_splits, \
     get_auroc_for_ood_probs
 
+from zeroshot.classification import get_cosine_similarity_matrix_for_normed_features
+
 _logger = logging.getLogger(__name__)
 
 
@@ -258,10 +260,6 @@ def tip_ood_detector(dset,
 # 2. Run zoc
 # 3. Add Knowledge to known classes
 # 4. Get the aurocs
-def get_cosine_similarity_matrix_for_normed_features(image_features, text_features, temperature):
-    return (temperature * image_features.to(torch.float32) @ text_features.T.to(torch.float32)).cpu()
-
-
 def adapter_zoc(dset,
                 clip_model,
                 clip_transform,

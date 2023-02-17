@@ -1,11 +1,8 @@
 import logging
-import random
-from collections import defaultdict
 
 import numpy as np
 import torch
-import wandb
-from adapters.oodd import get_cosine_similarity_matrix_for_normed_features
+from zeroshot.classification import get_cosine_similarity_matrix_for_normed_features
 from datasets.zoc_loader import IsolatedClasses
 from ood_detection.classification_utils import zeroshot_classifier
 from ood_detection.config import Config

@@ -5,7 +5,7 @@ from typing import Dict
 
 import numpy as np
 import torch
-from adapters.oodd import get_cosine_similarity_matrix_for_normed_features
+from zeroshot.classification import get_cosine_similarity_matrix_for_normed_features
 from adapters.tip_adapter import get_train_transform, get_kshot_train_set, WeightAdapter, get_cache_model
 from ood_detection.config import Config
 from sklearn.metrics import roc_auc_score, f1_score, accuracy_score
