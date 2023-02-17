@@ -2,19 +2,19 @@ import logging
 
 import numpy as np
 import torch
-from adapters.oodd import get_ablation_split_classes, get_cosine_similarity_matrix_for_normed_features
+from adapters.oodd import get_ablation_split_classes, get_cosine_similarity_matrix_for_normed_features, \
+    pad_list_of_vectors
 from adapters.tip_adapter import create_tip_train_set, get_cache_model, get_dataset_with_shorted_classes, \
     get_dataset_features_from_dataset_with_split, run_tip_adapter_finetuned, search_hp, get_cache_logits
 from datasets.zoc_loader import IsolatedClasses
-from zeroshot.classification import get_normalized_image_features
-from zoc.baseline import get_feature_weight_dict, get_zeroshot_weight_dict
-from zoc.utils import get_zoc_unique_entities, get_ablation_splits, get_split_specific_targets, get_auroc_for_max_probs, \
-    get_auroc_for_ood_probs, get_mean_std, tokenize_for_clip, get_caption_features_from_image_features
-
-from adapters.oodd import pad_list_of_vectors
-from ood_detection.baseline import get_trained_linear_classifier
 from ood_detection.config import Config
 from ood_detection.ood_utils import sorted_zeroshot_weights
+from zeroshot.classification import get_normalized_image_features
+from zoc.baseline import get_feature_weight_dict, get_zeroshot_weight_dict
+from zoc.utils import get_ablation_splits, get_split_specific_targets, get_auroc_for_max_probs, get_mean_std, \
+    get_zoc_unique_entities, tokenize_for_clip, get_auroc_for_ood_probs, get_caption_features_from_image_features
+
+from src.ood_detection.baseline import get_trained_linear_classifier
 
 _logger = logging.getLogger(__name__)
 
@@ -285,7 +285,7 @@ def splits_adapter_zoc_ablation(dset,
                         text_features = clip_model.encode_text(all_desc_ids.to(device)).to(torch.float32)
                         text_features /= text_features.norm(dim=-1, keepdim=True)
 
-                    zoc_logits_for_image = (100.0 * image_feature @ text_features.T).squeeze().cpu()
+                    zoc_logits_for_image = get_cosine_similarity_matrix_for_normed_features(image_feature, text_features, 100)
                     zoc_logits_for_semantic_label.append(zoc_logits_for_image)
                     zoc_probs = torch.softmax(zoc_logits_for_image, dim=0)
                     zoc_probs_sum.append(torch.sum(zoc_probs[len(seen_labels):]))  # for normal zoc
