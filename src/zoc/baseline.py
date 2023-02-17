@@ -207,12 +207,15 @@ def train_log_reg_classifier(train_set, eval_set, max_iter=110, cs=[0.001, 0.01,
     return best_classifier
 
 
-def linear_layer_detector(classifier_type, dataset, clip_model, clip_transform, id_classes, ood_classes, runs):
+def linear_layer_detector(classifier_type, dataset, clip_model, clip_transform, runs):
     assert classifier_type in ['linear', 'logistic']
     device = Config.DEVICE
     train_dataset = dataset(Config.DATAPATH,
                             split='train',
                             transform=clip_transform)
+    labels = train_dataset.classes
+    id_classes = int(len(labels) * Config.ID_SPLIT)
+    ood_classes = len(labels) - id_classes
 
     isolated_classes = IsolatedClasses(train_dataset,
                                        batch_size=512)

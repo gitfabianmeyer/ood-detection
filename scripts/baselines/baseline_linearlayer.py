@@ -22,10 +22,7 @@ def run_all(args):
                          entity="wandbefab",
                          name=dname)
 
-        labels = dset.classes
-        id_classes = int(len(labels) * id_classes)
-        ood_classes = len(labels) - id_classes
-        metrics = linear_layer_detector(args.classifier_type, dset, clip_model, clip_transform, id_classes, ood_classes,
+        metrics = linear_layer_detector(args.classifier_type, dset, clip_model, clip_transform,
                                         args.runs)
         wandb.log(metrics)
         run.finish()
