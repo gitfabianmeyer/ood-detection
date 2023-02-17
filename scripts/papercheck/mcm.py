@@ -1,7 +1,5 @@
 import os
 
-from src.zoc.utils import get_caption_features_from_image_features
-
 os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
 os.environ["CUDA_VISIBLE_DEVICES"] = "6"
 
@@ -18,8 +16,8 @@ from ood_detection.config import Config
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 from transformers import BertGenerationTokenizer
-from zoc.utils import greedysearch_generation_topk, tokenize_for_clip, get_auroc_for_ood_probs, get_auroc_for_max_probs, \
-    get_decoder
+from zoc.utils import get_auroc_for_ood_probs, get_auroc_for_max_probs, \
+    get_decoder,get_caption_features_from_image_features
 
 _logger = logging.getLogger(__name__)
 datasets = DATASETS_DICT

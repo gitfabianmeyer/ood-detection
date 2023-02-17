@@ -1,14 +1,11 @@
 import os
 
-from adapters.oodd import get_cosine_similarity_matrix_for_normed_features
-
-from src.zoc.ablation import kshot_adapter_zoc_ablation
-
 os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
 os.environ["CUDA_VISIBLE_DEVICES"] = "6"
 
 import logging
 import wandb
+from zoc.ablation import kshot_adapter_zoc_ablation
 
 from clip.simple_tokenizer import SimpleTokenizer
 from transformers import BertGenerationTokenizer

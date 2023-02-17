@@ -8,7 +8,7 @@ import wandb
 import clip
 from ood_detection.config import Config
 from datasets.config import KshotSets
-from src.zoc.ablation import linear_adapter_zoc_ablation
+from zoc.ablation import linear_adapter_zoc_ablation
 
 logging.basicConfig(level=logging.INFO)
 _logger = logging.getLogger(__name__)
