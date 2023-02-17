@@ -1,15 +1,11 @@
 import logging
 
 import PIL
-import clip
 import numpy as np
 import torchvision
-from datasets import corruptions
-from metrics.distances import get_distances_for_dataset, run_full_distances
 from ood_detection.config import Config
 from datasets.classnames import stanfordcars_templates
 from sklearn.model_selection import train_test_split
-from torchvision.transforms import Compose
 
 logging.basicConfig(level=logging.INFO)
 
@@ -51,13 +47,3 @@ class OodStanfordCars(torchvision.datasets.StanfordCars):
 
     def __len__(self):
         return len(self.data)
-
-
-def main():
-    name = "StanfordCars"
-    dataset = OodStanfordCars
-    run_full_distances(name, dataset, lsun=False)
-
-
-if __name__ == '__main__':
-    main()

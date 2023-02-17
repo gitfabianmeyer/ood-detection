@@ -2,7 +2,6 @@ import logging
 import shlex
 from typing import Tuple, Any
 
-import clip
 import imageio
 import numpy as np
 import os
@@ -13,10 +12,8 @@ from sklearn.model_selection import train_test_split
 from torch.utils.data import Dataset
 from torchvision.datasets import ImageFolder
 
-from tqdm.autonotebook import tqdm
-
+from tqdm import tqdm
 from ood_detection.config import Config
-from metrics.distances import get_distances_for_dataset, get_corruption_metrics, run_full_distances
 
 logging.basicConfig(level=logging.INFO)
 
@@ -268,12 +265,3 @@ class OodTinyImageNet(TinyImageNetImageFolder):
             target = self.target_transform(target)
 
         return sample, target
-
-
-def main():
-    dataset = OodTinyImageNet
-    run_full_distances(dataset.name, dataset, lsun=False)
-
-
-if __name__ == '__main__':
-    main()

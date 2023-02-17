@@ -1,13 +1,9 @@
 import logging
 
-import clip
 import numpy as np
 import torchvision
 from datasets.classnames import cifar_templates
-from metrics.distances import get_distances_for_dataset
 from ood_detection.config import Config
-
-from metrics.distances import run_full_distances
 from sklearn.model_selection import train_test_split
 
 logging.basicConfig(level=logging.INFO)
@@ -34,12 +30,3 @@ class OodCifar100(torchvision.datasets.CIFAR100):
         elif self.split == 'train':
             self.data, _, self.targets, _ = train_test_split(self.data, self.targets, test_size=Config.TEST_SIZE,
                                                              random_state=42, stratify=self.targets)
-
-
-def main():
-    dataset = OodCifar100
-    run_full_distances(dataset.name, dataset, lsun=False)
-
-
-if __name__ == '__main__':
-    main()

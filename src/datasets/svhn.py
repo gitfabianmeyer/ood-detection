@@ -1,4 +1,3 @@
-import os
 from typing import Tuple, Any
 
 import numpy as np
@@ -6,15 +5,11 @@ from PIL import Image
 from ood_detection.config import Config
 from sklearn.model_selection import train_test_split
 
-os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
-os.environ["CUDA_VISIBLE_DEVICES"] = "1"
 
 import logging
 import os.path
 
 import torchvision.datasets
-
-from metrics.distances import run_full_distances
 from datasets.classnames import mnist_templates
 
 logging.basicConfig(level=logging.INFO)
@@ -69,13 +64,3 @@ class OodSVHN(torchvision.datasets.SVHN):
         elif self.split == 'train':
             self.data, _, self.targets, _ = train_test_split(self.data, self.targets, test_size=Config.TEST_SIZE,
                                                              random_state=42, stratify=self.targets)
-
-
-def main():
-    name = "SVHN"
-    dataset = OodSVHN
-    run_full_distances(name, dataset, lsun=False)
-
-
-if __name__ == '__main__':
-    main()

@@ -1,17 +1,9 @@
-import os
-
 from ood_detection.config import Config
 from sklearn.model_selection import train_test_split
 
-from datasets.mnist import CustomMNIST
-
-os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
-os.environ["CUDA_VISIBLE_DEVICES"] = "1"
 
 import logging
-
-import torchvision
-
+from datasets.mnist import CustomMNIST
 from datasets.classnames import mnist_templates
 from metrics.distances import run_full_distances
 
@@ -73,12 +65,3 @@ class OodFashionMNIST(CustomFashionMNIST):
         elif self.split == 'train':
             self.data, _, self.targets, _ = train_test_split(self.data, self.targets, test_size=Config.TEST_SIZE,
                                                              random_state=42, stratify=self.targets)
-
-
-def main():
-    dataset = OodFashionMNIST
-    run_full_distances(dataset.name, dataset, lsun=False)
-
-
-if __name__ == '__main__':
-    main()

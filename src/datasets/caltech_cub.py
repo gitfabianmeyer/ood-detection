@@ -9,8 +9,6 @@ from sklearn.model_selection import train_test_split
 from torchvision.datasets.utils import download_url
 from torch.utils.data import Dataset
 
-from metrics.distances import run_full_distances
-
 logging.basicConfig(level=logging.INFO)
 
 
@@ -120,13 +118,3 @@ class OodCub2011(Dataset):
             img = self.transform(img)
 
         return img, target
-
-
-def main():
-    name = "caltech cub"
-    dataset = OodCub2011
-    run_full_distances(name=name, dataset=dataset, lsun=False)
-
-
-if __name__ == '__main__':
-    main()

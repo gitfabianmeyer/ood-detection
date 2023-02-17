@@ -1,13 +1,10 @@
 import logging
 import os.path
 
-import clip
 import numpy as np
 import torchvision.datasets
 from PIL import Image
 from datasets.classnames import caltech101_templates
-
-from metrics.distances import run_full_distances
 from ood_detection.config import Config
 from sklearn.model_selection import train_test_split
 
@@ -73,13 +70,3 @@ class OodCaltech101(torchvision.datasets.Caltech101):
 
         else:
             raise ValueError(f'Split {split} not in [train, test, val]')
-
-
-def main():
-    name = 'CALTECH101'
-    dataset = OodCaltech101
-    run_full_distances(name=name, dataset=dataset, lsun=False)
-
-
-if __name__ == '__main__':
-    main()

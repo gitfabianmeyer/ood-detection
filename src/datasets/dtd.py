@@ -1,13 +1,9 @@
 import logging
 
 import PIL
-import clip
 import numpy as np
 import torchvision.datasets
 from datasets.classnames import dtd_templates
-
-from metrics.distances import get_distances_for_dataset, run_full_distances
-from ood_detection.config import Config
 
 logging.basicConfig(level=logging.INFO)
 
@@ -40,10 +36,3 @@ class OodDTD(torchvision.datasets.DTD):
         return len(self.data)
 
 
-def main():
-    dataset = OodDTD
-    run_full_distances(dataset.name, dataset, lsun=False)
-
-
-if __name__ == '__main__':
-    main()

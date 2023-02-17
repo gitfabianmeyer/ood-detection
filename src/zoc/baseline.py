@@ -9,7 +9,7 @@ from ood_detection.config import Config
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import accuracy_score
 from torch.nn import CrossEntropyLoss
-from torch.optim import Adam, AdamW
+from torch.optim import AdamW
 from torch.utils.data import Dataset, DataLoader
 from tqdm import tqdm
 from zeroshot.classification import get_image_features_for_isolated_class_loader

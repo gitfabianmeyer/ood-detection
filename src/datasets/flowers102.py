@@ -1,20 +1,9 @@
-import os
+import logging
 from typing import Tuple, Any
 
 import PIL
-
-os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
-os.environ["CUDA_VISIBLE_DEVICES"] = "1"
-
-import logging
-
-import clip
-import numpy as np
-import torchvision.datasets
-
+import torchvision
 from datasets.classnames import flowers102_classes, flowers102_templates
-from ood_detection.config import Config
-from metrics.distances import get_distances_for_dataset, run_full_distances
 
 logging.basicConfig(level=logging.INFO)
 
@@ -47,12 +36,3 @@ class OodFlowers102(torchvision.datasets.Flowers102):
             label = self.target_transform(label)
 
         return image, label
-
-
-def main():
-    dataset = OodFlowers102
-    run_full_distances(dataset.name, dataset, lsun=False)
-
-
-if __name__ == '__main__':
-    main()

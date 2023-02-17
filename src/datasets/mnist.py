@@ -1,23 +1,21 @@
 import logging
 from datasets.classnames import mnist_templates
 
-from metrics.distances import get_distances_for_dataset, run_full_distances
 from ood_detection.config import Config
 from sklearn.model_selection import train_test_split
 from torchvision.datasets import VisionDataset
-from torchvision.datasets.mnist import get_int, SN3_PASCALVINCENT_TYPEMAP, read_label_file, read_image_file
-from torchvision.datasets.utils import check_integrity, download_and_extract_archive, verify_str_arg, extract_archive
+from torchvision.datasets.mnist import read_label_file, read_image_file
+from torchvision.datasets.utils import check_integrity, download_and_extract_archive
 
 logging.basicConfig(level=logging.INFO)
 
 import os
 import os.path
-import sys
+
 import warnings
-from typing import Any, Callable, Dict, List, Optional, Tuple
+from typing import Any, Callable, Dict,  Optional, Tuple
 from urllib.error import URLError
 
-import numpy as np
 import torch
 from PIL import Image
 
@@ -260,13 +258,3 @@ class OodMNIST(CustomMNIST):
         elif self.split == 'train':
             self.data, _, self.targets, _ = train_test_split(self.data, self.targets, test_size=Config.TEST_SIZE,
                                                              random_state=42, stratify=self.targets)
-
-
-def main():
-    name = "MNIST"
-    dataset = OodMNIST
-    run_full_distances(name, dataset, lsun=False)
-
-
-if __name__ == '__main__':
-    main()

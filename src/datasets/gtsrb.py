@@ -1,21 +1,13 @@
-import os
-
-os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
-os.environ["CUDA_VISIBLE_DEVICES"] = "1"
-
 from typing import Tuple, Any
 
 import PIL
 from sklearn.model_selection import train_test_split
 import logging
 
-import clip
 import numpy as np
 import torchvision
 from datasets.classnames import gtsrb_classes, gtsrb_templates
 from ood_detection.config import Config
-
-from metrics.distances import get_distances_for_dataset, run_full_distances
 
 logging.basicConfig(level=logging.INFO)
 
@@ -61,12 +53,3 @@ class OodGTSRB(torchvision.datasets.GTSRB):
 
     def __len__(self) -> int:
         return len(self.targets)
-
-
-def main():
-    dataset = OodGTSRB
-    run_full_distances(dataset.name, dataset, lsun=False)
-
-
-if __name__ == '__main__':
-    main()

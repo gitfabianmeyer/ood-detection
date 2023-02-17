@@ -1,6 +1,5 @@
 import torch
 
-from ood_detection.config import Config
 from ood_detection.models.dummy_zoc import CaptionGenerator
 
 
