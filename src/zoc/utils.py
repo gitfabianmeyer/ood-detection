@@ -5,8 +5,9 @@ from typing import Dict
 
 import numpy as np
 import torch
-from zeroshot.classification import get_cosine_similarity_matrix_for_normed_features
-from adapters.tip_adapter import get_train_transform, get_kshot_train_set, WeightAdapter, get_cache_model
+from zeroshot.classification import get_cosine_similarity_matrix_for_normed_features, \
+    get_image_features_for_isolated_class_loader
+from adapters.tip_adapter import get_train_transform, get_kshot_set, WeightAdapter, get_cache_model
 from ood_detection.config import Config
 from sklearn.metrics import roc_auc_score, f1_score, accuracy_score
 from sklearn.model_selection import train_test_split
@@ -262,7 +263,7 @@ def get_id_datasets(dataset, id_classes, kshots=16):
     val_dataset.targets = val_targets
     val_dataset.classes = id_classes
 
-    return get_kshot_train_set(train_dataset, kshots), val_dataset
+    return get_kshot_set(train_dataset, kshots), val_dataset
 
 
 def fill_f_acc_lists(acc_probs_sum, f_probs_sum, id_probs_sum, ood_probs_sum, targets):
