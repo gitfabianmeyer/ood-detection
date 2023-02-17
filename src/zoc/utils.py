@@ -7,7 +7,7 @@ import numpy as np
 import torch
 from zeroshot.classification import get_cosine_similarity_matrix_for_normed_features, \
     get_image_features_for_isolated_class_loader
-from adapters.tip_adapter import get_train_transform, get_kshot_set, WeightAdapter, get_cache_model
+from adapters.tip_adapter import get_train_transform, get_kshot_set
 from ood_detection.config import Config
 from sklearn.metrics import roc_auc_score, f1_score, accuracy_score
 from sklearn.model_selection import train_test_split
