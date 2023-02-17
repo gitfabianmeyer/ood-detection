@@ -9,7 +9,6 @@ from datasets.fashion_mnist import OodFashionMNIST
 from datasets.flowers102 import OodFlowers102
 from datasets.gtsrb import OodGTSRB
 from datasets.imagenet import OodTinyImageNet
-from datasets.lsun import OodLSUN
 from datasets.mnist import OodMNIST
 from datasets.stanfordcars import OodStanfordCars
 from datasets.svhn import OodSVHN
