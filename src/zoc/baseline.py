@@ -266,7 +266,7 @@ def linear_layer_detector(classifier_type, dataset, clip_model, clip_transform, 
             if classifier_type == 'linear':
                 logits = classifier(image_features_for_label.to(torch.float32).to(device))
             else:
-                logits = classifier(image_features_for_label.cpu())
+                logits = classifier.predict_proba(image_features_for_label.cpu())
 
             top_prob, _ = logits.cpu().topk(1, dim=-1)
             ood_probs_max.extend(top_prob.detach().numpy())
