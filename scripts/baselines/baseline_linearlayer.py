@@ -18,15 +18,14 @@ def run_all(args):
     clip_model, clip_transform = clip.load(Config.VISION_MODEL)
     for dname, dset in DATASETS_DICT.items():
         _logger.info(f"---------------Running {dname}--------------")
-        # run = wandb.init(project=f"thesis-ood_baseline_{args.classifier_type}_full_classes_test_sets",
-        #                  entity="wandbefab",
-        #                  name=dname)
+        run = wandb.init(project=f"thesis-ood_baseline-{args.classifier_type}-full_classes-test_sets",
+                         entity="wandbefab",
+                         name=dname)
 
         metrics = linear_layer_detector(args.classifier_type, dset, clip_model, clip_transform,
                                         args.runs)
-        print(metrics)
-        # wandb.log(metrics)
-        # run.finish()
+        wandb.log(metrics)
+        run.finish()
 
 
 def main():

@@ -231,18 +231,19 @@ def linear_layer_detector(classifier_type, dataset, clip_model, clip_transform, 
     isolated_classes = IsolatedClasses(train_dataset,
                                        batch_size=512)
 
-    # feature_weight_dict_train = get_feature_weight_dict(isolated_classes, clip_model)
-    feature_weight_dict_train = get_fake_dict(isolated_classes) # TODO
+    feature_weight_dict_train = get_feature_weight_dict(isolated_classes, clip_model)
+
     isolated_classes = IsolatedClasses(dataset(Config.DATAPATH,
                                                split='val',
                                                transform=clip_transform),
                                        batch_size=512)
-    # feature_weight_dict_val = get_feature_weight_dict(isolated_classes, clip_model)
-    feature_weight_dict_val = get_fake_dict(isolated_classes)  # TODO
+    feature_weight_dict_val = get_feature_weight_dict(isolated_classes, clip_model)
+
     ablation_splits = get_ablation_splits(isolated_classes.classes, n=runs, id_classes=id_classes,
                                           ood_classes=ood_classes)
 
-    auc_list_sum, auc_list_mean, auc_list_max = [], [], []
+    auc_list_max = []
+    auc_list_max_log = []
     for ablation_split in ablation_splits:
 
         class_to_idx_mapping = {label: i for (i, label) in enumerate(ablation_split)}
@@ -267,11 +268,10 @@ def linear_layer_detector(classifier_type, dataset, clip_model, clip_transform, 
                                                    split='test',
                                                    transform=clip_transform),
                                            batch_size=512)
-        # feature_weight_dict_test = get_feature_weight_dict(isolated_classes, clip_model)
-        feature_weight_dict_test = get_fake_dict(isolated_classes) #TODO
+        feature_weight_dict_test = get_feature_weight_dict(isolated_classes, clip_model)
 
         ood_probs_max = []
-
+        log_ood_probs_max = []
         for i, semantic_label in enumerate(ablation_split):
             # get features
             image_features_for_label = feature_weight_dict_test[semantic_label]
@@ -282,29 +282,35 @@ def linear_layer_detector(classifier_type, dataset, clip_model, clip_transform, 
                 ood_probs_max.extend(top_prob.detach().numpy())
             elif classifier_type == 'logistic':
                 logits = classifier.predict_proba(image_features_for_label.cpu())
-                top_prob, _ = logits.cpu().topk(1, dim=-1)
+                top_prob = np.amax(logits, axis=1)
                 ood_probs_max.extend(top_prob.detach().numpy())
 
             else:
                 lin_logits = lin_classifier(image_features_for_label.to(torch.float32).to(device))
+                lin_top_prob, _ = lin_logits.cpu().topk(1, dim=-1)
+
                 log_logits = log_classifier.predict_proba(image_features_for_label.cpu())
-                ood_probs_max.extend((lin_logits, log_logits))
+                print(log_logits.shape)
+                top_log_prob = np.amax(log_logits, axis=1)
+                print(top_log_prob.shape)
+                ood_probs_max.extend(lin_top_prob.detach().numpy())
+                log_ood_probs_max.extend(top_log_prob)
 
         targets = get_split_specific_targets(isolated_classes, seen_labels, unseen_labels)
 
         if classifier_type != 'all':
             auc_list_max.append(get_auroc_for_max_probs(targets, ood_probs_max))
         else:
-            lin, log = zip(*ood_probs_max)
-            auc_list_max.append((get_auroc_for_max_probs(targets, lin)), get_auroc_for_max_probs(targets, log))
+            auc_list_max.append(get_auroc_for_max_probs(targets, ood_probs_max))
+            auc_list_max_log.append(get_auroc_for_max_probs(targets,log_ood_probs_max))
 
     if classifier_type != 'all':
         mean, std = get_mean_std(auc_list_max)
         metrics = {'AUC': mean,
                    'std': std}
     else:
-        lin_mean, lin_std = get_mean_std(lin)
-        log_mean, log_std = get_mean_std(log)
+        lin_mean, lin_std = get_mean_std(auc_list_max)
+        log_mean, log_std = get_mean_std(auc_list_max_log)
         metrics = {'log_AUC': log_mean,
                    'log_std': log_std,
                    'lin_AUC': lin_mean,
