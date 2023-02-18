@@ -14,7 +14,7 @@ from torch.utils.data import Dataset, DataLoader
 from tqdm import tqdm
 from zeroshot.classification import get_image_features_for_isolated_class_loader
 from zoc.utils import get_ablation_splits, get_split_specific_targets, fill_auc_lists, fill_f_acc_lists, \
-    get_result_mean_dict
+    get_result_mean_dict, get_auroc_for_max_probs, get_mean_std
 
 from ood_detection.ood_utils import sorted_zeroshot_weights
 
@@ -213,7 +213,7 @@ def train_log_reg_classifier(train_set, eval_set, max_iter=110, cs=[0.001, 0.01,
 
 
 def linear_layer_detector(classifier_type, dataset, clip_model, clip_transform, runs):
-    assert classifier_type in ['linear', 'logistic']
+    assert classifier_type in ['linear', 'logistic', 'all']
     device = Config.DEVICE
     train_dataset = dataset(Config.DATAPATH,
                             split='train',
@@ -248,8 +248,12 @@ def linear_layer_detector(classifier_type, dataset, clip_model, clip_transform, 
         if classifier_type == 'linear':
             classifier = train_linear_id_classifier(train_set, val_set)
 
-        else:
+        elif classifier_type == 'logistic':
             classifier = train_log_reg_classifier(train_set, val_set)
+
+        else:
+            lin_classifier = train_linear_id_classifier(train_set, val_set)
+            log_classifier = train_log_reg_classifier(train_set, val_set)
 
         isolated_classes = IsolatedClasses(dataset(Config.DATAPATH,
                                                    split='test',
@@ -257,27 +261,45 @@ def linear_layer_detector(classifier_type, dataset, clip_model, clip_transform, 
                                            batch_size=512)
         feature_weight_dict_test = get_feature_weight_dict(isolated_classes, clip_model, device)
 
-        ood_probs_sum, ood_probs_mean, ood_probs_max = [], [], []
-        f_probs_sum, acc_probs_sum, id_probs_sum = [], [], []
+        ood_probs_max = []
+
         for i, semantic_label in enumerate(ablation_split):
             # get features
             image_features_for_label = feature_weight_dict_test[semantic_label]
             # calc the logits and softmaxs
             if classifier_type == 'linear':
                 logits = classifier(image_features_for_label.to(torch.float32).to(device))
-            else:
+                top_prob, _ = logits.cpu().topk(1, dim=-1)
+                ood_probs_max.extend(top_prob.detach().numpy())
+            elif classifier_type == 'logistic':
                 logits = classifier.predict_proba(image_features_for_label.cpu())
+                top_prob, _ = logits.cpu().topk(1, dim=-1)
+                ood_probs_max.extend(top_prob.detach().numpy())
 
-            top_prob, _ = logits.cpu().topk(1, dim=-1)
-            ood_probs_max.extend(top_prob.detach().numpy())
+            else:
+                lin_logits = lin_classifier(image_features_for_label.to(torch.float32).to(device))
+                log_logits = log_classifier.predict_proba(image_features_for_label.cpu())
+                ood_probs_max.extend((lin_logits, log_logits))
 
         targets = get_split_specific_targets(isolated_classes, seen_labels, unseen_labels)
-        fill_auc_lists(auc_list_max, auc_list_mean, auc_list_sum, ood_probs_mean, ood_probs_max, ood_probs_sum,
-                       targets)
-        fill_f_acc_lists(acc_probs_sum, f_probs_sum, id_probs_sum, ood_probs_sum, targets)
 
-    metrics = get_result_mean_dict(acc_probs_sum, auc_list_max, auc_list_mean, auc_list_sum, f_probs_sum)
+        if classifier_type != 'all':
+            auc_list_max.append(get_auroc_for_max_probs(targets, ood_probs_max))
+        else:
+            lin, log = zip(*ood_probs_max)
+            auc_list_max.append((get_auroc_for_max_probs(targets, lin)), get_auroc_for_max_probs(targets, log))
 
+    if classifier_type != 'all':
+        mean, std = get_mean_std(auc_list_max)
+        metrics = {'AUC': mean,
+                   'std': std}
+    else:
+        lin_mean, lin_std = get_mean_std(lin)
+        log_mean, log_std = get_mean_std(log)
+        metrics = {'log_AUC': log_mean,
+                   'log_std': log_std,
+                   'lin_AUC': lin_mean,
+                   'lin_std': lin_std}
     return metrics
 
 
