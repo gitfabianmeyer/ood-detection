@@ -192,8 +192,13 @@ def train_linear_id_classifier(train_set, eval_set, epochs=10, learning_rate=0.0
 def train_log_reg_classifier(train_set, eval_set, max_iter=110, cs=[0.001, 0.01, 0.1, 1, 10, 100, 1000]):
     if train_set.features.is_cuda:
         train_set.features = train_set.features.cpu()
+    print(train_set.features.shape)
+    print(len(train_set.labels))
     if eval_set.features.is_cuda:
         eval_set.features = eval_set.features.cpu()
+    print(eval_set.features.shape)
+    print(len(eval_set.labels))
+
     best_classifier = None
     best_score = 0
     for c in cs:
