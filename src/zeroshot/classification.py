@@ -37,7 +37,7 @@ def get_normalized_image_features(clip_model, images):
     images = images.to(Config.DEVICE)
     image_features = clip_model.encode_image(images)
     image_features /= image_features.norm(dim=1, keepdim=True)
-    return images
+    return image_features
 
 
 def get_cosine_similarity_matrix_for_normed_features(image_features, text_features, temperature):

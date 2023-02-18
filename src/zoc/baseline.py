@@ -241,8 +241,6 @@ def linear_layer_detector(classifier_type, dataset, clip_model, clip_transform, 
         seen_labels = ablation_split[:id_classes]
         unseen_labels = ablation_split[id_classes:]
 
-        _logger.info(f"Seen labels: {seen_labels}\nOOD Labels: {unseen_labels}")
-
         # train classifier to classify id set
         train_set = FeatureSet(feature_weight_dict_train, seen_labels, class_to_idx_mapping)
         val_set = FeatureSet(feature_weight_dict_val, seen_labels, class_to_idx_mapping)
