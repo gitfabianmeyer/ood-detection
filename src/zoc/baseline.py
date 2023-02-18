@@ -1,4 +1,5 @@
 import logging
+import random
 
 import numpy as np
 import torch
@@ -32,7 +33,7 @@ class LinearClassifier(torch.nn.Module):
 
 
 @torch.no_grad()
-def get_feature_weight_dict(isolated_classes, clip_model, device):
+def get_feature_weight_dict(isolated_classes, clip_model):
     weights_dict = {}
     for cls in isolated_classes.classes:
         loader = isolated_classes[cls]
@@ -41,6 +42,11 @@ def get_feature_weight_dict(isolated_classes, clip_model, device):
         weights_dict[cls] = features.half()
 
     return weights_dict
+
+
+# for testing purpose
+def get_fake_dict(isolated_classe):
+    return {c: torch.rand((random.randint(1, 20), 5)) for c in isolated_classe.classes}
 
 
 def get_zeroshot_weight_dict(isolated_classes, clip_model):
@@ -224,13 +230,15 @@ def linear_layer_detector(classifier_type, dataset, clip_model, clip_transform, 
 
     isolated_classes = IsolatedClasses(train_dataset,
                                        batch_size=512)
-    feature_weight_dict_train = get_feature_weight_dict(isolated_classes, clip_model, device)
 
+    # feature_weight_dict_train = get_feature_weight_dict(isolated_classes, clip_model)
+    feature_weight_dict_train = get_fake_dict(isolated_classes) # TODO
     isolated_classes = IsolatedClasses(dataset(Config.DATAPATH,
                                                split='val',
                                                transform=clip_transform),
                                        batch_size=512)
-    feature_weight_dict_val = get_feature_weight_dict(isolated_classes, clip_model, device)
+    # feature_weight_dict_val = get_feature_weight_dict(isolated_classes, clip_model)
+    feature_weight_dict_val = get_fake_dict(isolated_classes)  # TODO
     ablation_splits = get_ablation_splits(isolated_classes.classes, n=runs, id_classes=id_classes,
                                           ood_classes=ood_classes)
 
@@ -259,7 +267,8 @@ def linear_layer_detector(classifier_type, dataset, clip_model, clip_transform, 
                                                    split='test',
                                                    transform=clip_transform),
                                            batch_size=512)
-        feature_weight_dict_test = get_feature_weight_dict(isolated_classes, clip_model, device)
+        # feature_weight_dict_test = get_feature_weight_dict(isolated_classes, clip_model)
+        feature_weight_dict_test = get_fake_dict(isolated_classes) #TODO
 
         ood_probs_max = []
 
