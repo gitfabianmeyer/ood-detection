@@ -1,4 +1,3 @@
-from datasets.config import HalfOneDict, HalfTwoDict
 
 
 def run_all(args):
@@ -7,12 +6,14 @@ def run_all(args):
     os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
     os.environ["CUDA_VISIBLE_DEVICES"] = f"{args.gpu}"
 
-    from zoc.baseline import linear_layer_detector
+
     import logging
     import clip
     import wandb
     from datasets.config import DATASETS_DICT
     from ood_detection.config import Config
+    from zoc.baseline import linear_layer_detector
+    from datasets.config import HalfOneDict, HalfTwoDict
 
     _logger = logging.getLogger(__name__)
 
