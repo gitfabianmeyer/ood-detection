@@ -198,12 +198,8 @@ def train_linear_id_classifier(train_set, eval_set, epochs=10, learning_rate=0.0
 def train_log_reg_classifier(train_set, eval_set, max_iter=110, cs=[0.001, 0.01, 0.1, 1, 10, 100, 1000]):
     if train_set.features.is_cuda:
         train_set.features = train_set.features.cpu()
-    print(train_set.features.shape)
-    print(len(train_set.labels))
     if eval_set.features.is_cuda:
         eval_set.features = eval_set.features.cpu()
-    print(eval_set.features.shape)
-    print(len(eval_set.labels))
 
     best_classifier = None
     best_score = 0
@@ -211,7 +207,6 @@ def train_log_reg_classifier(train_set, eval_set, max_iter=110, cs=[0.001, 0.01,
         classifier = LogisticRegression(max_iter=max_iter, solver='sag', tol=0.0001, C=c, penalty='l2')
         classifier.fit(train_set.features, train_set.targets)
         score = classifier.score(eval_set.features, eval_set.targets)
-        print(f"Eval score ( c: {c}) for log reg: {score}")
         if score > best_score:
             best_classifier = classifier
             best_score = score
@@ -290,9 +285,7 @@ def linear_layer_detector(classifier_type, dataset, clip_model, clip_transform, 
                 lin_top_prob, _ = lin_logits.cpu().topk(1, dim=-1)
 
                 log_logits = log_classifier.predict_proba(image_features_for_label.cpu())
-                print(log_logits.shape)
                 top_log_prob = np.amax(log_logits, axis=1)
-                print(top_log_prob.shape)
                 ood_probs_max.extend(lin_top_prob.detach().numpy())
                 log_ood_probs_max.extend(top_log_prob)
 

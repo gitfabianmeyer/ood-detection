@@ -5,7 +5,6 @@ from PIL import Image
 from ood_detection.config import Config
 from sklearn.model_selection import train_test_split
 
-
 import logging
 import os.path
 

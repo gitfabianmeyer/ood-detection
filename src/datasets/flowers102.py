@@ -2,6 +2,7 @@ import logging
 from typing import Tuple, Any
 
 import PIL
+import numpy as np
 import torchvision
 from datasets.classnames import flowers102_classes, flowers102_templates
 

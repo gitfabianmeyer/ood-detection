@@ -1,3 +1,4 @@
+import logging
 import os
 
 os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
@@ -22,9 +23,11 @@ from ood_detection.ood_utils import zeroshot_classifier, \
 from tqdm import tqdm
 from transformers import GPT2Tokenizer
 
+_logger = logging.getLogger(__name__)
+
 
 def main():
-    print("Starting run")
+    _logger.info("Starting run")
     load_features = False
     load_zeroshot = False
     batch_size = 256
@@ -42,13 +45,13 @@ def main():
     features_path = os.path.join(curr_datapath, f'{ood_set}_features.pt')
     targets_path = os.path.join(curr_datapath, f'{ood_set}_targets.pt')
     captions_path = os.path.join(curr_datapath, f'{ood_set}_captions.txt')
-    print(f"Loading CLIP with Vision Modul: {Config.VISION_MODEL}...")
+
     clip_model, preprocess = clip.load(Config.VISION_MODEL, device=Config.DEVICE)
     clip_model.eval()
-    print("Loading GPT2 tokenizer")
+
     tokenizer = GPT2Tokenizer.from_pretrained("gpt2")
 
-    print("Initializing CaptionGenerator")
+
     caption_generator = CaptionGenerator(model_path=model_path,
                                          clip_model=clip_model,
                                          tokenizer=tokenizer,
@@ -94,15 +97,13 @@ def main():
     if not load_zeroshot:
         zeroshot_weights = zeroshot_classifier(classnames, templates, clip_model)
         torch.save(zeroshot_weights, zeroshot_path)
-        print(f"Saved zsw at {zeroshot_path}")
+        _logger.info(f"Saved zsw at {zeroshot_path}")
     else:
         if torch.cuda.is_available():
             zeroshot_weights = torch.load(zeroshot_path)
         else:
             zeroshot_weights = torch.load(zeroshot_path, map_location=torch.device('cpu'))
-        print("Loaded zeroshot weights")
 
-    print(f"Classifying {len(dataset.targets)} images")
     dataloader = torch.utils.data.DataLoader(dataset,
                                              batch_size=batch_size,
                                              num_workers=8)
@@ -145,10 +146,8 @@ def main():
     top1 = (top1 / n) * 100
     top5 = (top5 / n) * 100
 
-    print(f"\nClip Top1 Acc: {top1:.2f} with zeroshot")
-    print(f"\nClip Top5 Acc: {top5:.2f} with zeroshot")
-
-    print("Done")
+    _logger.info(f"\nClip Top1 Acc: {top1:.2f} with zeroshot")
+    _logger.info(f"\nClip Top5 Acc: {top5:.2f} with zeroshot")
 
 
 if __name__ == '__main__':

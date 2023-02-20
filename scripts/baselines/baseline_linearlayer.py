@@ -1,3 +1,6 @@
+from datasets.config import HalfOneDict, HalfTwoDict
+
+
 def run_all(args):
     import os
 
@@ -16,7 +19,16 @@ def run_all(args):
     # for each dataset
 
     clip_model, clip_transform = clip.load(Config.VISION_MODEL)
-    for dname, dset in DATASETS_DICT.items():
+
+    if args.split == 1:
+        datasets = HalfOneDict
+    elif args.split == 2:
+        datasets = HalfTwoDict
+
+    else:
+        datasets = DATASETS_DICT
+
+    for dname, dset in datasets.items():
         _logger.info(f"---------------Running {dname}--------------")
         run = wandb.init(project=f"thesis-ood_baseline-{args.classifier_type}-full_classes-test_sets",
                          entity="wandbefab",
@@ -32,7 +44,7 @@ def main():
     import argparse
 
     parser = argparse.ArgumentParser()
-    parser.add_argument('--runs', type=int, default=5)
+    parser.add_argument('--runs', type=int, default=10)
     parser.add_argument('--gpu', type=int, required=True)
     parser.add_argument('--split', type=int, )
     parser.add_argument('--classifier_type', type=str, required=True)
