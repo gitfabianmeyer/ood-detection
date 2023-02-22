@@ -5,8 +5,7 @@ from typing import Dict
 
 import numpy as np
 import torch
-from zeroshot.classification import get_cosine_similarity_matrix_for_normed_features, \
-    get_image_features_for_isolated_class_loader
+from zeroshot.classification import get_cosine_similarity_matrix_for_normed_features
 from adapters.tip_adapter import get_train_transform, get_kshot_set
 from ood_detection.config import Config
 from sklearn.metrics import roc_auc_score, f1_score, accuracy_score
@@ -15,6 +14,7 @@ from tqdm import tqdm
 
 from datasets.zoc_loader import IsolatedClasses
 from transformers import BertGenerationConfig, BertGenerationDecoder
+from zeroshot.utils import get_image_features_for_isolated_class_loader
 
 _logger = logging.getLogger()
 

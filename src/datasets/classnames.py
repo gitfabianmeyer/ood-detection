@@ -551,3 +551,5 @@ gtsrb_templates = [
 mnist_templates = [
     'a photo of the number: "{}".',
 ]
+
+base_template = ['a photo of a {}']

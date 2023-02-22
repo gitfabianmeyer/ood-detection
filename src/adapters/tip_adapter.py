@@ -19,7 +19,8 @@ from torchvision import transforms
 from ood_detection.classification_utils import zeroshot_classifier, get_dataset_features
 from ood_detection.config import Config
 
-from zeroshot.classification import get_normalized_image_features, get_cosine_similarity_matrix_for_normed_features
+from zeroshot.classification import get_cosine_similarity_matrix_for_normed_features
+from zeroshot.utils import get_normalized_image_features
 
 _logger = logging.getLogger()
 device = Config.DEVICE
@@ -380,9 +381,9 @@ def run_tip_adapter_finetuned(train_set, model,
         affinity = adapter(val_features)
         cache_logits = get_cache_logits(affinity,
                                         cache_values,
-                                        beta)
+                                        init_beta)
         clip_logits = 100. * val_features @ zeroshot_weights.t()
-        tip_logits = clip_logits + cache_logits * alpha
+        tip_logits = clip_logits + cache_logits * init_alpha
         acc, f1 = get_acc_f1(tip_logits, val_labels)
         if acc > best_acc:
             best_acc = acc

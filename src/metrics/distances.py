@@ -17,8 +17,12 @@ from tqdm import tqdm
 
 from metrics.distances_utils import id_ood_printer, mean_std_printer, \
     distance_name_printer, accuracy_printer
+from zeroshot.classification import get_cosine_similarity_matrix_for_normed_features
 from zoc.baseline import sorted_zeroshot_weights
 from zoc.utils import get_image_features_for_isolated_class_loader
+
+from src.datasets.classnames import base_template
+from src.zeroshot.utils import FeatureDict
 
 _logger = logging.getLogger(__name__)
 _logger.setLevel(logging.INFO)
@@ -40,7 +44,8 @@ class Distancer:
         _logger.info("Start creating image features...")
         max_per_class = max_len // len(self.classes)
         for cls in tqdm(self.classes):
-            self.feature_dict[cls] = get_image_features_for_isolated_class_loader(self.dataloaders[cls], self.clip_model, max_per_class)
+            self.feature_dict[cls] = get_image_features_for_isolated_class_loader(self.dataloaders[cls],
+                                                                                  self.clip_model, max_per_class)
 
     def get_mmd(self):
         distance_name_printer("MMD")
@@ -188,7 +193,6 @@ class ConfusionLogProbability(Distance):
         # classes are shuffled by get_id_ood_split()!
         labels = sorted_zeroshot_weights(self.class_features_dict, self.classes)
 
-        id_ood_printer(id_classes, ood_classes)
         ood_features = torch.cat([self.feature_dict[ood_class] for ood_class in ood_classes])
 
         logits = temperature * ood_features.to(torch.float32) @ labels.to(torch.float32).t()
@@ -204,6 +208,43 @@ class ConfusionLogProbability(Distance):
     def get_class_features_dict(self):
         features = zeroshot_classifier(self.classes, imagenet_templates, self.clip_model)
         return {label: value for (label, value) in zip(self.classes, features)}
+
+
+def get_far_clp(id_dict: FeatureDict, ood_dict:FeatureDict, clip_model, temperature):
+    id_classes = id_dict.classes
+    ood_classes = ood_dict.classes
+    classes = id_classes + ood_classes
+    zsw = zeroshot_classifier(classes, base_template, clip_model)
+    features = ood_dict.get_features()
+    logits = get_cosine_similarity_matrix_for_normed_features(features, zsw, temperature)
+    softmax_id_scores = F.softmax(logits, dim=1)[:len(id_classes)]
+    softmax_id_sum = softmax_id_scores.sum(dim=1)  # sum for each feature to be classified to ID
+    softmax_id_mean = softmax_id_sum.mean()  # mean of dataset to be classified to ID
+    confusion_log_probability = torch.log(softmax_id_mean)
+    return confusion_log_probability.cpu().numpy()
+
+
+def get_mmd_rbf_kernel(id_features, ood_features):
+    X = torch.cat((id_features, ood_features)).to(Config.DEVICE)
+    return torch.mean(torch.cdist(X, X)).cpu().numpy()
+
+
+def get_far_mmd(id_dict: FeatureDict, ood_dict:FeatureDict):
+
+    x_matrix = id_dict.get_features()
+    y_matrix = ood_dict.get_features()
+    kernel_size = get_mmd_rbf_kernel(x_matrix, y_matrix)
+
+    batch_size = x_matrix.shape[0]
+    beta = (1. / (batch_size * (batch_size - 1)))
+
+    gamma = (2. / (batch_size * batch_size))
+
+    XX = rbf_kernel(x_matrix, x_matrix, kernel_size)
+    YY = rbf_kernel(y_matrix, y_matrix, kernel_size)
+    XY = rbf_kernel(x_matrix, y_matrix, kernel_size)
+
+    return beta * (XX.sum() + YY.sum()) - gamma * XY.sum()
 
 
 class WassersteinDistance(Distance):

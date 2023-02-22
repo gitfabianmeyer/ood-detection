@@ -13,11 +13,10 @@ from torch.nn import CrossEntropyLoss
 from torch.optim import AdamW
 from torch.utils.data import Dataset, DataLoader
 from tqdm import tqdm
-from zeroshot.classification import get_image_features_for_isolated_class_loader
-from zoc.utils import get_ablation_splits, get_split_specific_targets, fill_auc_lists, fill_f_acc_lists, \
-    get_result_mean_dict, get_auroc_for_max_probs, get_mean_std
-
 from ood_detection.ood_utils import sorted_zeroshot_weights
+from zeroshot.utils import get_feature_weight_dict
+from zoc.utils import fill_auc_lists, fill_f_acc_lists, get_result_mean_dict, get_auroc_for_max_probs, get_mean_std, \
+    get_ablation_splits, get_split_specific_targets
 
 _logger = logging.getLogger(__name__)
 
@@ -30,18 +29,6 @@ class LinearClassifier(torch.nn.Module):
     def forward(self, x):
         x = self.linear(x)
         return x
-
-
-@torch.no_grad()
-def get_feature_weight_dict(isolated_classes, clip_model):
-    weights_dict = {}
-    for cls in isolated_classes.classes:
-        loader = isolated_classes[cls]
-
-        features = get_image_features_for_isolated_class_loader(loader, clip_model)
-        weights_dict[cls] = features.half()
-
-    return weights_dict
 
 
 # for testing purpose
@@ -295,7 +282,7 @@ def linear_layer_detector(classifier_type, dataset, clip_model, clip_transform, 
             auc_list_max.append(get_auroc_for_max_probs(targets, ood_probs_max))
         else:
             auc_list_max.append(get_auroc_for_max_probs(targets, ood_probs_max))
-            auc_list_max_log.append(get_auroc_for_max_probs(targets,log_ood_probs_max))
+            auc_list_max_log.append(get_auroc_for_max_probs(targets, log_ood_probs_max))
 
     if classifier_type != 'all':
         mean, std = get_mean_std(auc_list_max)
