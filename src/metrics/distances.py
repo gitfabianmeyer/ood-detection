@@ -241,6 +241,8 @@ def get_far_mmd(id_dict: FeatureDict, ood_dict:FeatureDict):
 
     gamma = (2. / (batch_size * batch_size))
 
+    x_matrix = x_matrix.detach().cpu().numpy()
+    y_matrix = y_matrix.detach().cpu().numpy()
     XX = rbf_kernel(x_matrix, x_matrix, kernel_size)
     YY = rbf_kernel(y_matrix, y_matrix, kernel_size)
     XY = rbf_kernel(x_matrix, y_matrix, kernel_size)
