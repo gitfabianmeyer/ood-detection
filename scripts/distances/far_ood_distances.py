@@ -1,6 +1,5 @@
 import logging
 
-
 _logger = logging.getLogger(__name__)
 
 
@@ -27,22 +26,23 @@ def run_all(args):
 
     for id_dname, id_dset in datasets.items():
 
-
         _logger.info(f"Running all datasets distances for {id_dname}")
         dataset = id_dset(Config.DATAPATH,
-                             split='train',
-                             transform=clip_transform)
+                          split='train',
+                          transform=clip_transform)
         dataset_featuredict = FeatureDict(dataset, clip_model)
 
         for ood_dname, ood_dset in tqdm(DATASETS_DICT.items()):
+            if id_dname == ood_dname:
+                continue
             run = wandb.init(project=f"thesis-{id_dname}-far-distances",
                              entity="wandbefab",
                              name=ood_dname)
 
             _logger.info(F"Running id: {id_dname} vs ood: {ood_dname}")
             ood_featuredict = FeatureDict(ood_dset(Config.DATAPATH,
-                                               split='train',
-                                               transform=clip_transform),
+                                                   split='train',
+                                                   transform=clip_transform),
                                           clip_model)
 
             mmd = get_far_mmd(dataset_featuredict, ood_featuredict)
