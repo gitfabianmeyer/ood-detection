@@ -5,24 +5,25 @@ from abc import ABC, abstractmethod
 import clip
 import numpy as np
 import torch
-from datasets import corruptions
-from datasets.classnames import imagenet_templates
-from datasets.zoc_loader import IsolatedClasses
-from ood_detection.config import Config
-from ood_detection.classification_utils import zeroshot_classifier, classify
+
 from sklearn.metrics.pairwise import rbf_kernel
 import torch.nn.functional as F
 from torchvision.transforms import Compose
 from tqdm import tqdm
 
+
+from datasets import corruptions
+from datasets.classnames import imagenet_templates, base_template
+from datasets.zoc_loader import IsolatedClasses
+from ood_detection.config import Config
+from ood_detection.classification_utils import zeroshot_classifier, classify
 from metrics.distances_utils import id_ood_printer, mean_std_printer, \
     distance_name_printer, accuracy_printer
 from zeroshot.classification import get_cosine_similarity_matrix_for_normed_features
+
+from zeroshot.utils import FeatureDict
 from zoc.baseline import sorted_zeroshot_weights
 from zoc.utils import get_image_features_for_isolated_class_loader
-
-from src.datasets.classnames import base_template
-from src.zeroshot.utils import FeatureDict
 
 _logger = logging.getLogger(__name__)
 _logger.setLevel(logging.INFO)

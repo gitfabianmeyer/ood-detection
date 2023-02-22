@@ -13,8 +13,8 @@ def run_all(args):
     from datasets.config import HalfOneDict, HalfTwoDict, DATASETS_DICT
     from tqdm import tqdm
     import wandb
-    from src.metrics.distances import get_far_mmd, get_far_clp
-    from src.zeroshot.utils import FeatureDict
+    from metrics.distances import get_far_mmd, get_far_clp
+    from zeroshot.utils import FeatureDict
     from ood_detection.config import Config
     clip_model, clip_transform = clip.load(Config.VISION_MODEL)
 
