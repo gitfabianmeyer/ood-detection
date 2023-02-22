@@ -23,7 +23,7 @@ def run_all(args):
         datasets = HalfTwoDict
     else:
         datasets = DATASETS_DICT
-
+    failed = []
     for id_dname, id_dset in datasets.items():
 
         _logger.info(f"Running all datasets distances for {id_dname}")
@@ -44,11 +44,25 @@ def run_all(args):
                                                    split='train',
                                                    transform=clip_transform),
                                           clip_model)
+            ex = None
+            try:
+                mmd = get_far_mmd(dataset_featuredict, ood_featuredict)
+            except Exception as e:
+                ex = "MMD"
+                mmd = "FAILED"
+            try:
+                clp = get_far_clp(dataset_featuredict, ood_featuredict, clip_model, 1)
+            except:
+                ex = "CLP"
+                clp = 'FAILED'
 
-            mmd = get_far_mmd(dataset_featuredict, ood_featuredict)
-            clp = get_far_clp(dataset_featuredict, ood_featuredict, clip_model, 1)
+
             wandb.log({'mmd': mmd, 'clp': clp})
+
+            if ex:
+                failed.append((id_dname, ood_dname, str(ex)))
             run.finish()
+    print(failed)
 
 
 def main():
