@@ -249,6 +249,7 @@ def get_far_mmd(id_dict: FeatureDict, ood_dict: FeatureDict):
 
     gamma = (2. / (batch_size * batch_size))
 
+    _logger.warning(f"kernel: {kernel_size}\nbeta:{beta}\ngamma:{gamma}") # TODO
     x_matrix = x_matrix.detach().cpu().numpy()
     y_matrix = y_matrix.detach().cpu().numpy()
     XX = rbf_kernel(x_matrix, x_matrix, kernel_size)

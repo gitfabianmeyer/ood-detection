@@ -1,13 +1,12 @@
-import random
-
-import torch
-from datasets.zoc_loader import IsolatedClasses
-
+import logging
 import numpy as np
 import torch
+
+from datasets.zoc_loader import IsolatedClasses
+
 from ood_detection.config import Config
 
-
+_logger = logging.getLogger(__name__)
 @torch.no_grad()
 def get_image_features_for_isolated_class_loader(loader, clip_model, stop_at=np.inf):
     features = []
@@ -48,6 +47,7 @@ def get_normalized_image_features(clip_model, images):
 @torch.no_grad()
 def get_feature_weight_dict(isolated_classes, clip_model):
     weights_dict = {}
+    _logger.info("generating features from isolated classes")
     for cls in isolated_classes.classes:
         loader = isolated_classes[cls]
 

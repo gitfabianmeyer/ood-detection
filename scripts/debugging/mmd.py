@@ -52,6 +52,7 @@ def run_all(args):
                 print(e)
                 ex = "MMD"
                 mmd = "FAILED"
+            raise Exception("Stopping")
             try:
                 clp = get_far_clp(dataset_featuredict, ood_featuredict, clip_model, 1)
             except Exception as e:
