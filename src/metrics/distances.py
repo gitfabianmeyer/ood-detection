@@ -11,7 +11,6 @@ import torch.nn.functional as F
 from torchvision.transforms import Compose
 from tqdm import tqdm
 
-
 from datasets import corruptions
 from datasets.classnames import imagenet_templates, base_template
 from datasets.zoc_loader import IsolatedClasses
@@ -211,31 +210,32 @@ class ConfusionLogProbability(Distance):
         return {label: value for (label, value) in zip(self.classes, features)}
 
 
-def get_far_clp(id_dict: FeatureDict, ood_dict:FeatureDict, clip_model, temperature):
+def get_far_clp(id_dict: FeatureDict, ood_dict: FeatureDict, clip_model, temperature):
     id_classes = id_dict.classes
     ood_classes = ood_dict.classes
     classes = id_classes + ood_classes
     zsw = zeroshot_classifier(classes, base_template, clip_model)
     features = ood_dict.get_features()
     logits = get_cosine_similarity_matrix_for_normed_features(features, zsw, temperature)
-    softmax_id_scores = F.softmax(logits, dim=1)[:len(id_classes)]
-    softmax_id_sum = softmax_id_scores.sum(dim=1)  # sum for each feature to be classified to ID
-    softmax_id_mean = softmax_id_sum.mean()  # mean of dataset to be classified to ID
-    confusion_log_probability = torch.log(softmax_id_mean)
-    return confusion_log_probability.cpu().numpy()
+
+    softmax_scores = F.softmax(logits, dim=1)
+    id_scores = softmax_scores[:, :len(id_classes)]  # use only id labels proba
+    confusion_log_proba = torch.log(id_scores.sum(dim=1).mean())
+
+    return confusion_log_proba.cpu().numpy()
 
 
 def get_mmd_rbf_kernel(id_features, ood_features):
     import math
     X = torch.cat((id_features, ood_features)).to(Config.DEVICE)
-    kernel_size =  torch.mean(torch.cdist(X, X)).cpu().numpy()
+    kernel_size = torch.mean(torch.cdist(X, X)).cpu().numpy()
     float_kernel = float(kernel_size)
     if math.isnan(float_kernel):
-        raise ValueError
+        raise ValueError("Kernel is NAN")
     return float_kernel
 
-def get_far_mmd(id_dict: FeatureDict, ood_dict:FeatureDict):
 
+def get_far_mmd(id_dict: FeatureDict, ood_dict: FeatureDict):
     x_matrix = id_dict.get_features()
     y_matrix = ood_dict.get_features()
     try:
