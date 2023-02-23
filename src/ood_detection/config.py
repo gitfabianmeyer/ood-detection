@@ -1,6 +1,8 @@
 import os
 import torch
+import random
 
+random.seed(42)
 
 class Config:
     DATAPATH = '/mnt/c/Users/fmeyer/Git/ood-detection/data'

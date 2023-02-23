@@ -2,6 +2,7 @@ import logging
 
 import numpy as np
 import torch
+import wandb
 from adapters.oodd import get_ablation_split_classes, get_cosine_similarity_matrix_for_normed_features, \
     pad_list_of_vectors
 from adapters.tip_adapter import create_tip_train_set, get_cache_model, get_dataset_with_shorted_classes, \
@@ -12,12 +13,12 @@ from ood_detection.config import Config
 from ood_detection.ood_utils import sorted_zeroshot_weights
 from ood_detection.baseline import get_trained_linear_classifier
 
-from zeroshot.classification import get_normalized_image_features
+from zeroshot.utils import get_normalized_image_features
 
 from zoc.baseline import get_feature_weight_dict, get_zeroshot_weight_dict
 from zoc.utils import get_ablation_splits, get_split_specific_targets, get_auroc_for_max_probs, get_mean_std, \
-    get_zoc_unique_entities, tokenize_for_clip, get_auroc_for_ood_probs, get_caption_features_from_image_features
-
+    get_zoc_unique_entities, tokenize_for_clip, get_auroc_for_ood_probs, get_caption_features_from_image_features, \
+    get_zoc_feature_dict
 
 _logger = logging.getLogger(__name__)
 
@@ -288,7 +289,8 @@ def splits_adapter_zoc_ablation(dset,
                         text_features = clip_model.encode_text(all_desc_ids.to(device)).to(torch.float32)
                         text_features /= text_features.norm(dim=-1, keepdim=True)
 
-                    zoc_logits_for_image = get_cosine_similarity_matrix_for_normed_features(image_feature, text_features, 100)
+                    zoc_logits_for_image = get_cosine_similarity_matrix_for_normed_features(image_feature,
+                                                                                            text_features, 100)
                     zoc_logits_for_semantic_label.append(zoc_logits_for_image)
                     zoc_probs = torch.softmax(zoc_logits_for_image, dim=0)
                     zoc_probs_sum.append(torch.sum(zoc_probs[len(seen_labels):]))  # for normal zoc
@@ -371,6 +373,62 @@ def splits_adapter_zoc_ablation(dset,
                    'seen_labels': num_id_classes
                    }
         return metrics
+
+
+def zoc_temp_ablation(dset,
+                      clip_model,
+                      clip_transform,
+                      device,
+                      runs_per_setting,
+                      temperatures):
+    dataset = dset(data_path=Config.DATAPATH,
+                   split='test',
+                   transform=clip_transform)
+
+    zoc_featuredict = get_zoc_feature_dict(dataset, clip_model)
+    #
+    isolated_classes_fast_loader = IsolatedClasses(dataset,
+                                                   batch_size=512,
+                                                   lsun=False)
+    #
+    isolated_classes_fast_loader.templates = ["This is a photo of a {}"]
+    _logger.info('Creating the test weight dicts')
+    feature_weight_dict = get_feature_weight_dict(isolated_classes_fast_loader, clip_model, device)
+
+    num_id_classes = int(len(dataset.classes) * Config.ID_SPLIT)
+    num_ood_classes = len(dataset.classes) - num_id_classes
+
+    ablation_splits = get_ablation_splits(dataset.classes, runs_per_setting, num_id_classes, num_ood_classes)
+
+    for temperature in temperatures:
+        zoc_aucs = []
+        for ablation_split in ablation_splits:
+            seen_descriptions, seen_labels, unseen_labels = get_ablation_split_classes(num_id_classes, ablation_split)
+            zoc_probs_sum = []
+            for semantic_label in ablation_split:
+                image_features = feature_weight_dict[semantic_label]
+                image_features = image_features.to(torch.float32)
+                zoc_label_features = zoc_featuredict[semantic_label]
+                zoc_label_features = zoc_label_features.to(torch.float32)
+
+                for image_feature, zoc_label_feature in zip(image_features, zoc_label_features):
+                    similarity = temperature * image_feature @ zoc_label_feature.T
+                    id_similarity = torch.sum(torch.softmax(similarity, dim=0)[num_id_classes:])
+                    zoc_probs_sum.append(id_similarity)
+
+            targets = get_split_specific_targets(isolated_classes_fast_loader, seen_labels, unseen_labels)
+            assert len(targets) == len(zoc_probs_sum), f"{len(targets)} != {len(zoc_probs_sum)}"
+            zoc_aucs.append(get_auroc_for_ood_probs(targets, zoc_probs_sum))
+
+        zoc_mean, zoc_std = get_mean_std(zoc_aucs)
+
+        metrics = {
+            'temperature': temperature,
+            'zoc': zoc_mean,
+            'zoc_std': zoc_std}
+        print(metrics)
+        # wandb.log(metrics)
+    return True
 
 
 def kshot_adapter_zoc_ablation(dset,

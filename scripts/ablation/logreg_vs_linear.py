@@ -12,7 +12,7 @@ import numpy as np
 import torch
 from datasets.zoc_loader import IsolatedClasses
 from ood_detection.config import Config
-from zoc.baseline import get_feature_weight_dict, FeatureSet, train_id_classifier, train_log_reg_classifier
+from zoc.baseline import get_feature_weight_dict, FeatureSet, train_log_reg_classifier
 from zoc.utils import get_ablation_splits, get_split_specific_targets, get_auroc_for_max_probs
 
 from datasets.config import DATASETS_DICT

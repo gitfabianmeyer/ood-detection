@@ -5,6 +5,7 @@ from typing import Dict
 
 import numpy as np
 import torch
+from clip.simple_tokenizer import SimpleTokenizer
 from zeroshot.classification import get_cosine_similarity_matrix_for_normed_features
 from adapters.tip_adapter import get_train_transform, get_kshot_set
 from ood_detection.config import Config
@@ -14,7 +15,7 @@ from tqdm import tqdm
 
 from datasets.zoc_loader import IsolatedClasses
 from transformers import BertGenerationConfig, BertGenerationDecoder
-from zeroshot.utils import get_image_features_for_isolated_class_loader
+from zeroshot.utils import get_image_features_for_isolated_class_loader, FeatureDict
 
 _logger = logging.getLogger()
 
@@ -113,7 +114,6 @@ def image_decoder(clip_model,
         _logger.debug(f"Seen labels: {seen_labels}\nOOD Labels: {split[id_classes:]}")
         seen_descriptions = [f"This is a photo of a {label}" for label in seen_labels]
 
-
         f_probs_sum, acc_probs_sum, id_probs_sum = [], [], []
 
         ood_probs_sum, ood_probs_mean, ood_probs_max = [], [], []
@@ -152,9 +152,10 @@ def get_zoc_probs(image_features, bert_model, bert_tokenizer, clip_model, clip_t
     return zeroshot_probs
 
 
-def get_caption_features_from_image_features(image_features, seen_descriptions, seen_labels, bert_model, bert_tokenizer,
+def get_caption_features_from_image_features(unnormed_image_feature, seen_descriptions, seen_labels, bert_model,
+                                             bert_tokenizer,
                                              clip_model, clip_tokenizer, device):
-    clip_extended_embed = image_features.repeat(1, 2).type(torch.FloatTensor)
+    clip_extended_embed = unnormed_image_feature.repeat(1, 2).type(torch.FloatTensor)
     # greedy generation
     target_list, topk_list = greedysearch_generation_topk(clip_extended_embed,
                                                           bert_tokenizer,
@@ -166,6 +167,8 @@ def get_caption_features_from_image_features(image_features, seen_descriptions, 
     all_desc_ids = tokenize_for_clip(all_desc, clip_tokenizer)
     text_features = clip_model.encode_text(all_desc_ids.to(device)).float()
     text_features /= text_features.norm(dim=-1, keepdim=True)
+    print(text_features.shape)
+    raise ValueError
     return text_features
 
 
@@ -370,3 +373,49 @@ def get_zoc_unique_entities(dataset, clip_model, bert_tokenizer, bert_model, dev
             zoc_unique_entities[semantic_label].append(unique_entities)
 
     return zoc_unique_entities
+
+
+def get_zoc_feature_dict(dataset, clip_model):
+    device = Config.DEVICE
+    isolated_classes = IsolatedClasses(dataset,
+                                       batch_size=512,
+                                       lsun=False)
+    image_featuredict = get_unnormed_featuredict_from_isolated_classes(clip_model, device, isolated_classes)
+
+    from transformers import BertGenerationTokenizer
+    bert_tokenizer = BertGenerationTokenizer.from_pretrained('google/bert_for_seq_generation_L-24_bbc_encoder')
+    clip_tokenizer = SimpleTokenizer()
+    _logger.info('Loading decoder model')
+    bert_model = get_decoder()
+
+    seen_labels = image_featuredict.classes
+    seen_descriptions = [f"This is a photo of a {label}" for label in seen_labels]
+
+    zoc_featuredict = {}
+    for semantic_label, image_features in image_featuredict.items():
+        text_features = []
+        for image_feat in image_features:
+            tf = get_caption_features_from_image_features(image_feat, seen_descriptions,
+                                                          seen_labels, bert_model,
+                                                          bert_tokenizer, clip_model,
+                                                          clip_tokenizer, device)
+
+            text_features.append(tf)
+        zoc_featuredict[semantic_label] = torch.stack(text_features, dim=0)
+
+    return FeatureDict(zoc_featuredict, None)
+
+
+def get_unnormed_featuredict_from_isolated_classes(clip_model, device, isolated_classes):
+    feature_dict = {}
+    for cls in tqdm(isolated_classes.classes):
+        loader = isolated_classes[cls]
+
+        label_feats = []
+        for images in loader:
+            images = images.to(device)
+            image_features = clip_model.encode_image(images)
+            label_feats.append(image_features)
+        feature_dict[cls] = torch.cat(label_feats).half()
+
+    return FeatureDict(feature_dict, None)
