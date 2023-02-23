@@ -406,6 +406,7 @@ def get_zoc_feature_dict(dataset, clip_model):
     return FeatureDict(zoc_featuredict, None)
 
 
+@torch.no_grad()
 def get_unnormed_featuredict_from_isolated_classes(clip_model, device, isolated_classes):
     feature_dict = {}
     for cls in tqdm(isolated_classes.classes):
