@@ -36,9 +36,9 @@ def run_all(args):
         for ood_dname, ood_dset in tqdm(DATASETS_DICT.items()):
             if id_dname == ood_dname or ood_dname != args.ood_name:
                 continue
-            run = wandb.init(project=f"thesis-{id_dname}-far-distances",
-                             entity="wandbefab",
-                             name=ood_dname)
+            # run = wandb.init(project=f"thesis-{id_dname}-far-distances",
+            #                  entity="wandbefab",
+            #                  name=ood_dname)
 
             _logger.info(F"Running id: {id_dname} vs ood: {ood_dname}")
             ood_featuredict = FeatureDict(ood_dset(Config.DATAPATH,
@@ -60,11 +60,11 @@ def run_all(args):
                 clp = 'FAILED'
 
 
-            wandb.log({'mmd': mmd, 'clp': clp})
-
+            # wandb.log({'mmd': mmd, 'clp': clp})
+            print({'mmd': mmd, 'clp': clp})
             if ex:
                 failed.append((id_dname, ood_dname, str(ex)))
-            run.finish()
+            # run.finish()
     print(failed)
 
 
