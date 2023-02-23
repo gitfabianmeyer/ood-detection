@@ -228,11 +228,7 @@ def get_far_clp(id_dict: FeatureDict, ood_dict: FeatureDict, clip_model, tempera
 def get_mmd_rbf_kernel(id_features, ood_features):
     import math
     X = torch.cat((id_features, ood_features)).to(torch.float32).cpu()
-    print(X.shape)
-    cd = torch.cdist(X, X)
-    print(cd)
-    print(cd.shape)
-    kernel_size = torch.mean(cd).cpu().numpy()
+    kernel_size = torch.mean(torch.cdist(X, X)).cpu().numpy()
     float_kernel = float(kernel_size)
     if math.isnan(float_kernel):
         raise ValueError("Kernel is NAN")

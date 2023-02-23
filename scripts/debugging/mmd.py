@@ -48,13 +48,16 @@ def run_all(args):
             ex = None
             try:
                 mmd = get_far_mmd(dataset_featuredict, ood_featuredict)
+                print("mmd")
+                print(mmd)
             except Exception as e:
                 print(e)
                 ex = "MMD"
                 mmd = "FAILED"
-            raise Exception("Stopping")
             try:
                 clp = get_far_clp(dataset_featuredict, ood_featuredict, clip_model, 1)
+                print("clp")
+                print(clp)
             except Exception as e:
                 print(e)
                 ex = "CLP"
