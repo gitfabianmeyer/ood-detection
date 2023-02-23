@@ -167,8 +167,6 @@ def get_caption_features_from_image_features(unnormed_image_feature, seen_descri
     all_desc_ids = tokenize_for_clip(all_desc, clip_tokenizer)
     text_features = clip_model.encode_text(all_desc_ids.to(device)).float()
     text_features /= text_features.norm(dim=-1, keepdim=True)
-    print(text_features.shape)
-    raise ValueError
     return text_features
 
 
