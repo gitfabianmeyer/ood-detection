@@ -152,6 +152,7 @@ def get_zoc_probs(image_features, bert_model, bert_tokenizer, clip_model, clip_t
     return zeroshot_probs
 
 
+@torch.no_grad()
 def get_caption_features_from_image_features(unnormed_image_feature, seen_descriptions, seen_label, bert_model,
                                              bert_tokenizer,
                                              clip_model, clip_tokenizer, device):
