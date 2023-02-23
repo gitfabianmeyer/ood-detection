@@ -152,7 +152,7 @@ def get_zoc_probs(image_features, bert_model, bert_tokenizer, clip_model, clip_t
     return zeroshot_probs
 
 
-def get_caption_features_from_image_features(unnormed_image_feature, seen_descriptions, seen_labels, bert_model,
+def get_caption_features_from_image_features(unnormed_image_feature, seen_descriptions, seen_label, bert_model,
                                              bert_tokenizer,
                                              clip_model, clip_tokenizer, device):
     clip_extended_embed = unnormed_image_feature.repeat(1, 2).type(torch.FloatTensor)
@@ -162,7 +162,7 @@ def get_caption_features_from_image_features(unnormed_image_feature, seen_descri
                                                           bert_model,
                                                           device)
     topk_tokens = [bert_tokenizer.decode(int(pred_idx.cpu().numpy())) for pred_idx in topk_list]
-    unique_entities = list(set(topk_tokens) - {seen_labels})
+    unique_entities = list(set(topk_tokens) - {seen_label})
     all_desc = seen_descriptions + [f"This is a photo of a {label}" for label in unique_entities]
     all_desc_ids = tokenize_for_clip(all_desc, clip_tokenizer)
     text_features = clip_model.encode_text(all_desc_ids.to(device)).float()
@@ -396,7 +396,7 @@ def get_zoc_feature_dict(dataset, clip_model):
         text_features = []
         for image_feat in image_features:
             tf = get_caption_features_from_image_features(image_feat, seen_descriptions,
-                                                          seen_labels, bert_model,
+                                                          semantic_label, bert_model,
                                                           bert_tokenizer, clip_model,
                                                           clip_tokenizer, device)
 
