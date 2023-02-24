@@ -415,7 +415,7 @@ def zoc_temp_ablation(dset,
                     id_similarity = torch.sum(
                         torch.softmax(similarity, dim=0)[num_id_classes:]
                     )
-                    zoc_probs_sum.append(id_similarity)
+                    zoc_probs_sum.append(id_similarity.cpu())
 
             targets = get_split_specific_targets(isolated_classes_fast_loader, seen_labels, unseen_labels)
             assert len(targets) == len(zoc_probs_sum), f"{len(targets)} != {len(zoc_probs_sum)}"
