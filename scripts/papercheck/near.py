@@ -66,8 +66,7 @@ def clip_near_ood_temperatures(clip_model,
                 # get features
                 image_features_for_label = feature_weight_dict[semantic_label]
                 # calc the logits and softmaxs
-                zeroshot_probs = (temperature * image_features_for_label.to(torch.float32) @ zeroshot_weights.T.to(
-                    torch.float32)).softmax(dim=-1).squeeze()
+                zeroshot_probs = get_cosine_similarity_matrix_for_normed_features(image_features_for_label, zeroshot_weights, temperature)
 
                 assert zeroshot_probs.shape[1] == id_classes
                 # detection score is accumulative sum of probs of generated entities

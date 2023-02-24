@@ -149,7 +149,7 @@ def get_zoc_probs(image_features, bert_model, bert_tokenizer, clip_model, clip_t
                                                              bert_tokenizer, clip_model,
                                                              clip_tokenizer, device)
     image_features /= image_features.norm(dim=-1, keepdim=True)
-    zeroshot_probs = get_cosine_similarity_matrix_for_normed_features(image_features, text_features, 100)
+    zeroshot_probs = get_cosine_similarity_matrix_for_normed_features(image_features, text_features, 0.01)
     return zeroshot_probs.softmax(dim=1).squeeze()
 
 

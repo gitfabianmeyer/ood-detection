@@ -34,7 +34,7 @@ def get_std_mean(list_of_tensors):
 def clip_zeroshot(features, targets, zeroshot_weights, temperature):
     results = {}
 
-    logits = temperature * features.to(torch.float32) @ zeroshot_weights.T.to(torch.float32)
+    logits = get_cosine_similarity_matrix_for_normed_features(features, zeroshot_weights, 0.01)
 
     top1_acc = accuracy(logits, targets)[0] / len(targets)
 

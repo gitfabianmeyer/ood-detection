@@ -172,7 +172,7 @@ def adapter_zoc_ablation(dset,
                 test_image_features_for_label = test_image_features_for_label.to(torch.float32)
 
                 # calc the logits and softmax
-                clip_logits = 100 * test_image_features_for_label @ zeroshot_weights.T
+                clip_logits = get_cosine_similarity_matrix_for_normed_features(test_image_features_for_label, zeroshot_weights, 0.01)
                 clip_probs = torch.softmax(clip_logits, dim=-1).squeeze()
                 top_clip_prob, _ = clip_probs.cpu().topk(1, dim=-1)
                 clip_probs_max.extend(top_clip_prob.detach().numpy())

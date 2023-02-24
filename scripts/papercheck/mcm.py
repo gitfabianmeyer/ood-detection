@@ -1,10 +1,11 @@
 import os
 
+
 os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
 os.environ["CUDA_VISIBLE_DEVICES"] = "6"
 
 import logging
-
+from zeroshot.classification import get_cosine_similarity_matrix_for_normed_features
 import clip
 import numpy as np
 import torch
@@ -66,7 +67,7 @@ def get_clip_zeroshot_score(clip_model, id_set, ood_set, temperature):
             image_features_full.append(image_features)
 
         image_features_full = torch.cat(image_features_full, dim=0)
-        zsw = temperature * image_features_full.to(torch.float32) @ zeroshot_weights.T
+        zsw = get_cosine_similarity_matrix_for_normed_features(image_features_full, zeroshot_weights, temperature)
         clip_probs = torch.softmax(zsw, dim=-1).squeeze()
         top_clip_prob, _ = clip_probs.cpu().topk(1, dim=-1)
         top_probs.extend(top_clip_prob)

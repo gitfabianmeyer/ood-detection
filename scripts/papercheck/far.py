@@ -27,7 +27,7 @@ datasets = DATASETS_DICT
 def get_clip_auroc_from_features(id_features, ood_features, zeroshot_weights, temperature):
     top_probs = []
     for features in [id_features, ood_features]:
-        zsw = temperature * features.to(torch.float32) @ zeroshot_weights.T
+        zsw = get_cosine_similarity_matrix_for_normed_features(features, zeroshot_weights, temperature)
         clip_probs = torch.softmax(zsw, dim=-1).squeeze()
         top_clip_prob, _ = clip_probs.cpu().topk(1, dim=-1)
         top_probs.extend(top_clip_prob)

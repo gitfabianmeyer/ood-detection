@@ -54,8 +54,7 @@ def baseline_detector(clip_model,
                       isolated_classes: IsolatedClasses,
                       id_classes,
                       ood_classes,
-                      runs,
-                      temperature):
+                      runs):
     feature_weight_dict = get_feature_weight_dict(isolated_classes, clip_model, device)
     classes_weight_dict = get_zeroshot_weight_dict(isolated_classes, clip_model)
 

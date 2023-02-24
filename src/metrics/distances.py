@@ -186,7 +186,7 @@ class ConfusionLogProbability(Distance):
         self.clip_model = clip_model
         self.class_features_dict = self.get_class_features_dict()
 
-    def get_distance(self, temperature=100):
+    def get_distance(self, temperature=0.01):
         id_classes, ood_classes = self.get_id_ood_split()
 
         # get labels AFTER shuffling self.classes in get_id_ood_split()
@@ -195,7 +195,7 @@ class ConfusionLogProbability(Distance):
 
         ood_features = torch.cat([self.feature_dict[ood_class] for ood_class in ood_classes])
 
-        logits = temperature * ood_features.to(torch.float32) @ labels.to(torch.float32).t()
+        logits = get_cosine_similarity_matrix_for_normed_features(ood_features, labels, 0.01)
 
         # debug_scores(logits, "Logits")
         softmax_scores = F.softmax(logits, dim=1)

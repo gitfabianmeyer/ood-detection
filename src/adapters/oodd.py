@@ -96,7 +96,7 @@ def tip_hyperparam_ood_detector(dset,
 
             # calc the logits and softmax
             clip_logits = get_cosine_similarity_matrix_for_normed_features(test_image_features_for_label,
-                                                                           zeroshot_weights, 100)
+                                                                           zeroshot_weights, 0.01)
             clip_probs = torch.softmax(clip_logits, dim=-1).squeeze()
             top_clip_prob, _ = clip_probs.cpu().topk(1, dim=-1)
             clip_probs_max.extend(top_clip_prob.detach().numpy())
@@ -222,7 +222,7 @@ def tip_ood_detector(dset,
             image_features_for_label = feature_weight_dict[semantic_label]
             image_features_for_label = image_features_for_label.to(torch.float32)
             # calc the logits and softmax
-            clip_logits = image_features_for_label @ zeroshot_weights.T
+            clip_logits = get_cosine_similarity_matrix_for_normed_features(image_features_for_label, zeroshot_weights, 1)
             clip_probs = torch.softmax(clip_logits, dim=-1).squeeze()
 
             # TIP ADAPTER
@@ -350,7 +350,7 @@ def adapter_zoc(dset,
             # calc the logits and softmax
 
             clip_logits = get_cosine_similarity_matrix_for_normed_features(test_image_features_for_label,
-                                                                           zeroshot_weights, 100)
+                                                                           zeroshot_weights, 0.01)
             clip_probs = torch.softmax(clip_logits, dim=-1).squeeze()
             top_clip_prob, _ = clip_probs.cpu().topk(1, dim=-1)
             clip_probs_max.extend(top_clip_prob.detach().numpy())
@@ -380,7 +380,7 @@ def adapter_zoc(dset,
                 image_feature = image_feature.to(torch.float32)
 
                 zoc_logits_for_image = get_cosine_similarity_matrix_for_normed_features(image_feature, text_features,
-                                                                                        100)
+                                                                                        0.01)
                 zoc_probs = torch.softmax(zoc_logits_for_image, dim=0)
                 zoc_probs_sum.append(torch.sum(zoc_probs[len(seen_labels):]))  # for normal zoc
                 zoc_logits_for_semantic_label.append(zoc_logits_for_image)  # for toc/f
