@@ -167,7 +167,9 @@ def get_caption_features_from_image_features(unnormed_image_feature, seen_descri
     all_desc = seen_descriptions + [f"This is a photo of a {label}" for label in unique_entities]
     all_desc_ids = tokenize_for_clip(all_desc, clip_tokenizer)
     text_features = clip_model.encode_text(all_desc_ids.to(device)).float()
+    print(f"after encoding text: {text_features.shape}")
     text_features /= text_features.norm(dim=-1, keepdim=True)
+    print(f"after norming: {text_features.shape}")
     return text_features.squeeze()
 
 
@@ -398,10 +400,12 @@ def get_zoc_feature_dict(dataset, clip_model):
                                                           seen_labels, bert_model,
                                                           bert_tokenizer, clip_model,
                                                           clip_tokenizer, device)
+            print(f"TF: {tf.shape}")
 
             text_features.append(tf)
         zoc_featuredict[semantic_label] = torch.cat(text_features, dim=0)
-
+        print(f"dict entry shape: {zoc_featuredict[semantic_label].shape}")
+        raise ValueError
     return FeatureDict(zoc_featuredict, None)
 
 
