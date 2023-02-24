@@ -52,7 +52,7 @@ def run_all(args):
         dset = DATASETS_DICT[dname]
         _logger.info(f"Running {dname}...")
         dataset = dset(data_path=Config.DATAPATH,
-                       train=False,
+                       split='test',
                        transform=clip_transform)
 
         if args.shorten:
