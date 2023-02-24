@@ -406,11 +406,11 @@ def zoc_temp_ablation(dset,
             zoc_probs_sum = []
             for semantic_label in ablation_split:
                 image_features = feature_weight_dict[semantic_label]
-                image_features = image_features.to(torch.float32)
                 zoc_label_features = zoc_featuredict[semantic_label]
                 zoc_label_features = zoc_label_features.to(torch.float32)
 
                 for image_feature, zoc_label_feature in zip(image_features, zoc_label_features):
+                    zoc_label_feature = zoc_label_feature.to(torch.float32)
                     similarity = temperature * image_feature @ zoc_label_feature.T
                     id_similarity = torch.sum(
                         torch.softmax(similarity, dim=0)[num_id_classes:]
