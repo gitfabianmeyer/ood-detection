@@ -89,6 +89,9 @@ class FeatureDict:
     def values(self):
         return self.feature_dict.values()
 
+    def __getitem__(self, item):
+        return self.feature_dict[item]
+
     def init_feature_dict(self, dataset, clip_model):
         if isinstance(dataset, dict):
             return dataset, list(dataset.keys())
