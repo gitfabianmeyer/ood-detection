@@ -400,7 +400,7 @@ def get_zoc_feature_dict(dataset, clip_model):
                                                           clip_tokenizer, device)
 
             text_features.append(tf)
-        zoc_featuredict[semantic_label] = torch.stack(text_features, dim=0)
+        zoc_featuredict[semantic_label] = torch.cat(text_features, dim=0)
 
     return FeatureDict(zoc_featuredict, None)
 
