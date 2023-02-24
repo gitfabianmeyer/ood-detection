@@ -385,11 +385,11 @@ def zoc_temp_ablation(dset,
                    transform=clip_transform)
 
     zoc_featuredict = get_zoc_feature_dict(dataset, clip_model)
-    #
+
     isolated_classes_fast_loader = IsolatedClasses(dataset,
                                                    batch_size=512,
                                                    lsun=False)
-    #
+
     isolated_classes_fast_loader.templates = ["This is a photo of a {}"]
     _logger.info('Creating the test weight dicts')
     feature_weight_dict = get_feature_weight_dict(isolated_classes_fast_loader, clip_model)
@@ -411,11 +411,10 @@ def zoc_temp_ablation(dset,
                 zoc_label_features = zoc_label_features.to(torch.float32)
 
                 for image_feature, zoc_label_feature in zip(image_features, zoc_label_features):
-                    print(image_features.shape)
-                    print(zoc_label_feature.shape)
-                    raise ValueError
                     similarity = temperature * image_feature @ zoc_label_feature.T
-                    id_similarity = torch.sum(torch.softmax(similarity, dim=0)[num_id_classes:])
+                    id_similarity = torch.sum(
+                        torch.softmax(similarity, dim=0)[num_id_classes:]
+                    )
                     zoc_probs_sum.append(id_similarity)
 
             targets = get_split_specific_targets(isolated_classes_fast_loader, seen_labels, unseen_labels)
