@@ -1,7 +1,4 @@
-import random
 import logging
-
-import numpy as np
 
 _logger = logging.getLogger(__name__)
 
@@ -28,7 +25,8 @@ def run_single_dataset_ood(isolated_classes, clip_model, clip_tokenizer, bert_to
 def run_all(args):
     import clip
     from clip.simple_tokenizer import SimpleTokenizer
-
+    import random
+    import numpy as np
     import wandb
     from datasets.config import DATASETS_DICT
     from datasets.zoc_loader import IsolatedClasses
@@ -89,7 +87,7 @@ def main():
     parser.add_argument("--shorten", type=bool, default=False)
     args = parser.parse_args()
     os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
-    os.environ["CUDA_VISIBLE_DEVICES"] = "0"
+    os.environ["CUDA_VISIBLE_DEVICES"] = args.gpu
     run_all(args)
 
 
