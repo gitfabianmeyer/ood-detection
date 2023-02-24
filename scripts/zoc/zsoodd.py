@@ -1,29 +1,9 @@
-import os
 import random
-
-os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
-os.environ["CUDA_VISIBLE_DEVICES"] = "0"
-
-import argparse
 import logging
 
-import clip
-from clip.simple_tokenizer import SimpleTokenizer
-
-import torch
-import wandb
-from clearml import Task
-from datasets.config import DATASETS_DICT, HalfOneDict
-from datasets.zoc_loader import IsolatedClasses
-from metrics.metrics_logging import wandb_log
-from ood_detection.config import Config
-from transformers import BertGenerationTokenizer, BertGenerationConfig, BertGenerationDecoder
-from zoc.utils import image_decoder
+import numpy as np
 
 _logger = logging.getLogger(__name__)
-splits = [(.4, .6), ]
-clearml_model = False
-MODEL_PATH = "/home/fmeyer/ZOC/trained_models/COCO/ViT-B32/"
 
 
 def run_single_dataset_ood(isolated_classes, clip_model, clip_tokenizer, bert_tokenizer, bert_model,
@@ -46,56 +26,71 @@ def run_single_dataset_ood(isolated_classes, clip_model, clip_tokenizer, bert_to
 
 
 def run_all(args):
+    import clip
+    from clip.simple_tokenizer import SimpleTokenizer
+
+    import wandb
+    from datasets.config import DATASETS_DICT
+    from datasets.zoc_loader import IsolatedClasses
+    from ood_detection.config import Config
+    from transformers import BertGenerationTokenizer
+    from zoc.utils import get_decoder, image_decoder
+
     # for each dataset
     clip_model, clip_transform = clip.load(Config.VISION_MODEL)
     bert_tokenizer = BertGenerationTokenizer.from_pretrained('google/bert_for_seq_generation_L-24_bbc_encoder')
     clip_tokenizer = SimpleTokenizer()
     bert_model = get_decoder()
 
-    for dname, dset in DATASETS_DICT.items():
+    assert args.split in range(5), f'Way too high split {args.split}'
 
-        # if dname == 'caltech101':
-        #     print(f"Jumping over {dname}")
-        #     continue
-
+    if args.split == 0:
+        datasets = DATASETS_DICT.keys()
+    else:
+        datasets_splits = np.array_split(list(DATASETS_DICT.keys()), 4)
+        datasets = datasets_splits[args.split - 1]
+        _logger.info(f"Current split: {args.split}: {datasets}")
+    for dname in datasets:
+        dset = DATASETS_DICT[dname]
         _logger.info(f"Running {dname}...")
-
-        if dname == 'lsun':
-            lsun = True
-
-        else:
-            lsun = False
-
         dataset = dset(data_path=Config.DATAPATH,
                        train=False,
                        transform=clip_transform)
 
-        shorted_classes = random.sample(dataset.classes, 10)
-        dataset.classes = shorted_classes
-        isolated_classes = IsolatedClasses(dataset,
-                                           lsun=lsun)
+        if args.shorten:
+            shorted_classes = random.sample(dataset.classes, 10)
+            dataset.classes = shorted_classes
+        isolated_classes = IsolatedClasses(dataset)
+        run = wandb.init(project="thesis-zsoodd_ten_labels_five_runs",
+                         entity="wandbefab",
+                         name=dname)
+        # perform zsoodd
+        metrics_dict = run_single_dataset_ood(isolated_classes=isolated_classes,
+                                              clip_model=clip_model,
+                                              clip_tokenizer=clip_tokenizer,
+                                              bert_tokenizer=bert_tokenizer,
+                                              bert_model=bert_model,
+                                              id_classes=Config.ID_SPLIT,
+                                              runs=args.runs_ood)
 
-        for split in splits:
-            # perform zsoodd
-            metrics_dict = run_single_dataset_ood(isolated_classes=isolated_classes,
-                                                  clip_model=clip_model,
-                                                  clip_tokenizer=clip_tokenizer,
-                                                  bert_tokenizer=bert_tokenizer,
-                                                  bert_model=bert_model,
-                                                  id_classes=split[0],
-                                                  runs=args.runs_ood)
-            metrics_dict['id split'] = split[0]
-            run = wandb.init(project="thesis-zsoodd_ten_labels_five_runs",
-                             entity="wandbefab",
-                             name=dname + ' split-' + str(split))
-            wandb.log(metrics_dict)
-            run.finish()
-            # print(metrics_dict)
+        wandb.log(metrics_dict)
+        run.finish()
+        # print(metrics_dict)
+
+
+def main():
+    import argparse
+    import os
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--gpu", type=str)
+    parser.add_argument('--runs', type=int, required=True)
+    parser.add_argument('--split', type=int)
+    parser.add_argument("--shorten", type=bool, default=False)
+    args = parser.parse_args()
+    os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
+    os.environ["CUDA_VISIBLE_DEVICES"] = "0"
+    run_all(args)
 
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--runs_ood', type=int, default=5)
-
-    args = parser.parse_args()
-    run_all(args)
+    main()

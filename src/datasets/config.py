@@ -28,22 +28,6 @@ DATASETS_DICT["mnist"] = OodMNIST
 DATASETS_DICT["stanford cars"] = OodStanfordCars
 DATASETS_DICT["svhn"] = OodSVHN
 
-HalfOneDict = collections.OrderedDict()
-HalfOneDict["caltech101"] = OodCaltech101
-HalfOneDict["caltech cub"] = OodCub2011
-HalfOneDict["cifar10"] = OodCifar10
-HalfOneDict["cifar100"] = OodCifar100
-HalfOneDict["dtd"] = OodDTD
-HalfOneDict["fashion mnist"] = OodFashionMNIST
-
-HalfTwoDict = collections.OrderedDict()
-HalfTwoDict["flowers102"] = OodFlowers102
-HalfTwoDict["gtsrb"] = OodGTSRB
-HalfTwoDict["imagenet"] = OodTinyImageNet
-HalfTwoDict["mnist"] = OodMNIST
-HalfTwoDict["stanford cars"] = OodStanfordCars
-HalfTwoDict["svhn"] = OodSVHN
-
 CorruptionSets = collections.OrderedDict()
 CorruptionSets['gtsrb'] = OodGTSRB
 CorruptionSets['caltech101'] = OodCaltech101
