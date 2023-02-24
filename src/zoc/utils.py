@@ -168,9 +168,7 @@ def get_caption_features_from_image_features(unnormed_image_feature, seen_descri
     all_desc = seen_descriptions + [f"This is a photo of a {label}" for label in unique_entities]
     all_desc_ids = tokenize_for_clip(all_desc, clip_tokenizer)
     text_features = clip_model.encode_text(all_desc_ids.to(device)).float()
-    print(f"after encoding text: {text_features.shape}")
     text_features /= text_features.norm(dim=-1, keepdim=True)
-    print(f"after norming: {text_features.shape}")
     return text_features.squeeze()
 
 
