@@ -58,10 +58,11 @@ def run_all(args):
                        transform=clip_transform)
 
         if args.shorten:
+            _logger.warning("USE SHORTENED CLASSSES")
             shorted_classes = random.sample(dataset.classes, 10)
             dataset.classes = shorted_classes
         isolated_classes = IsolatedClasses(dataset)
-        run = wandb.init(project="thesis-zsoodd_ten_labels_five_runs",
+        run = wandb.init(project=f"thesis-zsoodd_{args.runs}_runs",
                          entity="wandbefab",
                          name=dname)
         # perform zsoodd

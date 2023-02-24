@@ -168,7 +168,7 @@ def get_caption_features_from_image_features(unnormed_image_feature, seen_descri
     all_desc_ids = tokenize_for_clip(all_desc, clip_tokenizer)
     text_features = clip_model.encode_text(all_desc_ids.to(device)).float()
     text_features /= text_features.norm(dim=-1, keepdim=True)
-    return text_features
+    return text_features.squeeze()
 
 
 def get_sum_max_mean_probs(zeroshot_probs, id_classes):
