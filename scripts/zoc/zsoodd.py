@@ -70,7 +70,7 @@ def run_all(args):
                                               bert_tokenizer=bert_tokenizer,
                                               bert_model=bert_model,
                                               id_classes=Config.ID_SPLIT,
-                                              runs=args.runs_ood)
+                                              runs=args.runs)
 
         wandb.log(metrics_dict)
         run.finish()
