@@ -17,7 +17,6 @@ def run_single(args):
     zoc_temp_ablation(dset,
                       clip_model,
                       clip_transform,
-                      device,
                       args.runs,
                       temperatures)
     run.finish()

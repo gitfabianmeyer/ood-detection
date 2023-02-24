@@ -378,7 +378,6 @@ def splits_adapter_zoc_ablation(dset,
 def zoc_temp_ablation(dset,
                       clip_model,
                       clip_transform,
-                      device,
                       runs_per_setting,
                       temperatures):
     dataset = dset(data_path=Config.DATAPATH,
@@ -393,7 +392,7 @@ def zoc_temp_ablation(dset,
     #
     isolated_classes_fast_loader.templates = ["This is a photo of a {}"]
     _logger.info('Creating the test weight dicts')
-    feature_weight_dict = get_feature_weight_dict(isolated_classes_fast_loader, clip_model, device)
+    feature_weight_dict = get_feature_weight_dict(isolated_classes_fast_loader, clip_model)
 
     num_id_classes = int(len(dataset.classes) * Config.ID_SPLIT)
     num_ood_classes = len(dataset.classes) - num_id_classes
