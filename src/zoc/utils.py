@@ -130,6 +130,7 @@ def image_decoder(clip_model,
                 ood_probs_sum.append(ood_prob_sum)
                 ood_probs_mean.append(ood_prob_mean)
                 ood_probs_max.append(ood_prob_max.detach().numpy())
+                id_probs_sum.append(1 - ood_prob_sum)
 
         targets = get_split_specific_targets(isolated_classes, seen_labels, unseen_labels)
         fill_auc_lists(auc_list_max, auc_list_mean, auc_list_sum, ood_probs_mean, ood_probs_max, ood_probs_sum,
