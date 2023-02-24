@@ -5,6 +5,10 @@ _logger = logging.getLogger(__name__)
 
 def run_single_dataset_ood(isolated_classes, clip_model, clip_tokenizer, bert_tokenizer, bert_model,
                            id_classes=.6, runs=5):
+
+    from zoc.utils import image_decoder
+    from ood_detection.config import Config
+
     labels = isolated_classes.classes
     id_classes = int(len(labels) * id_classes)
     ood_classes = len(labels) - id_classes
@@ -17,8 +21,6 @@ def run_single_dataset_ood(isolated_classes, clip_model, clip_tokenizer, bert_to
                             id_classes=id_classes,
                             ood_classes=ood_classes,
                             runs=runs)
-    metrics['num_runs'] = runs
-
     return metrics
 
 
@@ -32,7 +34,7 @@ def run_all(args):
     from datasets.zoc_loader import IsolatedClasses
     from ood_detection.config import Config
     from transformers import BertGenerationTokenizer
-    from zoc.utils import get_decoder, image_decoder
+    from zoc.utils import get_decoder
 
     # for each dataset
     clip_model, clip_transform = clip.load(Config.VISION_MODEL)
@@ -86,6 +88,7 @@ def main():
     parser.add_argument('--split', type=int)
     parser.add_argument("--shorten", type=bool, default=False)
     args = parser.parse_args()
+
     os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
     os.environ["CUDA_VISIBLE_DEVICES"] = args.gpu
     run_all(args)
