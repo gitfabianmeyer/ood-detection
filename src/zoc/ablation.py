@@ -411,6 +411,10 @@ def zoc_temp_ablation(dset,
                 zoc_label_features = zoc_label_features.to(torch.float32)
 
                 for image_feature, zoc_label_feature in zip(image_features, zoc_label_features):
+                    print(temperature)
+                    print(image_features.shape)
+                    print(zoc_label_feature.shape)
+                    raise ValueError
                     similarity = temperature * image_feature @ zoc_label_feature.T
                     id_similarity = torch.sum(torch.softmax(similarity, dim=0)[num_id_classes:])
                     zoc_probs_sum.append(id_similarity)
