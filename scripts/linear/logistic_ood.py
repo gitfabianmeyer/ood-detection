@@ -1,5 +1,7 @@
 import logging
 
+import numpy as np
+
 _logger = logging.getLogger(__name__)
 
 
@@ -8,6 +10,8 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--gpu", type=int, required=True)
     parser.add_argument("--runs", type=int, default=10)
+    parser.add_argument("--split", type=int, required=True)
+    parser.add_argument("--max_split", type=int)
     args = parser.parse_args()
     import os
     os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
@@ -23,7 +27,14 @@ def run_all(args):
 
     clip_model, clip_transfrom = clip.load(Config.VISION_MODEL)
 
-    for dname, dset in DATASETS_DICT.items():
+    if args.split == 0:
+        datasets = DATASETS_DICT.keys()
+    else:
+        datasets_splits = np.array_split(list(DATASETS_DICT.keys()), args.max_split)
+        datasets = datasets_splits[args.split - 1]
+        _logger.info(f"Current split: {args.split}: {datasets}")
+
+    for dname, dset in datasets.items():
         run = wandb.init(project=f"thesis-logreg-ood-{args.runs}_runs",
                          entity="wandbefab",
                          name=dname)
