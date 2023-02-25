@@ -165,6 +165,8 @@ def get_caption_features_from_image_features(unnormed_image_feature, seen_descri
                                                           device)
     topk_tokens = [bert_tokenizer.decode(int(pred_idx.cpu().numpy())) for pred_idx in topk_list]
     unique_entities = list(set(topk_tokens) - set(seen_labels))
+    print(unique_entities)
+    return "TODO" # TODO
     all_desc = seen_descriptions + [f"This is a photo of a {label}" for label in unique_entities]
     all_desc_ids = tokenize_for_clip(all_desc, clip_tokenizer)
     text_features = clip_model.encode_text(all_desc_ids.to(device)).float()
@@ -394,12 +396,14 @@ def get_zoc_feature_dict(dataset, clip_model):
     zoc_featuredict = {}
     for semantic_label, image_features in image_featuredict.items():
         text_features = []
+        print(semantic_label)
         for image_feat in image_features:
             tf = get_caption_features_from_image_features(image_feat, seen_descriptions,
                                                           seen_labels, bert_model,
                                                           bert_tokenizer, clip_model,
                                                           clip_tokenizer, device)
             text_features.append(tf)
+            break
         zoc_featuredict[semantic_label] = text_features
     return FeatureDict(zoc_featuredict, None)
 
