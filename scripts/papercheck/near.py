@@ -25,7 +25,7 @@ def clip_near_ood_temperatures(clip_model,
     len_all_classes = len(isolated_classes.classes)
     id_classes = int(len_all_classes * id_split)
     ood_classes = len_all_classes - id_classes
-    feature_weight_dict = get_feature_weight_dict(isolated_classes, clip_model, device)
+    feature_weight_dict = get_feature_weight_dict(isolated_classes, clip_model)
 
     if use_origin_templates:
         classes_weight_dict = get_zeroshot_weight_dict(isolated_classes, clip_model)
