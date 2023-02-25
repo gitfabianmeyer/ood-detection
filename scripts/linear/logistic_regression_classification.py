@@ -64,7 +64,7 @@ def logreg_baseline(dataset, clip_model, clip_transform):
                                                transform=clip_transform),
                                        batch_size=512)
     feature_weight_dict_test = get_feature_weight_dict(isolated_classes, clip_model)
-    test_set = FeatureSet(feature_weight_dict_test, train_dataset.classes, train_dataset.classes_to_idx)
+    test_set = FeatureSet(feature_weight_dict_test, train_dataset.classes, train_dataset.class_to_idx)
 
     score = logistic_classifier.score(test_set.features, test_set.targets)
     return {"Acc": score,
