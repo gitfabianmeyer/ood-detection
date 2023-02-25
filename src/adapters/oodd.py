@@ -381,7 +381,7 @@ def adapter_zoc(dset,
 
                 zoc_logits_for_image = get_cosine_similarity_matrix_for_normed_features(image_feature, text_features,
                                                                                         0.01)
-                zoc_probs = torch.softmax(zoc_logits_for_image, dim=0)
+                zoc_probs = torch.softmax(zoc_logits_for_image, dim=-1)
                 zoc_probs_sum.append(torch.sum(zoc_probs[len(seen_labels):]))  # for normal zoc
                 zoc_logits_for_semantic_label.append(zoc_logits_for_image)  # for toc/f
 
