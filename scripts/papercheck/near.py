@@ -1,47 +1,36 @@
-import os
-os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
-os.environ["CUDA_VISIBLE_DEVICES"] = "6"
-
-from datasets.zoc_loader import IsolatedClasses
-from ood_detection.ood_utils import sorted_zeroshot_weights
-from zoc.baseline import get_feature_weight_dict, get_zeroshot_weight_dict
-
-
 import logging
-
-import clip
-import numpy as np
-import torch
-import wandb
-from clip.simple_tokenizer import SimpleTokenizer
-from datasets.config import DATASETS_DICT
-from ood_detection.classification_utils import zeroshot_classifier
-from ood_detection.config import Config
-from torch.utils.data import DataLoader
-from tqdm import tqdm
-from transformers import BertGenerationTokenizer
-from zoc.utils import greedysearch_generation_topk, tokenize_for_clip, get_auroc_for_ood_probs, get_auroc_for_max_probs, \
-    get_decoder, get_ablation_splits, get_split_specific_targets
 
 _logger = logging.getLogger(__name__)
 
 
-@torch.no_grad()
 def clip_near_ood_temperatures(clip_model,
                                device,
-                               isolated_classes: IsolatedClasses,
+                               isolated_classes,
                                id_split,
                                runs,
                                min_temp,
                                max_temp,
-                               num_temps
+                               num_temps,
+                               use_origin_templates
                                ):
+    import wandb
+    from ood_detection.ood_utils import sorted_zeroshot_weights
+    from zoc.baseline import get_feature_weight_dict, get_zeroshot_weight_dict
+
+
+    from datasets.classnames import base_template
+    from zeroshot.classification import get_cosine_similarity_matrix_for_normed_features
+    import numpy as np
+    from zoc.utils import get_auroc_for_max_probs, get_ablation_splits, get_split_specific_targets
     len_all_classes = len(isolated_classes.classes)
     id_classes = int(len_all_classes * id_split)
     ood_classes = len_all_classes - id_classes
     feature_weight_dict = get_feature_weight_dict(isolated_classes, clip_model, device)
-    classes_weight_dict = get_zeroshot_weight_dict(isolated_classes, clip_model)
 
+    if use_origin_templates:
+        classes_weight_dict = get_zeroshot_weight_dict(isolated_classes, clip_model)
+    else:
+        isolated_classes.templates = base_template
     ablation_splits = get_ablation_splits(isolated_classes.classes, n=runs, id_classes=id_classes,
                                           ood_classes=ood_classes)
 
@@ -66,7 +55,8 @@ def clip_near_ood_temperatures(clip_model,
                 # get features
                 image_features_for_label = feature_weight_dict[semantic_label]
                 # calc the logits and softmaxs
-                zeroshot_probs = get_cosine_similarity_matrix_for_normed_features(image_features_for_label, zeroshot_weights, temperature)
+                zeroshot_probs = get_cosine_similarity_matrix_for_normed_features(image_features_for_label,
+                                                                                  zeroshot_weights, temperature)
 
                 assert zeroshot_probs.shape[1] == id_classes
                 # detection score is accumulative sum of probs of generated entities
@@ -93,7 +83,21 @@ def clip_near_ood_temperatures(clip_model,
     return True
 
 
-def main():
+def run_all(args):
+
+
+    from datasets.zoc_loader import IsolatedClasses
+
+
+    import clip
+
+    import wandb
+    from datasets.config import DATASETS_DICT
+    from ood_detection.config import Config
+    from tqdm import tqdm
+
+
+
     datasets = DATASETS_DICT
     clip_model, clip_transform = clip.load(Config.VISION_MODEL)
     device = Config.DEVICE
@@ -103,18 +107,46 @@ def main():
                                                 transform=clip_transform,
                                                 split='test'),
                                            batch_size=512)
-        run = wandb.init(project=f"thesis-near_ood-temp",
+
+
+        use_templates = bool(args.temps)
+        if use_templates:
+            project_name = "thesis-near_ood-temperature-ct-temps"
+        else:
+            project_name = "thesis-near_ood-temperature-dt-temps"
+
+        run = wandb.init(project=project_name,
                          entity="wandbefab",
-                         name=dname)
+                         name=dname,
+                         config={"runs": args.runs,
+                                 "temps": args.temps,
+                                 "id_split": Config.ID_SPLIT})
+        _logger.info(f"Using origin templates: {use_templates}")
         results = clip_near_ood_temperatures(clip_model,
                                              device,
                                              isolated_classes,
                                              Config.ID_SPLIT,
-                                             50,
+                                             args.runs,
                                              0.01,
                                              100.,
-                                             50, )
+                                             args.temperatures,
+                                             args.temps)
         run.finish()
+
+
+def main():
+    import argparse
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--gpu", type=int)
+    parser.add_argument("--runs", type=int, default=50)
+    parser.add_argument("--temperatures", type=int, default=10)
+    parser.add_argument("--templates", type=int, required=True)
+    args = parser.parse_args()
+
+    import os
+
+    os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
+    os.environ["CUDA_VISIBLE_DEVICES"] = f"{args.gpu}"
 
 
 if __name__ == '__main__':
