@@ -381,7 +381,6 @@ def get_zoc_feature_dict(dataset, clip_model, seen_labels):
     isolated_classes = IsolatedClasses(dataset,
                                        batch_size=512,
                                        lsun=False)
-    isolated_classes.classes = seen_labels
     image_featuredict = get_unnormed_featuredict_from_isolated_classes(clip_model, device, isolated_classes)
 
     from transformers import BertGenerationTokenizer
