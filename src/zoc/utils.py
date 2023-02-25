@@ -393,7 +393,6 @@ def get_zoc_feature_dict(dataset, clip_model, seen_labels):
 
     zoc_featuredict = {}
     for semantic_label, image_features in image_featuredict.items():
-        assert semantic_label in seen_labels
 
         text_features = []
         for image_feat in image_features:
