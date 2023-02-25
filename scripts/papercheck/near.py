@@ -1,5 +1,7 @@
 import logging
 
+import torch
+
 _logger = logging.getLogger(__name__)
 
 
@@ -15,7 +17,6 @@ def clip_near_ood_temperatures(clip_model,
     import wandb
     from ood_detection.ood_utils import sorted_zeroshot_weights
     from zoc.baseline import get_feature_weight_dict, get_zeroshot_weight_dict
-
 
     from datasets.classnames import base_template
     from zeroshot.classification import get_cosine_similarity_matrix_for_normed_features
@@ -39,7 +40,7 @@ def clip_near_ood_temperatures(clip_model,
     for temperature in np.logspace(np.log2(min_temp), np.log2(max_temp), num=num_temps,
                                    base=2.0):  # 10 values between .007 and 100
 
-        split_aurocs = []
+        split_mlp_aurocs, split_msp_aurocs = [], []
         for split in ablation_splits:
 
             seen_labels = split[:id_classes]
@@ -48,7 +49,7 @@ def clip_near_ood_temperatures(clip_model,
 
             zeroshot_weights = sorted_zeroshot_weights(classes_weight_dict, seen_labels)
 
-            ood_probs_sum, ood_probs_mean, ood_probs_max = [], [], []
+            mlp, msp = [], []
             f_probs_sum, acc_probs_sum, id_probs_sum = [], [], []
 
             # do 10 times
@@ -58,37 +59,34 @@ def clip_near_ood_temperatures(clip_model,
                 # calc the logits and softmaxs
                 zeroshot_probs = get_cosine_similarity_matrix_for_normed_features(image_features_for_label,
                                                                                   zeroshot_weights, temperature)
+                softmax_probs = torch.softmax(zeroshot_probs, dim=-1)
 
                 assert zeroshot_probs.shape[1] == id_classes
                 # detection score is accumulative sum of probs of generated entities
                 # careful, only for this setting axis=1
-                ood_prob_sum = np.sum(zeroshot_probs.detach().cpu().numpy(), axis=1)
-                ood_probs_sum.extend(ood_prob_sum)
 
-                ood_prob_mean = np.mean(zeroshot_probs.detach().cpu().numpy(), axis=1)
-                ood_probs_mean.extend(ood_prob_mean)
-
-                top_prob, _ = zeroshot_probs.cpu().topk(1, dim=-1)
-                ood_probs_max.extend(top_prob.detach().numpy())
-
-                id_probs_sum.extend(1. - ood_prob_sum)
+                top_mlp_prob, _ = zeroshot_probs.cpu().topk(1, dim=-1)
+                mlp.extend(top_mlp_prob.detach().numpy())
+                top_msp_prob, _ = softmax_probs.cpu().topk(1, dim=-1)
+                msp.extend(top_msp_prob.detach().numpy())
 
             targets = get_split_specific_targets(isolated_classes, seen_labels, unseen_labels)
-            split_auroc = get_auroc_for_max_probs(targets, ood_probs_max)
-            split_aurocs.append(split_auroc)
+            mlp_auroc = get_auroc_for_max_probs(targets, mlp)
+            msp_auroc = get_auroc_for_max_probs(targets, msp)
+            split_mlp_aurocs.append(mlp_auroc)
+            split_msp_aurocs.append(msp_auroc)
 
-        result = {'clip': np.mean(split_aurocs),
-                  'std': np.std(split_aurocs),
+        result = {'mlp': np.mean(split_mlp_aurocs),
+                  'mlp_std': np.std(split_mlp_aurocs),
+                  'msp': np.mean(split_msp_aurocs),
+                  'msp_std': np.std(split_msp_aurocs),
                   'temperature': temperature}
         wandb.log(result)
     return True
 
 
 def run_all(args):
-
-
     from datasets.zoc_loader import IsolatedClasses
-
 
     import clip
 
@@ -96,8 +94,6 @@ def run_all(args):
     from datasets.config import DATASETS_DICT
     from ood_detection.config import Config
     from tqdm import tqdm
-
-
 
     datasets = DATASETS_DICT
     clip_model, clip_transform = clip.load(Config.VISION_MODEL)
@@ -108,7 +104,6 @@ def run_all(args):
                                                 transform=clip_transform,
                                                 split='test'),
                                            batch_size=512)
-
 
         use_templates = bool(args.templates)
         if use_templates:
@@ -148,6 +143,7 @@ def main():
     os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
     os.environ["CUDA_VISIBLE_DEVICES"] = f"{args.gpu}"
     run_all(args)
+
 
 if __name__ == '__main__':
     main()
