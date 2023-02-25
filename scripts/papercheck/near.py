@@ -109,7 +109,7 @@ def run_all(args):
                                            batch_size=512)
 
 
-        use_templates = bool(args.temps)
+        use_templates = bool(args.templates)
         if use_templates:
             project_name = "thesis-near_ood-temperature-ct-temps"
         else:
@@ -119,7 +119,7 @@ def run_all(args):
                          entity="wandbefab",
                          name=dname,
                          config={"runs": args.runs,
-                                 "temps": args.temps,
+                                 "temps": args.templates,
                                  "id_split": Config.ID_SPLIT})
         _logger.info(f"Using origin templates: {use_templates}")
         results = clip_near_ood_temperatures(clip_model,
@@ -130,7 +130,7 @@ def run_all(args):
                                              0.01,
                                              100.,
                                              args.temperatures,
-                                             args.temps)
+                                             args.templates)
         run.finish()
 
 
