@@ -40,20 +40,19 @@ def logreg_baseline(dataset, clip_model, clip_transform):
     from ood_detection.config import Config
     from zoc.baseline import get_feature_weight_dict, FeatureSet, train_log_reg_classifier
 
-    device = Config.DEVICE
     train_dataset = dataset(Config.DATAPATH,
                             split='train',
                             transform=clip_transform)
 
     isolated_classes = IsolatedClasses(train_dataset,
                                        batch_size=512)
-    feature_weight_dict_train = get_feature_weight_dict(isolated_classes, clip_model, device)
+    feature_weight_dict_train = get_feature_weight_dict(isolated_classes, clip_model)
 
     isolated_classes = IsolatedClasses(dataset(Config.DATAPATH,
                                                split='val',
                                                transform=clip_transform),
                                        batch_size=512)
-    feature_weight_dict_val = get_feature_weight_dict(isolated_classes, clip_model, device)
+    feature_weight_dict_val = get_feature_weight_dict(isolated_classes, clip_model)
 
     # train classifier to classify id set
     train_set = FeatureSet(feature_weight_dict_train, train_dataset.classes, train_dataset.class_to_idx)
@@ -64,7 +63,7 @@ def logreg_baseline(dataset, clip_model, clip_transform):
                                                split='test',
                                                transform=clip_transform),
                                        batch_size=512)
-    feature_weight_dict_test = get_feature_weight_dict(isolated_classes, clip_model, device)
+    feature_weight_dict_test = get_feature_weight_dict(isolated_classes, clip_model)
     test_set = FeatureSet(feature_weight_dict_test, train_dataset.classes, train_dataset.classes_to_idx)
 
     score = logistic_classifier.score(test_set.features, test_set.targets)
