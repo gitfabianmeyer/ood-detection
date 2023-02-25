@@ -34,7 +34,8 @@ def run_all(args):
         datasets = datasets_splits[args.split - 1]
         _logger.info(f"Current split: {args.split}: {datasets}")
 
-    for dname, dset in datasets.items():
+    for dname in datasets:
+        dset = DATASETS_DICT[dname]
         run = wandb.init(project=f"thesis-logreg-ood-{args.runs}_runs",
                          entity="wandbefab",
                          name=dname)
