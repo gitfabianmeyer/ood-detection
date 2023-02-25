@@ -4,7 +4,6 @@ _logger = logging.getLogger(__name__)
 
 
 def clip_near_ood_temperatures(clip_model,
-                               device,
                                isolated_classes,
                                id_split,
                                runs,
@@ -30,7 +29,9 @@ def clip_near_ood_temperatures(clip_model,
     if use_origin_templates:
         classes_weight_dict = get_zeroshot_weight_dict(isolated_classes, clip_model)
     else:
+
         isolated_classes.templates = base_template
+        classes_weight_dict = get_zeroshot_weight_dict(isolated_classes, clip_model)
     ablation_splits = get_ablation_splits(isolated_classes.classes, n=runs, id_classes=id_classes,
                                           ood_classes=ood_classes)
 
@@ -123,7 +124,6 @@ def run_all(args):
                                  "id_split": Config.ID_SPLIT})
         _logger.info(f"Using origin templates: {use_templates}")
         results = clip_near_ood_temperatures(clip_model,
-                                             device,
                                              isolated_classes,
                                              Config.ID_SPLIT,
                                              args.runs,
