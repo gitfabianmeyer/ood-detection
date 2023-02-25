@@ -147,7 +147,7 @@ def main():
 
     os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
     os.environ["CUDA_VISIBLE_DEVICES"] = f"{args.gpu}"
-
+    run_all(args)
 
 if __name__ == '__main__':
     main()
