@@ -181,21 +181,24 @@ def train_linear_id_classifier(train_set, eval_set, epochs=10, learning_rate=0.0
     return best_classifier
 
 
-def train_log_reg_classifier(train_set, eval_set, max_iter=110, cs=[0.001, 0.01, 0.1, 1, 10, 100, 1000]):
+def train_log_reg_classifier(train_set, eval_set, num_cs):
+    _logger.info(f"Training logistic regression for {num_cs} Cs....")
     if train_set.features.is_cuda:
         train_set.features = train_set.features.cpu()
     if eval_set.features.is_cuda:
         eval_set.features = eval_set.features.cpu()
 
+    cs = np.logspace(np.log2(0.000001), np.log2(1000000), num_cs, base=2)
     best_classifier = None
     best_score = 0
     for c in cs:
-        classifier = LogisticRegression(max_iter=max_iter, solver='sag', tol=0.0001, C=c, penalty='l2')
+        classifier = LogisticRegression(max_iter=1000, solver='lbfgs', C=c, penalty='l2')
         classifier.fit(train_set.features, train_set.targets)
         score = classifier.score(eval_set.features, eval_set.targets)
         if score > best_score:
             best_classifier = classifier
             best_score = score
+            _logger.info(f"New best score: {score:.3f} for {classifier.C}")
     return best_classifier
 
 
