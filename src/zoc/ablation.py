@@ -292,7 +292,7 @@ def splits_adapter_zoc_ablation(dset,
                     zoc_logits_for_image = get_cosine_similarity_matrix_for_normed_features(image_feature,
                                                                                             text_features, 0.01)
                     zoc_logits_for_semantic_label.append(zoc_logits_for_image)
-                    zoc_probs = torch.softmax(zoc_logits_for_image, dim=0)
+                    zoc_probs = torch.softmax(zoc_logits_for_image, dim=-1)
                     zoc_probs_sum.append(torch.sum(zoc_probs[len(seen_labels):]))  # for normal zoc
 
                 # now: use normal zoc probs. use zoctip. use zoctipf
@@ -384,8 +384,6 @@ def zoc_temp_ablation(dset,
                    split='test',
                    transform=clip_transform)
 
-    zoc_featuredict = get_zoc_feature_dict(dataset, clip_model)
-
     isolated_classes_fast_loader = IsolatedClasses(dataset,
                                                    batch_size=512,
                                                    lsun=False)
@@ -402,18 +400,25 @@ def zoc_temp_ablation(dset,
     for temperature in temperatures:
         zoc_aucs = []
         for ablation_split in ablation_splits:
+
             seen_descriptions, seen_labels, unseen_labels = get_ablation_split_classes(num_id_classes, ablation_split)
+            zoc_featuredict = get_zoc_feature_dict(dataset, clip_model, seen_labels)
+
             zoc_probs_sum = []
             for semantic_label in ablation_split:
+
                 image_features = feature_weight_dict[semantic_label]
                 image_features = image_features.to(torch.float32)
+
                 zoc_label_features = zoc_featuredict[semantic_label]
 
                 for image_feature, zoc_label_feature in zip(image_features, zoc_label_features):
                     zoc_label_feature = zoc_label_feature.to(torch.float32)
-                    similarity = temperature * image_feature @ zoc_label_feature.T
+                    similarity = get_cosine_similarity_matrix_for_normed_features(image_feature,
+                                                                                  zoc_label_feature,
+                                                                                  temperature)
                     id_similarity = torch.sum(
-                        torch.softmax(similarity, dim=0)[num_id_classes:]
+                        torch.softmax(similarity, dim=-1)[num_id_classes:]
                     )
                     zoc_probs_sum.append(id_similarity.cpu())
 
@@ -427,8 +432,7 @@ def zoc_temp_ablation(dset,
             'temperature': temperature,
             'zoc': zoc_mean,
             'zoc_std': zoc_std}
-        print(metrics)
-        # wandb.log(metrics)
+        wandb.log(metrics)
     return True
 
 
@@ -559,7 +563,7 @@ def kshot_adapter_zoc_ablation(dset,
                     zoc_logits_for_image = get_cosine_similarity_matrix_for_normed_features(image_feature,
                                                                                             text_features, 0.01)
                     zoc_logits_for_semantic_label.append(zoc_logits_for_image)
-                    zoc_probs = torch.softmax(zoc_logits_for_image, dim=0)
+                    zoc_probs = torch.softmax(zoc_logits_for_image, dim=-1)
                     zoc_probs_sum.append(torch.sum(zoc_probs[len(seen_labels):]))  # for normal zoc
 
                 # now: use normal zoc probs. use zoctip. use zoctipf
