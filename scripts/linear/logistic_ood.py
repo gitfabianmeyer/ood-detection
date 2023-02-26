@@ -88,7 +88,7 @@ def logred_oodd(dataset, clip_model, clip_transform, id_split, runs):
         train_set = FeatureSet(feature_weight_dict_train, seen_labels, class_to_idx_mapping)
         val_set = FeatureSet(feature_weight_dict_val, seen_labels, class_to_idx_mapping)
 
-        logistic_classifier = train_log_reg_classifier(train_set, val_set)
+        logistic_classifier = train_log_reg_classifier(train_set, val_set, 96)
         # eval for ood detection
 
         logreg_probs_max = []
