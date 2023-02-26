@@ -12,6 +12,7 @@ def main():
     parser.add_argument("--runs", type=int, default=10)
     parser.add_argument("--split", type=int, required=True)
     parser.add_argument("--max_split", type=int)
+    parser.add_argument("--dname", type=str, default=None)
     args = parser.parse_args()
     import os
     os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
@@ -35,12 +36,15 @@ def run_all(args):
         _logger.info(f"Current split: {args.split}: {datasets}")
 
     for dname in datasets:
+        if args.dname:
+            if dname != args.dname:
+                continue
+
         _logger.info(f"\t\t RUNNING {dname}")
         dset = DATASETS_DICT[dname]
         run = wandb.init(project=f"thesis-logreg-ood-{args.runs}_runs",
                          entity="wandbefab",
                          name=dname)
-        _logger.info(dname)
         result = logred_oodd(dset, clip_model, clip_transfrom, Config.ID_SPLIT, args.runs)
         wandb.log(result)
         run.finish()
