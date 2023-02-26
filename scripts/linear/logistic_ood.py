@@ -35,6 +35,7 @@ def run_all(args):
         _logger.info(f"Current split: {args.split}: {datasets}")
 
     for dname in datasets:
+        _logger.info(f"\t\t RUNNING {dname}")
         dset = DATASETS_DICT[dname]
         run = wandb.init(project=f"thesis-logreg-ood-{args.runs}_runs",
                          entity="wandbefab",
@@ -47,6 +48,7 @@ def run_all(args):
 
 def logred_oodd(dataset, clip_model, clip_transform, id_split, runs):
     from ood_detection.config import Config
+    from tqdm import tqdm
     import numpy as np
     import torch
     from datasets.zoc_loader import IsolatedClasses
@@ -77,7 +79,7 @@ def logred_oodd(dataset, clip_model, clip_transform, id_split, runs):
                                           ood_classes=ood_classes)
 
     logistic_aucs = []
-    for ablation_split in ablation_splits:
+    for ablation_split in tqdm(ablation_splits):
 
         class_to_idx_mapping = {label: i for (i, label) in enumerate(ablation_split)}
         seen_labels = ablation_split[:id_classes]
