@@ -57,7 +57,7 @@ def run_single(dataset, args):
 
     temperatures = np.logspace(np.log2(0.001), np.log2(100), num=args.temperatures, base=2.0)
     for temp in temperatures:
-        results = run_full_tip_from_features(cache_keys, cache_values, clip_model, args.eps, 1, 1, label_features,
+        results = run_full_tip_from_features(cache_keys, cache_values, clip_model, args.eps, 1., 1., label_features,
                                              args.lr, temp, test_features, test_labels, args.train_epochs,
                                              train_set,
                                              val_features, val_labels)

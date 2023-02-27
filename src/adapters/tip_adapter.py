@@ -316,6 +316,8 @@ def run_tip_adapter(val_features, val_labels, zeroshot_weights, cache_keys, cach
     # n_images * feature_size @ (num_classes * feature_size).t() --> n_images x num_classes
     affinity = val_features @ cache_keys
     cache_logits = get_cache_logits(affinity, cache_values, beta)
+    print(f" clip logits:{clip_logits.is_cuda}")
+    print(f" cache logits:{cache_logits.is_cuda}")
 
     tip_logits = clip_logits + cache_logits * alpha
 
