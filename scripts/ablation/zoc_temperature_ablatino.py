@@ -9,7 +9,7 @@ def run_single(args):
     clip_model, clip_transform = clip.load(Config.VISION_MODEL)
     dset = DATASETS_DICT[args.dname]
 
-    temperatures = np.logspace(np.log2(0.01), np.log2(100), num=args.temperatures, base=2.0)
+    temperatures = np.logspace(np.log2(0.001), np.log2(100), num=args.temperatures, base=2.0)
     run = wandb.init(project=f"thesis-ablation-zoc_temps",
                      entity="wandbefab",
                      name=args.dname)
