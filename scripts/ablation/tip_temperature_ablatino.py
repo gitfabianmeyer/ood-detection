@@ -1,23 +1,26 @@
 import logging
 
+import numpy as np
+
 _logger = logging.getLogger(__name__)
 
 
 def run_all(args):
-    import numpy as np
     import wandb
     from datasets.config import DATASETS_DICT
-    from adapters.tip_adapter import full_clip_tip_classification
 
-    if args.dname != 'all':
-        dname = args.dname
+    datasets = list(DATASETS_DICT.keys())
+    if args.split != 0:
+        splits = np.array_split(datasets, 2)
+        datasets = splits[args.split - 1]
+
+    for dname in datasets:
+
         dset = DATASETS_DICT[dname]
 
-        datasets = {dname: dset}
-    else:
-        datasets = DATASETS_DICT
-
-    for dname, dset in datasets.items():
+        if args.dname != 'all':
+            if dname != args.dname:
+                continue
 
         run = wandb.init(project=f"thesis-ablation-tip-temperatures",
                          entity="wandbefab",
@@ -76,6 +79,7 @@ def main():
     parser.add_argument("--lr", type=float, default=0.001)
     parser.add_argument("--eps", type=float, default=1e-4)
     parser.add_argument("--dname", type=str, default='all')
+    parser.add_argument("--split", type=int, default=0)
 
     args = parser.parse_args()
     print(vars(args))

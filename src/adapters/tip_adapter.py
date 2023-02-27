@@ -109,7 +109,7 @@ def run_full_tip_from_features(cache_keys, cache_values, clip_model, eps, label_
     results = {"ZEROSHOT": zsa, "zf1": f1, "TIP ADAPTER": acc_tip, "TIP F1": f1_tip,
                "TIP-F ADAPTER": acc_tipf, "TIP-F F1": f1_tipf,
                "tip_best_alpha": tip_best_alpha, "tip_best_beta": tip_best_beta,
-               "tipf_best_alpha": tipf_best_alpha, "tipf_best_beta": tipf_best_beta, "temperature":temperature}
+               "tipf_best_alpha": tipf_best_alpha, "tipf_best_beta": tipf_best_beta, "temperature": temperature}
     return results
 
 
@@ -304,7 +304,6 @@ def search_hp(cache_keys, cache_values, features, labels, zeroshot_weights, temp
 
 
 def run_tip_adapter(val_features, val_labels, zeroshot_weights, cache_keys, cache_values, clip_logits, temperature):
-
     _logger.info(f"Running TIP Adapter - NO FINETUNING")
 
     alpha, beta = 1., 1.
