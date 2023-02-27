@@ -52,7 +52,7 @@ def get_acc_f1_for_adapter(image_features, cache_keys, cache_values, clip_logits
     return acc_tip, f1_tip
 
 
-def full_clip_tip_classification(dataset, kshots, train_epochs, init_alpha, init_beta, lr, eps, augment_epochs,
+def full_clip_tip_classification(dataset, kshots, train_epochs, lr, eps, augment_epochs,
                                  temperature):
     _logger.info("Initializing everything...")
     clip_model, clip_transform = clip.load(Config.VISION_MODEL)
@@ -70,12 +70,12 @@ def full_clip_tip_classification(dataset, kshots, train_epochs, init_alpha, init
                                                                        clip_transform,
                                                                        'test')
     # zeroshot
-    return run_full_tip_from_features(cache_keys, cache_values, clip_model, eps, init_alpha, init_beta, label_features,
+    return run_full_tip_from_features(cache_keys, cache_values, clip_model, eps, label_features,
                                       lr, temperature, test_features, test_labels, train_epochs, train_set,
                                       val_features, val_labels)
 
 
-def run_full_tip_from_features(cache_keys, cache_values, clip_model, eps, init_alpha, init_beta, label_features, lr,
+def run_full_tip_from_features(cache_keys, cache_values, clip_model, eps, label_features, lr,
                                temperature, test_features, test_labels, train_epochs, train_set, val_features,
                                val_labels):
     clip_logits_val = get_cosine_similarity_matrix_for_normed_features(val_features, label_features, temperature)
@@ -88,14 +88,11 @@ def run_full_tip_from_features(cache_keys, cache_values, clip_model, eps, init_a
                                                     cache_keys,
                                                     cache_values,
                                                     clip_logits_val,
-                                                    init_alpha,
-                                                    init_beta,
                                                     temperature)
     tipf_best_alpha, tipf_best_beta, adapter = run_tip_adapter_finetuned(train_set, clip_model,
                                                                          val_features, val_labels,
                                                                          label_features, cache_keys,
-                                                                         cache_values, init_alpha,
-                                                                         init_beta, train_epochs,
+                                                                         cache_values, train_epochs,
                                                                          lr, eps,
                                                                          temperature)
     # load test features, the adapter with weights, and run everything
@@ -306,10 +303,12 @@ def search_hp(cache_keys, cache_values, features, labels, zeroshot_weights, temp
     return best_beta, best_alpha
 
 
-def run_tip_adapter(val_features, val_labels, zeroshot_weights, cache_keys, cache_values, clip_logits, alpha,
-                    beta, temperature):
+def run_tip_adapter(val_features, val_labels, zeroshot_weights, cache_keys, cache_values, clip_logits, temperature):
 
     _logger.info(f"Running TIP Adapter - NO FINETUNING")
+
+    alpha, beta = 1., 1.
+
     # n_images * feature_size @ (num_classes * feature_size).t() --> n_images x num_classes
     affinity = val_features @ cache_keys
     cache_logits = get_cache_logits(affinity, cache_values, beta)
@@ -337,7 +336,7 @@ def run_tip_adapter_finetuned(train_set, model,
     # set init residual ratio to 1 ( new & old knowledge balanced)
     init_alpha = 1.
     # set sharpness nearly balanced
-    init_beta = 1.17
+    init_beta = 1.
 
     train_loader_shuffle = DataLoader(train_set,
                                       batch_size=128,

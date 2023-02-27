@@ -16,8 +16,6 @@ run_clearml = False
 
 kshots = 16
 train_epochs = 20
-init_alpha = 2.
-init_beta = 1.
 lr = 0.001
 eps = 1e-4
 augment_epochs = 10
@@ -30,13 +28,11 @@ def main():
         _logger.info(f"\t\tStarting {dname} run...")
         try:
             results = full_clip_tip_classification(dataset=dset,
-                                       kshots=kshots,
-                                       train_epochs=train_epochs,
-                                       init_alpha=init_alpha,
-                                       init_beta=init_beta,
-                                       lr=lr,
-                                       eps=eps,
-                                       augment_epochs=augment_epochs)
+                                                   kshots=kshots,
+                                                   train_epochs=train_epochs,
+                                                   lr=lr,
+                                                   eps=eps,
+                                                   augment_epochs=augment_epochs)
             print(results)
         except Exception as e:
 
