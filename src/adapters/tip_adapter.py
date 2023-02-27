@@ -66,11 +66,21 @@ def full_clip_tip_classification(dataset, kshots, train_epochs, init_alpha, init
     val_features, val_labels, label_features, classes = get_dataset_features_with_split(dataset, clip_model,
                                                                                         clip_transform, 'val')
 
+    test_features, test_labels, _, _ = get_dataset_features_with_split(dataset, clip_model,
+                                                                                          clip_transform,
+                                                                                          'test')
     # zeroshot
+    return run_full_tip_from_features(cache_keys, cache_values, clip_model, eps, init_alpha, init_beta, label_features,
+                                      lr, temperature, test_features, test_labels, train_epochs, train_set,
+                                      val_features, val_labels)
+
+
+def run_full_tip_from_features(cache_keys, cache_values, clip_model, eps, init_alpha, init_beta, label_features, lr,
+                               temperature, test_features, test_labels, train_epochs, train_set, val_features,
+                               val_labels):
     clip_logits_val = get_cosine_similarity_matrix_for_normed_features(val_features, label_features, temperature)
     val_zsa, val_f1 = get_acc_f1(clip_logits_val, val_labels)
     _logger.info(f'CLIP ZEROSHOT ACCURACY: {val_zsa:.3f}\tF1: {val_f1:.3f}')
-
     # tip adapter
     tip_best_alpha, tip_best_beta = run_tip_adapter(val_features,
                                                     val_labels,
@@ -81,7 +91,6 @@ def full_clip_tip_classification(dataset, kshots, train_epochs, init_alpha, init
                                                     init_alpha,
                                                     init_beta,
                                                     temperature)
-
     tipf_best_alpha, tipf_best_beta, adapter = run_tip_adapter_finetuned(train_set, clip_model,
                                                                          val_features, val_labels,
                                                                          label_features, cache_keys,
@@ -89,25 +98,17 @@ def full_clip_tip_classification(dataset, kshots, train_epochs, init_alpha, init
                                                                          init_beta, train_epochs,
                                                                          lr, eps,
                                                                          temperature)
-
     # load test features, the adapter with weights, and run everything
-
     _logger.info("Evaluation on test set...")
-    test_features, test_labels, label_features, classes = get_dataset_features_with_split(dataset, clip_model,
-                                                                                          clip_transform,
-                                                                                          'test')
     # zeroshot
     clip_logits_test = get_cosine_similarity_matrix_for_normed_features(test_features, test_labels, temperature)
     zsa, f1 = get_acc_f1(clip_logits_test, test_labels)
-
     # tip
     acc_tip, f1_tip = get_acc_f1_for_adapter(test_features, cache_keys, cache_values, clip_logits_test, test_labels,
                                              tip_best_alpha, tip_best_beta)
-
     # tipf
     acc_tipf, f1_tipf = get_acc_f1_for_adapter(test_features, cache_keys, cache_values, clip_logits_test, test_labels,
                                                tipf_best_alpha, tipf_best_beta, adapter)
-
     results = {"ZEROSHOT": zsa, "zf1": f1, "TIP ADAPTER": acc_tip, "TIP F1": f1_tip,
                "TIP-F ADAPTER": acc_tipf, "TIP-F F1": f1_tipf,
                "tip_best_alpha": tip_best_alpha, "tip_best_beta": tip_best_beta,
