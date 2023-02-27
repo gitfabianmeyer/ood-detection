@@ -52,7 +52,8 @@ def get_acc_f1_for_adapter(image_features, cache_keys, cache_values, clip_logits
     return acc_tip, f1_tip
 
 
-def full_clip_tip_classification(dataset, kshots, train_epochs, init_alpha, init_beta, lr, eps, augment_epochs, temperature):
+def full_clip_tip_classification(dataset, kshots, train_epochs, init_alpha, init_beta, lr, eps, augment_epochs,
+                                 temperature):
     _logger.info("Initializing everything...")
     clip_model, clip_transform = clip.load(Config.VISION_MODEL)
     clip_model.eval()
@@ -67,8 +68,8 @@ def full_clip_tip_classification(dataset, kshots, train_epochs, init_alpha, init
                                                                                         clip_transform, 'val')
 
     test_features, test_labels, _, _ = get_dataset_features_with_split(dataset, clip_model,
-                                                                                          clip_transform,
-                                                                                          'test')
+                                                                       clip_transform,
+                                                                       'test')
     # zeroshot
     return run_full_tip_from_features(cache_keys, cache_values, clip_model, eps, init_alpha, init_beta, label_features,
                                       lr, temperature, test_features, test_labels, train_epochs, train_set,
@@ -266,7 +267,8 @@ def get_dataset_features_with_split(dataset, model, transform, split):
 
 
 def get_cache_logits(affinity, cache_values, beta):
-    return ((-1) * (beta - beta * affinity.to(torch.float32))).exp() @ cache_values
+    cache_logits = ((-1) * (beta - beta * affinity.to(torch.float32))).exp() @ cache_values
+    return cache_logits.to(Config.DEVICE)
 
 
 def get_acc_f1(logits, test_labels):
@@ -363,7 +365,8 @@ def run_tip_adapter_finetuned(train_set, model,
 
             affinity = adapter(image_features.to(torch.float32))
             cache_logits = get_cache_logits(affinity, cache_values, init_beta)
-            clip_logits = get_cosine_similarity_matrix_for_normed_features(image_features, zeroshot_weights, temperature)
+            clip_logits = get_cosine_similarity_matrix_for_normed_features(image_features, zeroshot_weights,
+                                                                           temperature)
             tip_logits = clip_logits + cache_logits * init_alpha
 
             loss = F.cross_entropy(tip_logits, targets.to(device))
