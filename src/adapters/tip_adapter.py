@@ -52,7 +52,7 @@ def get_acc_f1_for_adapter(image_features, cache_keys, cache_values, clip_logits
     return acc_tip, f1_tip
 
 
-def full_clip_tip_classification(dataset, kshots, train_epochs, init_alpha, init_beta, lr, eps, augment_epochs):
+def full_clip_tip_classification(dataset, kshots, train_epochs, init_alpha, init_beta, lr, eps, augment_epochs, temperature):
     _logger.info("Initializing everything...")
     clip_model, clip_transform = clip.load(Config.VISION_MODEL)
     clip_model.eval()
@@ -67,7 +67,7 @@ def full_clip_tip_classification(dataset, kshots, train_epochs, init_alpha, init
                                                                                         clip_transform, 'val')
 
     # zeroshot
-    clip_logits_val = get_cosine_similarity_matrix_for_normed_features(val_features, label_features, 0.01)
+    clip_logits_val = get_cosine_similarity_matrix_for_normed_features(val_features, label_features, temperature)
     val_zsa, val_f1 = get_acc_f1(clip_logits_val, val_labels)
     _logger.info(f'CLIP ZEROSHOT ACCURACY: {val_zsa:.3f}\tF1: {val_f1:.3f}')
 
@@ -79,14 +79,16 @@ def full_clip_tip_classification(dataset, kshots, train_epochs, init_alpha, init
                                                     cache_values,
                                                     clip_logits_val,
                                                     init_alpha,
-                                                    init_beta)
+                                                    init_beta,
+                                                    temperature)
 
     tipf_best_alpha, tipf_best_beta, adapter = run_tip_adapter_finetuned(train_set, clip_model,
                                                                          val_features, val_labels,
                                                                          label_features, cache_keys,
                                                                          cache_values, init_alpha,
                                                                          init_beta, train_epochs,
-                                                                         lr, eps)
+                                                                         lr, eps,
+                                                                         temperature)
 
     # load test features, the adapter with weights, and run everything
 
@@ -95,7 +97,7 @@ def full_clip_tip_classification(dataset, kshots, train_epochs, init_alpha, init
                                                                                           clip_transform,
                                                                                           'test')
     # zeroshot
-    clip_logits_test = get_cosine_similarity_matrix_for_normed_features(test_features, test_labels, 0.01)
+    clip_logits_test = get_cosine_similarity_matrix_for_normed_features(test_features, test_labels, temperature)
     zsa, f1 = get_acc_f1(clip_logits_test, test_labels)
 
     # tip
@@ -273,7 +275,7 @@ def get_acc_f1(logits, test_labels):
     return acc, f1
 
 
-def search_hp(cache_keys, cache_values, features, labels, zeroshot_weights, adapter=None):
+def search_hp(cache_keys, cache_values, features, labels, zeroshot_weights, temperature, adapter=None):
     best_acc = 0
     best_beta, best_alpha = 0, 0
 
@@ -287,7 +289,7 @@ def search_hp(cache_keys, cache_values, features, labels, zeroshot_weights, adap
 
             cache_logits = ((-1) * (beta - beta * affinity)).exp() @ cache_values
 
-            clip_logits = get_cosine_similarity_matrix_for_normed_features(features, zeroshot_weights, 0.01)
+            clip_logits = get_cosine_similarity_matrix_for_normed_features(features, zeroshot_weights, temperature)
             tip_logits = clip_logits + cache_logits * alpha
             acc, _ = get_acc_f1(tip_logits, labels)  # eval only on acc
 
@@ -303,7 +305,7 @@ def search_hp(cache_keys, cache_values, features, labels, zeroshot_weights, adap
 
 
 def run_tip_adapter(val_features, val_labels, zeroshot_weights, cache_keys, cache_values, clip_logits, alpha,
-                    beta):
+                    beta, temperature):
     # first: simply go on val set
     # second: eval alpha and beta
 
@@ -321,7 +323,8 @@ def run_tip_adapter(val_features, val_labels, zeroshot_weights, cache_keys, cach
                                       cache_values=cache_values,
                                       features=val_features,
                                       labels=val_labels,
-                                      zeroshot_weights=zeroshot_weights)
+                                      zeroshot_weights=zeroshot_weights,
+                                      temperature=temperature)
     return best_alpha, best_beta
 
 
@@ -329,7 +332,7 @@ def run_tip_adapter_finetuned(train_set, model,
                               val_features, val_labels,
                               zeroshot_weights, cache_keys,
                               cache_values, train_epochs, lr,
-                              eps):
+                              eps, temperature):
     _logger.info(f"Running TIP Adapter - FINETUNING")
 
     # set init residual ratio to 1 ( new & old knowledge balanced)
@@ -359,7 +362,7 @@ def run_tip_adapter_finetuned(train_set, model,
 
             affinity = adapter(image_features.to(torch.float32))
             cache_logits = get_cache_logits(affinity, cache_values, init_beta)
-            clip_logits = get_cosine_similarity_matrix_for_normed_features(image_features, zeroshot_weights, 0.01)
+            clip_logits = get_cosine_similarity_matrix_for_normed_features(image_features, zeroshot_weights, temperature)
             tip_logits = clip_logits + cache_logits * init_alpha
 
             loss = F.cross_entropy(tip_logits, targets.to(device))
@@ -382,7 +385,7 @@ def run_tip_adapter_finetuned(train_set, model,
         cache_logits = get_cache_logits(affinity,
                                         cache_values,
                                         init_beta)
-        clip_logits = get_cosine_similarity_matrix_for_normed_features(val_features, zeroshot_weights, 0.01)
+        clip_logits = get_cosine_similarity_matrix_for_normed_features(val_features, zeroshot_weights, temperature)
         tip_logits = clip_logits + cache_logits * init_alpha
         acc, f1 = get_acc_f1(tip_logits, val_labels)
         if acc > best_acc:
@@ -402,7 +405,8 @@ def run_tip_adapter_finetuned(train_set, model,
                                       features=val_features,
                                       labels=val_labels,
                                       zeroshot_weights=zeroshot_weights,
-                                      adapter=adapter)
+                                      adapter=adapter,
+                                      temperature=temperature)
     return best_alpha, best_beta, best_adapter.eval()
 
 
