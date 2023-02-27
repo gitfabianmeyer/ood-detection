@@ -98,7 +98,7 @@ def run_full_tip_from_features(cache_keys, cache_values, clip_model, eps, label_
     # load test features, the adapter with weights, and run everything
     _logger.info("Evaluation on test set...")
     # zeroshot
-    clip_logits_test = get_cosine_similarity_matrix_for_normed_features(test_features, test_labels, temperature)
+    clip_logits_test = get_cosine_similarity_matrix_for_normed_features(test_features, label_features, temperature)
     zsa, f1 = get_acc_f1(clip_logits_test, test_labels)
     # tip
     acc_tip, f1_tip = get_acc_f1_for_adapter(test_features, cache_keys, cache_values, clip_logits_test, test_labels,
