@@ -63,9 +63,6 @@ def run_single(dataset, args):
                                              val_features, val_labels)
         wandb.log(results)
 
-    # zeroshot
-    return
-
 
 def main():
     import argparse

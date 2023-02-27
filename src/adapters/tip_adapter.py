@@ -61,7 +61,6 @@ def full_clip_tip_classification(dataset, kshots, train_epochs, init_alpha, init
     _logger.info(f"len trainset: {len(train_set)}. Should be: {len(train_set.classes) * kshots} (max)")
 
     # run everything on the val set first.
-    _logger.info('----- VALIDATION PHASE-------')
     cache_keys, cache_values = get_cache_model(train_set, clip_model, augment_epochs=augment_epochs)
 
     val_features, val_labels, label_features, classes = get_dataset_features_with_split(dataset, clip_model,
@@ -309,16 +308,11 @@ def search_hp(cache_keys, cache_values, features, labels, zeroshot_weights, temp
 
 def run_tip_adapter(val_features, val_labels, zeroshot_weights, cache_keys, cache_values, clip_logits, alpha,
                     beta, temperature):
-    # first: simply go on val set
-    # second: eval alpha and beta
 
     _logger.info(f"Running TIP Adapter - NO FINETUNING")
     # n_images * feature_size @ (num_classes * feature_size).t() --> n_images x num_classes
     affinity = val_features @ cache_keys
     cache_logits = get_cache_logits(affinity, cache_values, beta)
-    print(f" clip logits:{clip_logits.is_cuda}")
-    print(f" cache logits:{cache_logits.is_cuda}")
-
     tip_logits = clip_logits + cache_logits * alpha
 
     acc, f1 = get_acc_f1(tip_logits, val_labels)
