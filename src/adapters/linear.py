@@ -55,7 +55,7 @@ def train_classification_head(train: FeatureSet,
                               features_shape,
                               output_shape,
                               wandb_logging):
-    train_loader = DataLoader(train, batch_size=128, shuffle=True)
+    train_loader = DataLoader(train, batch_size=16, shuffle=True)
     eval_loader = DataLoader(val, batch_size=512, shuffle=True)
     # test_loader = DataLoader(test, batch_size=521, shuffle=True)
 
