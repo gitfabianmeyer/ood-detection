@@ -71,12 +71,12 @@ def run_all(args):
         output_shape = len(train_set.classes)
 
         max_accuracy = 0.
-        for learning_rate in np.logspace(np.log2(0.0001), np.log2(0.01), args.lr, base=2):
-            run = wandb.init(project=f"thesis-classification-linear_head-{dname}-{args.vision}",
+        # for learning_rate in np.logspace(np.log2(0.0001), np.log2(0.01), args.lr, base=2):
+        for learning_rate in [0.0001, 0.001, 0.01]:
+            run = wandb.init(project=f"thesis-classification-linear_head-{dname}-LARGE",
                              entity="wandbefab",
                              name=str(learning_rate),
-                             config={'epochs': args.train_epochs,
-                                     'lr': args.lr})
+                             config={'epochs': args.train_epochs})
             lr_acc, lr_classifier = train_classification_head(train,
                                                               val,
                                                               learning_rate,
@@ -110,7 +110,7 @@ def run_all(args):
 def main():
     import argparse
     parser = argparse.ArgumentParser()
-    parser.add_argument("--train_epochs", type=int, default=1000)
+    parser.add_argument("--train_epochs", type=int, default=250)
     parser.add_argument("--lr", type=int, default=10)
     parser.add_argument("--dname", type=str, default=None)
     parser.add_argument("--split", type=int, default=0)
