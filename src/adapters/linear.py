@@ -90,8 +90,8 @@ def train_classification_head(train: FeatureSet,
         if wandb_logging:
             wandb.log(epoch_dict)
 
-    final = {'min loss': best_val_loss,
-             'max acc': best_acc}
+    final = {'val min loss': best_val_loss,
+             'val max acc': best_acc}
 
     wandb.log(final)
     return best_acc, best_classifier
