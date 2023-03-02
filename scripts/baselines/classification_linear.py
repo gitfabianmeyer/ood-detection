@@ -22,6 +22,7 @@ def run_all(args):
     for dname in datasets:
         if args.dname:
             if dname != args.dname:
+                _logger.info(f"Jumping {dname}")
                 continue
 
         _logger.info(f"\t\t RUNNING {dname}")
