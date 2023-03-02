@@ -25,13 +25,14 @@ def run_all(args):
         run = wandb.init(project=f"thesis-classification-linear_head",
                          entity="wandbefab",
                          name=dname,
-                         config={'epochs':args.train_epochs,
+                         config={'epochs': args.train_epochs,
                                  'lr': args.lr})
 
         from adapters.linear import full_linear_classification
         full_linear_classification(dset, clip_model, clip_transform, args.lr, args.train_epochs)
 
         run.finish()
+
 
 def main():
     import argparse
@@ -48,3 +49,7 @@ def main():
     os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
     os.environ["CUDA_VISIBLE_DEVICES"] = f"{args.gpu}"
     run_all(args)
+
+
+if __name__=='__main__':
+    main()
