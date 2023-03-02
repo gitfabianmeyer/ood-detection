@@ -65,7 +65,7 @@ def train_classification_head(train: FeatureSet,
     criterion = CrossEntropyLoss()
     best_val_loss = np.inf
 
-    for epoch in tqdm(train_epochs):
+    for epoch in tqdm(range(train_epochs)):
         epoch_dict = {}
 
         classifier.train()
