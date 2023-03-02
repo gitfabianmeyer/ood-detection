@@ -45,7 +45,7 @@ def main():
     parser.add_argument("--gpu", type=int)
     parser.add_argument("--train_epochs", type=int, default=20)
     parser.add_argument("--lr", type=float, default=0.001)
-    parser.add_argument("--dname", type=str, default='all')
+    parser.add_argument("--dname", type=str, default=None)
     parser.add_argument("--split", type=int, default=0)
     parser.add_argument("--max_split", type=int, default=2)
 
