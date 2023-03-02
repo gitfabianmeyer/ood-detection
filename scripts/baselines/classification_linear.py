@@ -50,19 +50,19 @@ def run_all(args):
         output_shape = len(train_set.classes)
 
         for learning_rate in np.logspace(np.log2(0.0001), np.log2(0.1), args.lr, base=2):
-            run = wandb.init(project=f"thesis-classification-linear_head" - {dname},
+            run = wandb.init(project=f"thesis-classification-linear_head-{dname}",
                              entity="wandbefab",
                              name=str(learning_rate),
                              config={'epochs': args.train_epochs,
                                      'lr': args.lr})
-            train_classification_head(train,
-                                      val,
-                                      None,
-                                      learning_rate,
-                                      args.train_epochs,
-                                      feature_shape,
-                                      output_shape,
-                                      True)
+            _ = train_classification_head(train,
+                                          val,
+                                          None,
+                                          learning_rate,
+                                          args.train_epochs,
+                                          feature_shape,
+                                          output_shape,
+                                          True)
 
             run.finish()
 

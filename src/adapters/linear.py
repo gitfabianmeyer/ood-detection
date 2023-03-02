@@ -17,9 +17,6 @@ from zoc.baseline import LinearClassifier
 _logger = logging.getLogger(__name__)
 
 
-
-
-
 def train_classification_head(train: FeatureSet,
                               val: FeatureSet,
                               test: FeatureSet,
@@ -85,6 +82,7 @@ def train_classification_head(train: FeatureSet,
         if epoch_val_loss < best_val_loss:
             best_val_loss = epoch_val_loss
             best_classifier = classifier
+            best_acc = epoch_acc
 
         epoch_dict['eval loss'] = epoch_val_loss
         epoch_dict['eval mean loss'] = np.mean(epoch_val_loss)
@@ -92,3 +90,7 @@ def train_classification_head(train: FeatureSet,
         _logger.info(f"Epoch {epoch}\t Eval Acc: {np.mean(eval_accs)}\t Loss: {np.mean(epoch_val_loss)}")
         if wandb_logging:
             wandb.log(epoch_dict)
+    wandb.log({'min loss': {best_val_loss},
+               'max acc': best_acc})
+
+    return best_classifier
