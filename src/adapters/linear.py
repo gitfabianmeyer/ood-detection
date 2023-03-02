@@ -94,8 +94,7 @@ def train_classification_head(train: FeatureSet,
              'max acc': best_acc}
 
     wandb.log(final)
-    final["classifier": best_classifier]
-    return final
+    return best_acc, best_classifier
 
 
 @torch.no_grad()

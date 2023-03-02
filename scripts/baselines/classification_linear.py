@@ -58,16 +58,16 @@ def run_all(args):
                              name=str(learning_rate),
                              config={'epochs': args.train_epochs,
                                      'lr': args.lr})
-            results = train_classification_head(train,
+            lr_acc, lr_classifier = train_classification_head(train,
                                                 val,
                                                 learning_rate,
                                                 args.train_epochs,
                                                 feature_shape,
                                                 output_shape,
                                                 True)
-            if results["min loss"] < min_val_loss:
-                min_val_loss = results["min loss"]
-                best_result = results
+            if lr_acc < min_val_loss:
+                min_val_loss = lr_acc
+                best_classifier = lr_classifier
 
             _logger.info("Getting test acc")
             test_set = dset(Config.DATAPATH,
@@ -77,7 +77,7 @@ def run_all(args):
             test_dict = get_feature_dict(test_set, clip_model)
             test = FeatureSet(test_dict, test_set.classes, test_set.class_to_idx)
             from adapters.linear import get_test_accuracy_from_dset
-            acc = get_test_accuracy_from_dset(test, best_result["classifier"])
+            acc = get_test_accuracy_from_dset(test, best_classifier)
             wandb.log({"test accuracy": acc})
             run.finish()
 
