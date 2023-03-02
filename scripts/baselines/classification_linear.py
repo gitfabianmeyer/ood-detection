@@ -1,6 +1,4 @@
 import logging
-from zoc.baseline import FeatureSet
-
 _logger = logging.getLogger(__name__)
 
 
@@ -10,6 +8,7 @@ def run_all(args):
     import wandb
     import clip
     from ood_detection.config import Config
+    from zoc.baseline import FeatureSet
 
     clip_model, clip_transform = clip.load(Config.VISION_MODEL)
     if args.split == 0:
