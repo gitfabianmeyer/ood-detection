@@ -31,7 +31,7 @@ task = Task.init(project_name="ma_fmeyer", task_name=f"Classification-ViT-L")
 task.execute_remotely('5e62040adb57476ea12e8593fa612186')
 os.environ["WANDB_API_KEY"] = "a4628d0634b189525ab3a8352f52e2cd79f559b2"
 
-_logger = task.get_logger()
+_logger = logging.getLogger(__name__)
 
 
 def run_all(args):
