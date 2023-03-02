@@ -72,12 +72,12 @@ def run_all(args):
                             transform=clip_transform,
                             split='test')
 
-            test_dict = get_feature_dict(test_set, clip_model)
-            test = FeatureSet(test_dict, test_set.classes, test_set.class_to_idx)
-            from adapters.linear import get_test_accuracy_from_dset
-            acc = get_test_accuracy_from_dset(test, best_classifier)
-            wandb.log({"test accuracy": acc})
-            run.finish()
+        test_dict = get_feature_dict(test_set, clip_model)
+        test = FeatureSet(test_dict, test_set.classes, test_set.class_to_idx)
+        from adapters.linear import get_test_accuracy_from_dset
+        acc = get_test_accuracy_from_dset(test, best_classifier)
+        wandb.log({"test accuracy": acc})
+        run.finish()
 
 
 def main():
