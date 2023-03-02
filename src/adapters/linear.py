@@ -64,6 +64,7 @@ def train_classification_head(train: FeatureSet,
     # init model
     classifier = LinearClassifier(features_shape, output_shape)
     classifier.train()
+    classifier.to(device)
 
     optimizer = AdamW(params=classifier.parameters(), lr=learning_rate)
     criterion = CrossEntropyLoss()
@@ -75,7 +76,7 @@ def train_classification_head(train: FeatureSet,
         classifier.train()
         epoch_loss = 0.
         for image_features, targets in train_loader:
-            image_features = image_features.to(device).to(torch.float32)
+            image_features = image_features.to(torch.float32).to(device)
             targets = targets.to(device)
 
             optimizer.zero_grad()
