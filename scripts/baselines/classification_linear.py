@@ -49,7 +49,7 @@ def run_all(args):
         output_shape = len(train_set.classes)
 
         max_accuracy = 0.
-        for learning_rate in np.logspace(np.log2(0.00001), np.log2(0.01), args.lr, base=2):
+        for learning_rate in np.logspace(np.log2(0.0001), np.log2(0.01), args.lr, base=2):
             run = wandb.init(project=f"thesis-classification-linear_head-{dname}",
                              entity="wandbefab",
                              name=str(learning_rate),
