@@ -67,7 +67,8 @@ def run_all(args):
                 best_classifier = lr_classifier
             run.finish()
 
-        run = wandb.init(project=f"thesis-classification-linear_head-{dname}",
+        name = f"thesis-classification-linear_head-{dname}" if args.vision == Config.VISION_MODEL else f"thesis-classification-linear_head-{dname}-{args.vision}"
+        run = wandb.init(project=name,
                          entity="wandbefab",
                          name="test",
                          config={'epochs': args.train_epochs,
@@ -95,7 +96,7 @@ def main():
     parser.add_argument("--dname", type=str, default=None)
     parser.add_argument("--split", type=int, default=0)
     parser.add_argument("--max_split", type=int, default=2)
-
+    parser.add_argument("--vision", type=str, default='ViT-B/32')
     args = parser.parse_args()
 
     import os
