@@ -37,14 +37,14 @@ def train_classification_head(train: FeatureSet,
 
     optimizer = AdamW(params=classifier.parameters(), lr=learning_rate)
     criterion = CrossEntropyLoss()
-    best_val_loss = np.inf
+    best_val_acc = 0.
 
-    for epoch in tqdm(range(train_epochs)):
+    for epoch in tqdm(range(1, train_epochs+1)):
         epoch_dict = {}
 
         classifier.train()
         epoch_loss = 0.
-        for image_features, targets in train_loader:
+        for batch_idx, (image_features, targets) in enumerate(train_loader):
             image_features = image_features.to(torch.float32).to(device)
             targets = targets.to(device)
 
@@ -58,7 +58,7 @@ def train_classification_head(train: FeatureSet,
             optimizer.step()
 
         epoch_dict['train loss'] = epoch_loss
-        epoch_dict['train mean loss'] = np.mean(epoch_loss)
+        epoch_dict['train mean loss'] = epoch_loss / len(train_loader)
 
         # eval
         classifier.eval()
@@ -78,23 +78,26 @@ def train_classification_head(train: FeatureSet,
             epoch_acc = accuracy_score(eval_targets.to('cpu').numpy(), indices.to('cpu').numpy())
             eval_accs.append(epoch_acc)
 
-        if epoch_val_loss < best_val_loss:
-            best_val_loss = epoch_val_loss
+        epoch_acc = np.mean(eval_accs)
+        if epoch_acc > best_val_acc:
+            _logger.info(f"New best epoch {epoch}\t Eval Acc: {np.mean(eval_accs)}\t Loss: {np.mean(epoch_val_loss)}")
+            best_val_acc = epoch_acc
             best_classifier = classifier
-            best_acc = np.mean(eval_accs)
+            best_epoch = epoch
+            best_loss = epoch_val_loss
 
         epoch_dict['eval loss'] = epoch_val_loss
-        epoch_dict['eval mean loss'] = np.mean(epoch_val_loss)
-        epoch_dict['eval accuracy'] = np.mean(eval_accs)
-        _logger.info(f"Epoch {epoch}\t Eval Acc: {np.mean(eval_accs)}\t Loss: {np.mean(epoch_val_loss)}")
+        epoch_dict['eval mean loss'] = epoch_val_loss / len(eval_loader)
+        epoch_dict['eval accuracy'] = epoch_acc
         if wandb_logging:
             wandb.log(epoch_dict)
 
-    final = {'val min loss': best_val_loss,
-             'val max acc': best_acc}
+    final = {'best val acc': best_val_acc,
+             'best epoch': best_epoch,
+             'best loss': best_loss}
 
     wandb.log(final)
-    return best_acc, best_classifier
+    return best_val_acc, best_classifier
 
 
 @torch.no_grad()

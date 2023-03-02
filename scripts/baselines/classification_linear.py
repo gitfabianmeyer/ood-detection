@@ -48,8 +48,8 @@ def run_all(args):
         feature_shape = clip_model.visual.output_dim
         output_shape = len(train_set.classes)
 
-        min_val_loss = np.inf
-        for learning_rate in np.logspace(np.log2(0.0001), np.log2(0.1), args.lr, base=2):
+        max_accuracy = 0.
+        for learning_rate in np.logspace(np.log2(0.00001), np.log2(0.01), args.lr, base=2):
             run = wandb.init(project=f"thesis-classification-linear_head-{dname}",
                              entity="wandbefab",
                              name=str(learning_rate),
@@ -62,8 +62,8 @@ def run_all(args):
                                                               feature_shape,
                                                               output_shape,
                                                               True)
-            if lr_acc < min_val_loss:
-                min_val_loss = lr_acc
+            if lr_acc > max_accuracy:
+                max_accuracy = lr_acc
                 best_classifier = lr_classifier
             run.finish()
 
