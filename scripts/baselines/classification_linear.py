@@ -5,16 +5,6 @@ from zoc.baseline import FeatureSet
 
 _logger = logging.getLogger(__name__)
 
-@torch.no_grad()
-def eval_test(dset, classifier):
-    classifier.eval()
-    print("eval test")
-    # test_dict = get_feature_dict(dset(Config.DATAPATH,
-    #                                   transform=clip_transform,
-    #                                   split='val'),
-    #                              clip_model)
-    # test = FeatureSet(test_dict, train_set.classes, train_set.class_to_idx)
-
 
 def run_all(args):
     import numpy as np
@@ -58,7 +48,6 @@ def run_all(args):
 
         val = FeatureSet(val_dict, train_set.classes, train_set.class_to_idx)
 
-
         feature_shape = clip_model.visual.output_dim
         output_shape = len(train_set.classes)
 
@@ -71,7 +60,6 @@ def run_all(args):
                                      'lr': args.lr})
             results = train_classification_head(train,
                                                 val,
-                                                None,
                                                 learning_rate,
                                                 args.train_epochs,
                                                 feature_shape,
@@ -81,9 +69,16 @@ def run_all(args):
                 min_val_loss = results["min loss"]
                 best_result = results
 
-            eval_test()
+            _logger.info("Getting test acc")
+            test_set = dset(Config.DATAPATH,
+                            transform=clip_transform,
+                            split='test')
 
-
+            test_dict = get_feature_dict(test_set, clip_model)
+            test = FeatureSet(test_dict, test_set.classes, test_set.class_to_idx)
+            from adapters.linear import get_test_accuracy_from_dset
+            acc = get_test_accuracy_from_dset(test, best_result["classifier"])
+            wandb.log({"test accuracy": acc})
             run.finish()
 
 

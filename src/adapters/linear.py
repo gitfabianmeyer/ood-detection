@@ -19,7 +19,6 @@ _logger = logging.getLogger(__name__)
 
 def train_classification_head(train: FeatureSet,
                               val: FeatureSet,
-                              test: FeatureSet,
                               learning_rate,
                               train_epochs,
                               features_shape,
@@ -91,9 +90,30 @@ def train_classification_head(train: FeatureSet,
         if wandb_logging:
             wandb.log(epoch_dict)
 
-    final = {'min loss': {best_val_loss},
-               'max acc': best_acc}
+    final = {'min loss': best_val_loss,
+             'max acc': best_acc}
 
     wandb.log(final)
     final["classifier": best_classifier]
     return final
+
+
+@torch.no_grad()
+def get_test_accuracy_from_dset(test, classifier):
+    device = Config.DEVICE
+    classifier.eval()
+
+    test_loader = DataLoader(test, batch_size=512)
+    eval_accs = []
+    for eval_features, eval_targets in tqdm(test_loader):
+        eval_features = eval_features.to(torch.float32).to(device)
+        eval_targets = eval_targets.to(device)
+
+        with torch.no_grad():
+            eval_preds = classifier(eval_features)
+
+        _, indices = torch.topk(torch.softmax(eval_preds, dim=-1), k=1)
+        epoch_acc = accuracy_score(eval_targets.to('cpu').numpy(), indices.to('cpu').numpy())
+        eval_accs.append(epoch_acc)
+
+    return np.mean(eval_accs)
