@@ -1,5 +1,6 @@
 import logging
 
+
 _logger = logging.getLogger(__name__)
 
 
@@ -7,7 +8,10 @@ def run_all(args):
     import numpy as np
     from datasets.config import DATASETS_DICT
     import wandb
+    import clip
+    from ood_detection.config import Config
 
+    clip_model, clip_transform = clip.load(Config.VISION_MODEL)
     if args.split == 0:
         datasets = DATASETS_DICT.keys()
     else:
