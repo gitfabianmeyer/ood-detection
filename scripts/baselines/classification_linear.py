@@ -49,21 +49,27 @@ def run_all(args):
         feature_shape = clip_model.visual.output_dim
         output_shape = len(train_set.classes)
 
+        min_val_loss = np.inf
         for learning_rate in np.logspace(np.log2(0.0001), np.log2(0.1), args.lr, base=2):
             run = wandb.init(project=f"thesis-classification-linear_head-{dname}",
                              entity="wandbefab",
                              name=str(learning_rate),
                              config={'epochs': args.train_epochs,
                                      'lr': args.lr})
-            _ = train_classification_head(train,
-                                          val,
-                                          None,
-                                          learning_rate,
-                                          args.train_epochs,
-                                          feature_shape,
-                                          output_shape,
-                                          True)
-
+            results = train_classification_head(train,
+                                                val,
+                                                None,
+                                                learning_rate,
+                                                args.train_epochs,
+                                                feature_shape,
+                                                output_shape,
+                                                True)
+            # if results["min loss"] < min_val_loss:
+            #     min_val_loss = results["min loss"]
+            #     best_result = results
+            #
+            #
+            #
             run.finish()
 
 
