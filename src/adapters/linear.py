@@ -20,10 +20,12 @@ _logger = logging.getLogger(__name__)
 def full_linear_classification(dset, clip_model, clip_transform, lr, epochs):
     train = get_feature_dict(dset(Config.DATAPATH,
                                   transform=clip_transform,
-                                  split='train'))
+                                  split='train'),
+                             clip_model)
     val = get_feature_dict(dset(Config.DATAPATH,
                                 transform=clip_transform,
-                                split='val'))
+                                split='val'),
+                           clip_model)
 
     test = None
 
