@@ -72,7 +72,7 @@ def run_all(args):
 
         max_accuracy = 0.
         for learning_rate in np.logspace(np.log2(0.0001), np.log2(0.01), args.lr, base=2):
-            run = wandb.init(project=f"thesis-classification-linear_head-{dname}",
+            run = wandb.init(project=f"thesis-classification-linear_head-{dname}-{args.vision}",
                              entity="wandbefab",
                              name=str(learning_rate),
                              config={'epochs': args.train_epochs,
