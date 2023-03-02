@@ -70,7 +70,7 @@ def train_classification_head(train: FeatureSet,
 
         classifier.train()
         epoch_loss = 0.
-        for image_features, targets in tqdm(train_loader):
+        for image_features, targets in train_loader:
             image_features = image_features.to(device).to(torch.float32)
             targets = targets.to(device)
 
