@@ -10,7 +10,8 @@ def run_all(args):
     from ood_detection.config import Config
     from zoc.baseline import FeatureSet
 
-    clip_model, clip_transform = clip.load(Config.VISION_MODEL)
+    _logger.info(f"Loading {args.vision}")
+    clip_model, clip_transform = clip.load(args.vision)
     if args.split == 0:
         datasets = DATASETS_DICT.keys()
     else:
