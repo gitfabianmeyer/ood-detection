@@ -1,6 +1,4 @@
 import logging
-
-import torch
 from zoc.baseline import FeatureSet
 
 _logger = logging.getLogger(__name__)
