@@ -42,6 +42,7 @@ def main():
     parser.add_argument("--lr", type=float, default=0.001)
     parser.add_argument("--dname", type=str, default='all')
     parser.add_argument("--split", type=int, default=0)
+    parser.add_argument("--max_split", type=int, default=2)
 
     args = parser.parse_args()
 
