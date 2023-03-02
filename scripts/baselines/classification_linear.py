@@ -66,11 +66,18 @@ def run_all(args):
             if lr_acc < min_val_loss:
                 min_val_loss = lr_acc
                 best_classifier = lr_classifier
+            run.finish()
 
-            _logger.info("Getting test acc")
-            test_set = dset(Config.DATAPATH,
-                            transform=clip_transform,
-                            split='test')
+        run = wandb.init(project=f"thesis-classification-linear_head-{dname}",
+                         entity="wandbefab",
+                         name="test",
+                         config={'epochs': args.train_epochs,
+                                 'lr': args.lr})
+        _logger.info("Getting test acc")
+        test_set = dset(Config.DATAPATH,
+                        transform=clip_transform,
+                        split='test')
+
 
         test_dict = get_feature_dict(test_set, clip_model)
         test = FeatureSet(test_dict, test_set.classes, test_set.class_to_idx)
