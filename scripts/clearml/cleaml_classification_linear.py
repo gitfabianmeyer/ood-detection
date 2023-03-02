@@ -12,6 +12,8 @@ import imageio
 import skimage
 import sentencepiece
 import os
+import transformers
+
 from datasets.config import DATASETS_DICT
 from clearml import Task
 from adapters.linear import get_test_accuracy_from_dset
@@ -23,7 +25,7 @@ from ood_detection.config import Config
 from zoc.baseline import FeatureSet
 
 print("running clearml")
-Task.add_requirements("./requirements.txt")
+Task.add_requirements("git+https://github.com/gitfabianmeyer/ood-detection.git")
 task = Task.init(project_name="ma_fmeyer", task_name=f"Classification-ViT-L")
 task.execute_remotely('5e62040adb57476ea12e8593fa612186')
 os.environ["WANDB_API_KEY"] = "a4628d0634b189525ab3a8352f52e2cd79f559b2"

@@ -18,4 +18,4 @@ transformers
 numpy
 wandb
 clearml
-./
+../../src
