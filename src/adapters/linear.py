@@ -81,7 +81,7 @@ def train_classification_head(train: FeatureSet,
         if epoch_val_loss < best_val_loss:
             best_val_loss = epoch_val_loss
             best_classifier = classifier
-            best_acc = epoch_acc
+            best_acc = np.mean(eval_accs)
 
         epoch_dict['eval loss'] = epoch_val_loss
         epoch_dict['eval mean loss'] = np.mean(epoch_val_loss)

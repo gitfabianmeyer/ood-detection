@@ -59,12 +59,12 @@ def run_all(args):
                              config={'epochs': args.train_epochs,
                                      'lr': args.lr})
             lr_acc, lr_classifier = train_classification_head(train,
-                                                val,
-                                                learning_rate,
-                                                args.train_epochs,
-                                                feature_shape,
-                                                output_shape,
-                                                True)
+                                                              val,
+                                                              learning_rate,
+                                                              args.train_epochs,
+                                                              feature_shape,
+                                                              output_shape,
+                                                              True)
             if lr_acc < min_val_loss:
                 min_val_loss = lr_acc
                 best_classifier = lr_classifier
