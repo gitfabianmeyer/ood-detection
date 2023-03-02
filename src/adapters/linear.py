@@ -9,7 +9,6 @@ from torch.nn import CrossEntropyLoss
 from torch.optim import AdamW
 from torch.utils.data import DataLoader
 from tqdm import tqdm
-from zeroshot.utils import get_feature_dict
 from zoc.baseline import FeatureSet
 
 from zoc.baseline import LinearClassifier
@@ -39,7 +38,7 @@ def train_classification_head(train: FeatureSet,
     criterion = CrossEntropyLoss()
     best_val_acc = 0.
 
-    for epoch in tqdm(range(1, train_epochs+1)):
+    for epoch in range(1, train_epochs+1):
         epoch_dict = {}
 
         classifier.train()
@@ -65,7 +64,7 @@ def train_classification_head(train: FeatureSet,
         epoch_val_loss = 0.
         eval_accs = []
 
-        for eval_features, eval_targets in tqdm(eval_loader):
+        for eval_features, eval_targets in eval_loader:
             eval_features = eval_features.to(torch.float32).to(device)
             eval_targets = eval_targets.to(device)
 
@@ -107,7 +106,7 @@ def get_test_accuracy_from_dset(test, classifier):
 
     test_loader = DataLoader(test, batch_size=512)
     eval_accs = []
-    for eval_features, eval_targets in tqdm(test_loader):
+    for eval_features, eval_targets in test_loader:
         eval_features = eval_features.to(torch.float32).to(device)
         eval_targets = eval_targets.to(device)
 
