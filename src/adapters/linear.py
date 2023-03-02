@@ -17,34 +17,7 @@ from zoc.baseline import LinearClassifier
 _logger = logging.getLogger(__name__)
 
 
-def full_linear_classification(dset, clip_model, clip_transform, lr, epochs):
-    train_set = dset(Config.DATAPATH,
-                     transform=clip_transform,
-                     split='train')
-    train_dict = get_feature_dict(train_set,
-                                  clip_model)
 
-    train = FeatureSet(train_dict, train_set.classes, train_set.class_to_idx)
-    val_dict = get_feature_dict(dset(Config.DATAPATH,
-                                     transform=clip_transform,
-                                     split='val'),
-                                clip_model)
-
-    val = FeatureSet(val_dict, train_set.classes, train_set.class_to_idx)
-
-    test = None
-
-    feature_shape = clip_model.visual.output_dim
-    output_shape = len(train_set.classes)
-
-    train_classification_head(train,
-                              val,
-                              test,
-                              lr,
-                              epochs,
-                              feature_shape,
-                              output_shape,
-                              True)
 
 
 def train_classification_head(train: FeatureSet,

@@ -1,5 +1,6 @@
 import logging
 
+from zoc.baseline import FeatureSet
 
 _logger = logging.getLogger(__name__)
 
@@ -27,16 +28,43 @@ def run_all(args):
 
         _logger.info(f"\t\t RUNNING {dname}")
         dset = DATASETS_DICT[dname]
-        run = wandb.init(project=f"thesis-classification-linear_head",
-                         entity="wandbefab",
-                         name=dname,
-                         config={'epochs': args.train_epochs,
-                                 'lr': args.lr})
 
-        from adapters.linear import full_linear_classification
-        full_linear_classification(dset, clip_model, clip_transform, args.lr, args.train_epochs)
+        from ood_detection.config import Config
+        from adapters.linear import train_classification_head
 
-        run.finish()
+        train_set = dset(Config.DATAPATH,
+                         transform=clip_transform,
+                         split='train')
+        from zeroshot.utils import get_feature_dict
+        train_dict = get_feature_dict(train_set,
+                                      clip_model)
+
+        train = FeatureSet(train_dict, train_set.classes, train_set.class_to_idx)
+        val_dict = get_feature_dict(dset(Config.DATAPATH,
+                                         transform=clip_transform,
+                                         split='val'),
+                                    clip_model)
+
+        val = FeatureSet(val_dict, train_set.classes, train_set.class_to_idx)
+        feature_shape = clip_model.visual.output_dim
+        output_shape = len(train_set.classes)
+
+        for learning_rate in np.logspace(np.log2(0.0001), np.log2(0.1), args.lr, base=2):
+            run = wandb.init(project=f"thesis-classification-linear_head" - {dname},
+                             entity="wandbefab",
+                             name=str(learning_rate),
+                             config={'epochs': args.train_epochs,
+                                     'lr': args.lr})
+            train_classification_head(train,
+                                      val,
+                                      None,
+                                      learning_rate,
+                                      args.train_epochs,
+                                      feature_shape,
+                                      output_shape,
+                                      True)
+
+            run.finish()
 
 
 def main():
@@ -44,7 +72,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--gpu", type=int)
     parser.add_argument("--train_epochs", type=int, default=20)
-    parser.add_argument("--lr", type=float, default=0.001)
+    parser.add_argument("--lr", type=float, default=21)
     parser.add_argument("--dname", type=str, default=None)
     parser.add_argument("--split", type=int, default=0)
     parser.add_argument("--max_split", type=int, default=2)
@@ -57,5 +85,5 @@ def main():
     run_all(args)
 
 
-if __name__=='__main__':
+if __name__ == '__main__':
     main()
