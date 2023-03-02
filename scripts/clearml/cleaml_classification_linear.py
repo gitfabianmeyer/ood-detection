@@ -13,6 +13,7 @@ import skimage
 import sentencepiece
 import os
 import transformers
+import pandas
 
 from datasets.config import DATASETS_DICT
 from clearml import Task
