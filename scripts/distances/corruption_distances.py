@@ -1,27 +1,19 @@
-import os
+def run_all(args):
+    import logging
+    import clip
+    import numpy as np
+    import wandb
+    from datasets.corruptions import get_corruption_transform, THESIS_CORRUPTIONS
+    from datasets.zoc_loader import IsolatedClasses
+    from ood_detection.config import Config
+    from datasets.config import CorruptionSets
+    from metrics.distances import MaximumMeanDiscrepancy, ConfusionLogProbability, Distancer, \
+        ZeroShotAccuracy
 
-os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
-os.environ["CUDA_VISIBLE_DEVICES"] = "0"
+    _logger = logging.getLogger(__name__)
 
-import logging
-import clip
-import numpy as np
-import torch
-import wandb
-from datasets.corruptions import get_corruption_transform, THESIS_CORRUPTIONS, store_corruptions_feature_dict
-from datasets.zoc_loader import IsolatedClasses
-from ood_detection.config import Config
+    clip_model, clip_transform = clip.load(Config.VISION_MODEL)
 
-from datasets.config import DATASETS_DICT, CorruptionSets
-from metrics.distances import run_full_distances, MaximumMeanDiscrepancy, ConfusionLogProbability, Distancer, \
-    ZeroShotAccuracy
-
-_logger = logging.getLogger(__name__)
-
-clip_model, clip_transform = clip.load(Config.VISION_MODEL)
-
-
-def main():
     for dname, dset in CorruptionSets.items():
         if dname not in ['gtsrb']:
             continue
@@ -45,7 +37,7 @@ def main():
 
                 loaders = IsolatedClasses(dataset, batch_size=512, lsun=False)
 
-                runs = 10  # run each exp 10 times
+                runs = args.runs  # run each exp 10 times
                 id_split = Config.ID_SPLIT
 
                 _logger.info("Initializing distancer")
@@ -60,8 +52,6 @@ def main():
                 zsa = ZeroShotAccuracy(distancer.feature_dict,
                                        clip_model,
                                        distancer.targets)
-
-
 
                 # zsa doesn't change!
                 zsa_result = zsa.get_distance()["zsa"]
@@ -82,5 +72,20 @@ def main():
             run.finish()
 
 
+def main(args):
+    import os
+
+    os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
+    os.environ["CUDA_VISIBLE_DEVICES"] = args.gpu
+    run_all(args)
+
+
 if __name__ == '__main__':
-    main()
+    import argparse
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--gpu", type=int)
+    parser.add_argument("--runs", type=int, default=10)
+
+    args = parser.parse_args()
+    main(args)
