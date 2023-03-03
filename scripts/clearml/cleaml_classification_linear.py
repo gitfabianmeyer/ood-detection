@@ -112,7 +112,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--train_epochs", type=int, default=300)
     parser.add_argument("--lr", type=int, default=10)
-    parser.add_argument("--dname", type=str, default="mnist")
+    parser.add_argument("--dname", type=str, default="svhn")
     parser.add_argument("--split", type=int, default=0)
     parser.add_argument("--max_split", type=int, default=0)
     parser.add_argument("--vision", type=str, default='ViT-L/14@336px')

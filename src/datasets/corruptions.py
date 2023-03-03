@@ -523,6 +523,6 @@ Corruptions['Glass Blur'] = GlassBlurTransform  # speed
 # Corruptions['Saturate'] = SaturateTransform
 
 THESIS_CORRUPTIONS = collections.OrderedDict()
-THESIS_CORRUPTIONS['Elastic'] = ElasticTransform
-THESIS_CORRUPTIONS['Glass Blur'] = GlassBlurTransform
-THESIS_CORRUPTIONS['Shot Noise'] = ShotNoiseTransform
+THESIS_CORRUPTIONS['Gaussian'] = GaussianNoiseTransform
+THESIS_CORRUPTIONS['Brightness'] = BrightnessTransform
+THESIS_CORRUPTIONS['Snow'] = SnowTransform

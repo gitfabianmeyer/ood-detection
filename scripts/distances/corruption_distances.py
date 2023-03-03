@@ -12,7 +12,7 @@ from datasets.corruptions import get_corruption_transform, THESIS_CORRUPTIONS, s
 from datasets.zoc_loader import IsolatedClasses
 from ood_detection.config import Config
 
-from datasets.config import DATASETS_DICT
+from datasets.config import DATASETS_DICT, CorruptionSets
 from metrics.distances import run_full_distances, MaximumMeanDiscrepancy, ConfusionLogProbability, Distancer, \
     ZeroShotAccuracy
 
@@ -22,13 +22,13 @@ clip_model, clip_transform = clip.load(Config.VISION_MODEL)
 
 
 def main():
-    for dname, dset in DATASETS_DICT.items():
+    for dname, dset in CorruptionSets.items():
         if dname not in ['gtsrb']:
             continue
         for cname, ccorr in THESIS_CORRUPTIONS.items():
             if cname == 'Glass Blur':
                 continue
-            run = wandb.init(project="thesis-full_distances-selected-sets",
+            run = wandb.init(project="thesis-corruption-distances",
                              entity="wandbefab",
                              name="_".join([dname, cname]),
                              tags=['distance',
@@ -40,22 +40,20 @@ def main():
                 corruption_transform = get_corruption_transform(clip_transform, ccorr, severity)
 
                 dataset = dset(Config.DATAPATH,
-                               split='val',
+                               split='train',
                                transform=corruption_transform)
 
                 loaders = IsolatedClasses(dataset, batch_size=512, lsun=False)
 
-                splits = 10  # run each exp 10 times
+                runs = 10  # run each exp 10 times
                 id_split = Config.ID_SPLIT
 
                 _logger.info("Initializing distancer")
 
                 distancer = Distancer(isolated_classes=loaders,
                                       clip_model=clip_model,
-                                      splits=splits,
+                                      splits=runs,
                                       id_split=id_split)
-
-                store_corruptions_feature_dict(distancer.feature_dict, cname, dname, severity)
 
                 clp = ConfusionLogProbability(distancer.feature_dict, clip_model)
                 mmd = MaximumMeanDiscrepancy(distancer.feature_dict)
@@ -63,10 +61,12 @@ def main():
                                        clip_model,
                                        distancer.targets)
 
-                clp_results, mmd_results = [], []
-                zsa_result = zsa.get_distance()["zsa"]
 
-                for i in range(splits):
+
+                # zsa doesn't change!
+                zsa_result = zsa.get_distance()["zsa"]
+                clp_results, mmd_results = [], []
+                for i in range(runs):
                     clp_results.append(clp.get_distance())
                     mmd_results.append(mmd.get_distance())
 

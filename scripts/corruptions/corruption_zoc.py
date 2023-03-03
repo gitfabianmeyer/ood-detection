@@ -11,14 +11,11 @@ import logging
 
 import clip
 from clip.simple_tokenizer import SimpleTokenizer
-
-import torch
 import wandb
-from clearml import Task
 from datasets.config import CorruptionSets
 from datasets.zoc_loader import IsolatedClasses
 from ood_detection.config import Config
-from transformers import BertGenerationTokenizer, BertGenerationConfig, BertGenerationDecoder
+from transformers import BertGenerationTokenizer
 from zoc.utils import image_decoder, get_decoder, image_decoder_featuredict, get_feature_dict_from_isolated_classes
 
 _logger = logging.getLogger(__name__)
