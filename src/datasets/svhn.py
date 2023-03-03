@@ -18,7 +18,7 @@ class OodSVHN(torchvision.datasets.SVHN):
     def __init__(self, data_path, transform, split, templates=None, classes=None):
         self.root = os.path.join(data_path, 'svhn')
         if not os.path.exists(self.root):
-            os.mkdir(self.root)
+            os.makedirs(self.root)
         super(OodSVHN, self).__init__(root=self.root,
                                       transform=transform,
                                       download=True,
