@@ -18,7 +18,7 @@ def run_all(args):
     clip_model, clip_transform = clip.load(Config.VISION_MODEL)
 
     if args.max_splits !=0:
-        splits = np.array_split(list(CorruptionSets.keys()))
+        splits = np.array_split(list(CorruptionSets.keys()), args.max_splits)
         datasets = splits[args.split]
     else:
         datasets = CorruptionSets.keys()
