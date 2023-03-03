@@ -15,11 +15,8 @@ def run_all(args):
     clip_model, clip_transform = clip.load(Config.VISION_MODEL)
 
     for dname, dset in CorruptionSets.items():
-        if dname not in ['gtsrb']:
-            continue
         for cname, ccorr in THESIS_CORRUPTIONS.items():
-            if cname == 'Glass Blur':
-                continue
+
             run = wandb.init(project="thesis-corruption-distances",
                              entity="wandbefab",
                              name="_".join([dname, cname]),
