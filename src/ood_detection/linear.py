@@ -8,7 +8,7 @@ from sklearn.metrics import accuracy_score
 from torch.nn import CrossEntropyLoss
 from torch.optim import AdamW
 from torch.utils.data import DataLoader
-from zoc.baseline import FeatureSet
+from zeroshot.utils import FeatureSet
 
 from zoc.baseline import LinearClassifier
 

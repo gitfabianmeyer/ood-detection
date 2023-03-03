@@ -17,13 +17,11 @@ import pandas
 
 from datasets.config import DATASETS_DICT
 from clearml import Task
-from adapters.linear import get_test_accuracy_from_dset
-from adapters.linear import train_classification_head
+from ood_detection.linear import get_test_accuracy_from_dset, train_classification_head
 from zeroshot.utils import get_feature_dict
 
 import numpy as np
-from ood_detection.config import Config
-from zoc.baseline import FeatureSet
+from zeroshot.utils import FeatureSet
 
 print("running clearml")
 Task.add_requirements("git+https://github.com/gitfabianmeyer/ood-detection.git")
@@ -50,7 +48,7 @@ def run_all(args):
                 _logger.info(f"Jumping {dname}")
                 continue
 
-        if dname == 'imagenet' and args.clearml == True:
+        if dname == 'imagenet' and args.clearml:
             from clearml import Dataset
             CLEARML_PATH = Dataset.get(dataset_name='tiny imagenet', dataset_project='Tiny Imagenet').get_local_copy()
             dset = DATASETS_DICT[dname]
@@ -132,11 +130,11 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--train_epochs", type=int, default=300)
     parser.add_argument("--lr", type=int, default=10)
-    parser.add_argument("--dname", type=str, default="svhn")
+    parser.add_argument("--dname", type=str, default="imagenet")
     parser.add_argument("--split", type=int, default=0)
     parser.add_argument("--max_split", type=int, default=0)
     parser.add_argument("--vision", type=str, default='ViT-L/14@336px')
-    parser.add_argument("--clearml", type=str, default=None)
+    parser.add_argument("--clearml", type=str, default="Load")
     args = parser.parse_args()
 
     run_all(args)
