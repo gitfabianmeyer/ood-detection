@@ -345,7 +345,7 @@ def linear_layer_detector(train_feature_dict,
             elif classifier_type == 'logistic':
                 logits = classifier.predict_proba(image_features_for_label.cpu())
                 top_prob = np.amax(logits, axis=1)
-                ood_probs_max.extend(top_prob.detach().numpy())
+                ood_probs_max.extend(top_prob)
 
             else:
                 lin_logits = lin_classifier(image_features_for_label.to(torch.float32).to(device))
