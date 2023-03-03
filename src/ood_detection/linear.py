@@ -10,7 +10,7 @@ from torch.optim import AdamW
 from torch.utils.data import DataLoader
 from zeroshot.utils import FeatureSet
 
-from zoc.baseline import LinearClassifier
+from zoc.detectors import LinearClassifier
 
 _logger = logging.getLogger(__name__)
 

@@ -23,7 +23,6 @@ from zeroshot.utils import get_feature_dict
 import numpy as np
 from zeroshot.utils import FeatureSet
 
-print("running clearml")
 Task.add_requirements("git+https://github.com/gitfabianmeyer/ood-detection.git")
 task = Task.init(project_name="ma_fmeyer", task_name=f"Classification-ViT-L")
 task.execute_remotely('5e62040adb57476ea12e8593fa612186')
