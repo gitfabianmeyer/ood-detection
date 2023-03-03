@@ -16,7 +16,7 @@ def clip_near_ood_temperatures(clip_model,
                                ):
     import wandb
     from ood_detection.ood_utils import sorted_zeroshot_weights
-    from zoc.baseline import get_feature_weight_dict, get_zeroshot_weight_dict
+    from zoc.baseline import get_feature_weight_dict, get_zeroshot_weight_dict_from_isolated_classes
 
     from datasets.classnames import base_template
     from zeroshot.classification import get_cosine_similarity_matrix_for_normed_features
@@ -28,11 +28,11 @@ def clip_near_ood_temperatures(clip_model,
     feature_weight_dict = get_feature_weight_dict(isolated_classes, clip_model)
 
     if use_origin_templates:
-        classes_weight_dict = get_zeroshot_weight_dict(isolated_classes, clip_model)
+        classes_weight_dict = get_zeroshot_weight_dict_from_isolated_classes(isolated_classes, clip_model)
     else:
 
         isolated_classes.templates = base_template
-        classes_weight_dict = get_zeroshot_weight_dict(isolated_classes, clip_model)
+        classes_weight_dict = get_zeroshot_weight_dict_from_isolated_classes(isolated_classes, clip_model)
     ablation_splits = get_ablation_splits(isolated_classes.classes, n=runs, id_classes=id_classes,
                                           ood_classes=ood_classes)
 

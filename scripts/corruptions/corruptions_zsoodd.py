@@ -31,7 +31,7 @@ MODEL_PATH = "/home/fmeyer/ZOC/trained_models/COCO/ViT-B32/"
 
 
 def run_single_dataset_ood(isolated_classes, clip_model, clip_tokenizer, bert_tokenizer, bert_model,
-                           id_classes=.6, runs=5):
+                           id_classes):
     labels = isolated_classes.classes
     id_classes = int(len(labels) * id_classes)
     ood_classes = len(labels) - id_classes
@@ -82,7 +82,7 @@ def run_all(args):
                                                           clip_tokenizer=clip_tokenizer,
                                                           bert_tokenizer=bert_tokenizer,
                                                           bert_model=bert_model,
-                                                          id_classes=split[0],
+                                                          id_classes=Config.ID_SPLIT,
                                                           runs=args.runs_ood)
                     metrics_dict['corruption'] = corr_name
                     metrics_dict['severity'] = severity
@@ -98,7 +98,7 @@ def run_all(args):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--runs_ood', type=int, default=1)
+    parser.add_argument('--runs_ood', type=int, default=10)
 
     args = parser.parse_args()
     run_all(args)

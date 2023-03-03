@@ -15,7 +15,7 @@ from ood_detection.baseline import get_trained_linear_classifier
 
 from zeroshot.utils import get_normalized_image_features
 
-from zoc.baseline import get_feature_weight_dict, get_zeroshot_weight_dict
+from zoc.baseline import get_feature_weight_dict, get_zeroshot_weight_dict_from_isolated_classes
 from zoc.utils import get_ablation_splits, get_split_specific_targets, get_auroc_for_max_probs, get_mean_std, \
     get_zoc_unique_entities, tokenize_for_clip, get_auroc_for_ood_probs, get_caption_features_from_image_features, \
     get_zoc_feature_dict
@@ -47,7 +47,7 @@ def linear_adapter_zoc_ablation(dset,
     isolated_classes_fast_loader.templates = ["This is a photo of a {}"]
     _logger.info('Creating the test weight dicts')
     feature_weight_dict = get_feature_weight_dict(isolated_classes_fast_loader, clip_model, device)
-    classes_weight_dict = get_zeroshot_weight_dict(isolated_classes_fast_loader, clip_model)
+    classes_weight_dict = get_zeroshot_weight_dict_from_isolated_classes(isolated_classes_fast_loader, clip_model)
 
     _logger.info("Done creating weight dicts.")
 
@@ -201,7 +201,7 @@ def splits_adapter_zoc_ablation(dset,
     isolated_classes_fast_loader.templates = ["This is a photo of a {}"]
     _logger.info('Creating the test weight dicts')
     feature_weight_dict = get_feature_weight_dict(isolated_classes_fast_loader, clip_model, device)
-    classes_weight_dict = get_zeroshot_weight_dict(isolated_classes_fast_loader, clip_model)
+    classes_weight_dict = get_zeroshot_weight_dict_from_isolated_classes(isolated_classes_fast_loader, clip_model)
     _logger.info("Done creating weight dicts.")
 
     # prepare ablation splits...
@@ -463,7 +463,7 @@ def kshot_adapter_zoc_ablation(dset,
     isolated_classes_fast_loader.templates = ["This is a photo of a {}"]
     _logger.info('Creating the test weight dicts')
     feature_weight_dict = get_feature_weight_dict(isolated_classes_fast_loader, clip_model, device)
-    classes_weight_dict = get_zeroshot_weight_dict(isolated_classes_fast_loader, clip_model)
+    classes_weight_dict = get_zeroshot_weight_dict_from_isolated_classes(isolated_classes_fast_loader, clip_model)
     _logger.info("Done creating weight dicts.")
 
     # prepare ablation splits...

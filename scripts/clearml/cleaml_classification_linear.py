@@ -89,7 +89,7 @@ def run_all(args):
                 best_classifier = lr_classifier
             run.finish()
 
-        name = f"thesis-classification-linear_head-{dname}-{args.vision}"
+        name = f"thesis-classification-linear_head-{dname}-large"
         run = wandb.init(project=name,
                          entity="wandbefab",
                          name="test",
@@ -110,7 +110,7 @@ def run_all(args):
 def main():
     import argparse
     parser = argparse.ArgumentParser()
-    parser.add_argument("--train_epochs", type=int, default=250)
+    parser.add_argument("--train_epochs", type=int, default=300)
     parser.add_argument("--lr", type=int, default=10)
     parser.add_argument("--dname", type=str, default=None)
     parser.add_argument("--split", type=int, default=0)

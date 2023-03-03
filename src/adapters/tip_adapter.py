@@ -37,8 +37,6 @@ class WeightAdapter(nn.Module):
         return self.linear1(x)
 
 
-def zeroshot(clip_logits, test_labels):
-    return get_acc_f1(clip_logits, test_labels)
 
 
 def get_acc_f1_for_adapter(image_features, cache_keys, cache_values, clip_logits, targets, alpha, beta, adapter=None):

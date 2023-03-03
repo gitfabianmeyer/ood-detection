@@ -16,7 +16,7 @@ from adapters.tip_adapter import create_tip_train_set, get_cache_model, get_data
     get_cache_logits
 from datasets.zoc_loader import IsolatedClasses
 from ood_detection.ood_utils import sorted_zeroshot_weights
-from zoc.baseline import get_feature_weight_dict, get_zeroshot_weight_dict, train_id_classifier, FeatureSet
+from zoc.baseline import get_feature_weight_dict, get_zeroshot_weight_dict_from_isolated_classes, train_id_classifier, FeatureSet
 
 from adapters.ood import get_ablation_split_classes, pad_list_of_vectors
 
@@ -100,7 +100,7 @@ def adapter_zoc_ablation(dset,
     isolated_classes_fast_loader.templates = ["This is a photo of a {}"]
     _logger.info('Creating the test weight dicts')
     feature_weight_dict = get_feature_weight_dict(isolated_classes_fast_loader, clip_model, device)
-    classes_weight_dict = get_zeroshot_weight_dict(isolated_classes_fast_loader, clip_model)
+    classes_weight_dict = get_zeroshot_weight_dict_from_isolated_classes(isolated_classes_fast_loader, clip_model)
 
 
     _logger.info("Done creating weight dicts.")

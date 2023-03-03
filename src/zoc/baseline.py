@@ -36,27 +36,21 @@ def get_fake_dict(isolated_classe):
     return {c: torch.rand((random.randint(1, 20), 5)) for c in isolated_classe.classes}
 
 
-def get_zeroshot_weight_dict(isolated_classes, clip_model):
-    weights_dict = {}
 
-    if isinstance(isolated_classes, IsolatedClasses):
-        weights = zeroshot_classifier(isolated_classes.classes, isolated_classes.templates, clip_model)
-
-        for classname, weight in zip(isolated_classes.classes, weights):
-            weights_dict[classname] = weight
-
-    return weights_dict
 
 
 @torch.no_grad()
-def baseline_detector(clip_model,
-                      device,
-                      isolated_classes: IsolatedClasses,
+def zeroshot_detector(dset,
+                      clip_model,
+                      clip_transform,
+                      id_classes_split,
                       id_classes,
                       ood_classes,
                       runs):
+
+
     feature_weight_dict = get_feature_weight_dict(isolated_classes, clip_model, device)
-    classes_weight_dict = get_zeroshot_weight_dict(isolated_classes, clip_model)
+    classes_weight_dict = get_zeroshot_weight_dict_from_isolated_classes(isolated_classes, clip_model)
 
     ablation_splits = get_ablation_splits(isolated_classes.classes, n=runs, id_classes=id_classes,
                                           ood_classes=ood_classes)
@@ -78,7 +72,6 @@ def baseline_detector(clip_model,
             ood_probs_sum, ood_probs_mean, ood_probs_max = [], [], []
             f_probs_sum, acc_probs_sum, id_probs_sum = [], [], []
 
-            # do 10 times
             for i, semantic_label in enumerate(split):
                 # get features
                 image_features_for_label = feature_weight_dict[semantic_label]
@@ -202,14 +195,19 @@ def train_log_reg_classifier(train_set, eval_set, num_cs):
     return best_classifier
 
 
-def linear_layer_detector(classifier_type, dataset, clip_model, clip_transform, runs):
+def linear_layer_detector(dset,
+                          clip_model,
+                          clip_transform,
+                          runs,
+                          id_classes_split,
+                          classifier_type):
     assert classifier_type in ['linear', 'logistic', 'all']
     device = Config.DEVICE
-    train_dataset = dataset(Config.DATAPATH,
+    train_dataset = dset(Config.DATAPATH,
                             split='train',
                             transform=clip_transform)
     labels = train_dataset.classes
-    id_classes = int(len(labels) * Config.ID_SPLIT)
+    id_classes = int(len(labels) * id_classes_split)
     ood_classes = len(labels) - id_classes
 
     isolated_classes = IsolatedClasses(train_dataset,

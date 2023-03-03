@@ -6,7 +6,6 @@ import numpy as np
 from datasets.corruptions import THESIS_CORRUPTIONS, store_corruptions_feature_dict, load_corruptions_feature_dict
 
 from datasets.config import CorruptionSets
-from zoc.baseline import baseline_detector_no_temperature_featuredict
 from zoc.utils import get_feature_dict_from_isolated_classes
 
 import argparse
@@ -17,7 +16,6 @@ from datasets.zoc_loader import IsolatedClasses
 from ood_detection.config import Config
 
 _logger = logging.getLogger(__name__)
-splits = [(.4, .6), ]
 create_features = False
 
 

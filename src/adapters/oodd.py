@@ -1,20 +1,7 @@
 import logging
 
-import numpy as np
-import torch
-from adapters.tip_adapter import get_cache_logits, get_cache_model, \
-    create_tip_train_set, load_hyperparams_from_training, \
-    search_hp, get_dataset_with_shorted_classes, \
-    run_tip_adapter_finetuned, WeightAdapter, \
-    load_adapter, get_dataset_features_from_dataset_with_split
 from datasets.zoc_loader import IsolatedClasses
 from ood_detection.config import Config
-from tqdm import tqdm
-from zoc.baseline import sorted_zeroshot_weights, get_zeroshot_weight_dict, get_feature_weight_dict
-from zoc.utils import get_mean_std, get_auroc_for_max_probs, get_split_specific_targets, get_ablation_splits, \
-    get_auroc_for_ood_probs
-
-from zeroshot.classification import get_cosine_similarity_matrix_for_normed_features
 
 _logger = logging.getLogger(__name__)
 
@@ -22,29 +9,23 @@ _logger = logging.getLogger(__name__)
 def tip_hyperparam_ood_detector(dset,
                                 clip_model,
                                 clip_transform,
-                                device,
                                 id_classes_split,
                                 runs,
                                 kshots,
                                 augment_epochs,
-                                train_epochs=None,
-                                learning_rate=None,
-                                eps=None,
+                                train_epochs,
+                                learning_rate,
+                                eps,
                                 finetune_adapter=False):
-    if finetune_adapter:
-        assert train_epochs and learning_rate and eps, "Missing params for finetuning"
 
-    dataset = dset(data_path=Config.DATAPATH,
-                   split='test',
-                   transform=clip_transform)
-
-    # prepare features ...
+    dataset = dset(Config.DATAPATH,
+                   transform=clip_transform,
+                   split='test')
     isolated_classes = IsolatedClasses(dataset,
                                        batch_size=512,
                                        lsun=False)
     _logger.info('Creating the test weight dicts')
-    feature_weight_dict = get_feature_weight_dict(isolated_classes, clip_model, device)
-    classes_weight_dict = get_zeroshot_weight_dict(isolated_classes, clip_model)
+    feature_weight_dict, classes_weight_dict = get_feature_and_class_weight_dict(isolated_classes, clip_model)
     _logger.info("Done creating weight dicts.")
 
     # prepare ablation splits...
@@ -81,11 +62,11 @@ def tip_hyperparam_ood_detector(dset,
                                                                   zeroshot_weights, cache_keys,
                                                                   cache_values, train_epochs,
                                                                   learning_rate, eps)
-        tipf_adapter = WeightAdapter(cache_keys).to(device)
+        tipf_adapter = WeightAdapter(cache_keys).to(Config.DEVICE)
         tipf_adapter.load_state_dict(load_adapter(tip_train_set.name))
         tipf_adapter.eval()
 
-        tip_alpha, tip_beta = search_hp(cache_keys, cache_values, val_features, val_labels, zeroshot_weights, temperature)
+        tip_alpha, tip_beta = search_hp(cache_keys, cache_values, val_features, val_labels, zeroshot_weights, 0.01)
 
         clip_probs_max, tip_probs_max, tipf_probs_max = [], [], []
 
@@ -168,26 +149,17 @@ def pad_list_of_vectors(list_of_vectors, value=-np.inf, max_length=None):
     return torch.stack(new_vectors)
 
 
-def tip_ood_detector(dset,
+def tip_ood_detector(dataset,
                      clip_model,
-                     clip_transform,
-                     device,
                      id_classes_split,
                      runs,
                      kshots,
                      augment_epochs):
-    dataset = dset(data_path=Config.DATAPATH,
-                   split='test',
-                   transform=clip_transform)
-
     # prepare features ...
     isolated_classes = IsolatedClasses(dataset,
                                        batch_size=512,
                                        lsun=False)
-    _logger.info('Creating the test weight dicts')
-    feature_weight_dict = get_feature_weight_dict(isolated_classes, clip_model, device)
-    classes_weight_dict = get_zeroshot_weight_dict(isolated_classes, clip_model)
-    _logger.info("Done creating weight dicts.")
+    feature_weight_dict, classes_weight_dict = get_feature_and_class_weight_dict(isolated_classes, clip_model)
 
     # prepare ablation splits...
     num_id_classes = int(len(dataset.classes) * id_classes_split)
@@ -222,7 +194,8 @@ def tip_ood_detector(dset,
             image_features_for_label = feature_weight_dict[semantic_label]
             image_features_for_label = image_features_for_label.to(torch.float32)
             # calc the logits and softmax
-            clip_logits = get_cosine_similarity_matrix_for_normed_features(image_features_for_label, zeroshot_weights, 1)
+            clip_logits = get_cosine_similarity_matrix_for_normed_features(image_features_for_label, zeroshot_weights,
+                                                                           1)
             clip_probs = torch.softmax(clip_logits, dim=-1).squeeze()
 
             # TIP ADAPTER
@@ -256,10 +229,6 @@ def tip_ood_detector(dset,
     return metrics
 
 
-# 1. train tip(f) on ablation split to provide extra knowledge to known classes.
-# 2. Run zoc
-# 3. Add Knowledge to known classes
-# 4. Get the aurocs
 def adapter_zoc(dset,
                 clip_model,
                 clip_transform,
@@ -287,18 +256,19 @@ def adapter_zoc(dset,
     # CAREFUL: ADJUSTMENT FOR ZOC: THE TEMPLATES ( train tip on same )
     isolated_classes_fast_loader.templates = ["This is a photo of a {}"]
     _logger.info('Creating the test weight dicts')
-    feature_weight_dict = get_feature_weight_dict(isolated_classes_fast_loader, clip_model, device)
-    classes_weight_dict = get_zeroshot_weight_dict(isolated_classes_fast_loader, clip_model)
-    _logger.info("Done creating weight dicts.")
+    feature_weight_dict, classes_weight_dict = get_feature_and_class_weight_dict(isolated_classes_fast_loader,
+                                                                                 clip_model)
 
-    # prepare ablation splits...
-    num_id_classes = int(len(dataset.classes) * id_classes_split)
     if shorten_classes:
         _logger.warning(f"SHORTENING CLASSES TO {shorten_classes}")
         num_id_classes = int(shorten_classes * Config.ID_SPLIT)
+        num_ood_classes = shorten_classes - num_id_classes
         _logger.info(f"ID classes: {num_id_classes}, OOD classes: {shorten_classes - num_id_classes}")
     else:
+        num_id_classes = int(len(dataset.classes) * id_classes_split)
+        num_ood_classes = len(dataset.classes) - num_id_classes
         _logger.info(f"ID classes: {num_id_classes}, OOD classes: {len(dataset.classes) - num_id_classes}")
+
     ablation_splits = get_ablation_splits(dataset.classes, runs, num_id_classes, num_ood_classes)
 
     # run for the ablation splits
@@ -336,7 +306,7 @@ def adapter_zoc(dset,
         tipf_adapter.load_state_dict(load_adapter(tip_train_set.name))
         tipf_adapter.eval()
 
-        tip_alpha, tip_beta = search_hp(cache_keys, cache_values, val_features, val_labels, zeroshot_weights, temperature)
+        tip_alpha, tip_beta = search_hp(cache_keys, cache_values, val_features, val_labels, zeroshot_weights, 0.01)
         # run zoc
         clip_probs_max, tip_probs_max, tipf_probs_max = [], [], []
         zoc_probs_sum, toc_probs_sum, tocf_probs_sum = [], [], [],
@@ -460,11 +430,3 @@ def adapter_zoc(dset,
                'tocf_std': tocf_std
                }
     return metrics
-
-
-def get_ablation_split_classes(num_id_classes, split):
-    seen_labels = split[:num_id_classes]
-    seen_descriptions = [f"This is a photo of a {label}" for label in seen_labels]
-    unseen_labels = split[num_id_classes:]
-    _logger.debug(f"Seen labels: {seen_labels}\nOOD Labels: {unseen_labels}")
-    return seen_descriptions, seen_labels, unseen_labels
