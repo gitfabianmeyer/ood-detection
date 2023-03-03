@@ -11,7 +11,7 @@ def run_all(args):
     from datasets.corruptions import THESIS_CORRUPTIONS, get_corruption_transform
     from datasets.config import CorruptionSets
     from ood_detection.config import Config
-    from zoc.baseline import linear_layer_detector
+    from zoc.detectors import linear_layer_detector
     from zeroshot.utils import get_feature_dict_from_class
 
     # for each dataset
