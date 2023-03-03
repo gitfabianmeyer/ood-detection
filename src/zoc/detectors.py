@@ -13,7 +13,6 @@ from torch.optim import AdamW
 from torch.utils.data import Dataset, DataLoader
 from tqdm import tqdm
 from ood_detection.ood_utils import sorted_zeroshot_weights
-from zeroshot.detectors import FeatureDict, FeatureSet
 from zoc.utils import fill_auc_lists, fill_f_acc_lists, get_result_mean_dict, get_auroc_for_max_probs, get_mean_std, \
     get_ablation_splits, get_split_specific_targets, get_mean_max_sum_for_zoc_image
 
@@ -162,6 +161,14 @@ def zoc_detector_featuredict(feature_dict,
                              id_split,
                              runs,
                              shorten_classes=None):
+
+    if shorten_classes:
+        id_classes = int(shorten_classes * id_split)
+        ood_classes = shorten_classes -id_classes
+
+    else:
+        id_classes = int(len(feature_dict.keys)) * id_split
+        ood_classes = len(feature_dict.keys) - id_classes
     ablation_splits = get_ablation_splits(feature_dict.keys(), n=runs, id_classes=id_classes,
                                           ood_classes=ood_classes)
 
