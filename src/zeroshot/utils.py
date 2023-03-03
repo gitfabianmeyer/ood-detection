@@ -45,6 +45,28 @@ class FeatureDict:
             return get_feature_dict_from_dataset(dataset, clip_model), dataset.classes
 
 
+class FeatureSet(Dataset):
+    def __init__(self, feature_dict, labels, class_to_idx_mapping):
+        self.labels = labels
+        self.class_to_idx_mapping = class_to_idx_mapping
+        self.features, self.targets = self.get_features_labels(feature_dict)
+        self.features_dim = self.features[0].shape[0]
+
+    def __len__(self):
+        return len(self.targets)
+
+    def __getitem__(self, idx):
+        return self.features[idx], int(self.targets[idx])
+
+    def get_features_labels(self, feature_dict):
+        features, targets = [], []
+        for label in self.labels:
+            feats = feature_dict[label]
+            targets.extend([self.class_to_idx_mapping[label]] * len(feats))
+            features.append(feats)
+        return torch.cat(features), torch.Tensor(targets)
+
+
 @torch.no_grad()
 def get_image_features_and_targets(loader, clip_model, stop_at=np.inf):
     features, targets = [], []

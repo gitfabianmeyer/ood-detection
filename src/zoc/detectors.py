@@ -13,6 +13,7 @@ from torch.optim import AdamW
 from torch.utils.data import Dataset, DataLoader
 from tqdm import tqdm
 from ood_detection.ood_utils import sorted_zeroshot_weights
+from zeroshot.utils import FeatureDict, FeatureSet
 from zoc.utils import fill_auc_lists, fill_f_acc_lists, get_result_mean_dict, get_auroc_for_max_probs, get_mean_std, \
     get_ablation_splits, get_split_specific_targets, get_mean_max_sum_for_zoc_image
 
@@ -376,23 +377,3 @@ def linear_layer_detector(train_feature_dict,
     return metrics
 
 
-class FeatureSet(Dataset):
-    def __init__(self, feature_dict, labels, class_to_idx_mapping):
-        self.labels = labels
-        self.class_to_idx_mapping = class_to_idx_mapping
-        self.features, self.targets = self.get_features_labels(feature_dict)
-        self.features_dim = self.features[0].shape[0]
-
-    def __len__(self):
-        return len(self.targets)
-
-    def __getitem__(self, idx):
-        return self.features[idx], int(self.targets[idx])
-
-    def get_features_labels(self, feature_dict):
-        features, targets = [], []
-        for label in self.labels:
-            feats = feature_dict[label]
-            targets.extend([self.class_to_idx_mapping[label]] * len(feats))
-            features.append(feats)
-        return torch.cat(features), torch.Tensor(targets)
