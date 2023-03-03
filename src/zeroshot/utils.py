@@ -74,7 +74,7 @@ def get_feature_dict_from_class(dset, splits: List, clip_model, transform):
         dataset = dset(Config.DATAPATH,
                        transform=transform,
                        split=split)
-        feature_dicts[split] = FeatureDict(dataset)
+        feature_dicts[split] = FeatureDict(dataset, clip_model)
 
     return feature_dicts
 
