@@ -298,7 +298,8 @@ def linear_layer_detector(train_feature_dict,
                           test_feature_dict,
                           runs,
                           id_classes_split,
-                          classifier_type):
+                          classifier_type,
+                          num_cs=96):
     assert classifier_type in ['linear', 'logistic', 'all']
 
     device = Config.DEVICE
@@ -325,11 +326,11 @@ def linear_layer_detector(train_feature_dict,
             classifier = train_linear_id_classifier(train_set, val_set)
 
         elif classifier_type == 'logistic':
-            classifier = train_log_reg_classifier(train_set, val_set)
+            classifier = train_log_reg_classifier(train_set, val_set, num_cs)
 
         else:
             lin_classifier = train_linear_id_classifier(train_set, val_set)
-            log_classifier = train_log_reg_classifier(train_set, val_set)
+            log_classifier = train_log_reg_classifier(train_set, val_set, num_cs)
 
         ood_probs_max = []
         log_ood_probs_max = []
