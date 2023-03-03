@@ -59,26 +59,19 @@ def run_all(args):
     for dname, dset in CorruptionSets.items():
         for cname, ccorr in THESIS_CORRUPTIONS.items():
 
-            run = wandb.init(project="thesis-zoc-selected_corruption-selected_sets_all-classes",
+            run = wandb.init(project="thesis-corruptions-zoc-all_classes",
                              entity="wandbefab",
                              name="_".join([dname, cname]),
                              tags=['distance',
                                    'metrics'])
             for severity in [1, 3, 5]:
                 _logger.info(f"Running {dname} with {cname} and severity {severity}")
-
-                if dname == 'lsun':
-                    lsun = True
-
-                else:
-                    lsun = False
-
                 transform = get_corruption_transform(clip_transform, ccorr, severity)
-
                 isolated_classes = IsolatedClasses(dataset=dset(data_path=Config.DATAPATH,
                                                                 split='test',
                                                                 transform=transform),
-                                                   lsun=lsun)
+                                                   batch_size=512
+                                                   )
 
                 if create_features:
                     _logger.info('Creating corruptions set')

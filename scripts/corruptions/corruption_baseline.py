@@ -3,7 +3,8 @@ os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
 os.environ["CUDA_VISIBLE_DEVICES"] = "1"
 
 import numpy as np
-from datasets.corruptions import THESIS_CORRUPTIONS, store_corruptions_feature_dict, load_corruptions_feature_dict
+from datasets.corruptions import THESIS_CORRUPTIONS, store_corruptions_feature_dict, load_corruptions_feature_dict, \
+    get_corruption_transform
 
 from datasets.config import CorruptionSets
 from zoc.utils import get_feature_dict_from_isolated_classes
@@ -33,30 +34,20 @@ def run_all(args):
     clip_model, clip_transform = clip.load(Config.VISION_MODEL)
     for dname, dset in CorruptionSets.items():
         for cname, ccorr in THESIS_CORRUPTIONS.items():
-            run = wandb.init(project="thesis-zoc-selected_corruption-selected_sets_all-classes-baseline",
+            run = wandb.init(project="thesis-corruptions-zoc-all_classes-baseline",
                              entity="wandbefab",
                              name="_".join([dname, cname]),
                              tags=['distance',
                                    'metrics'])
             for severity in [1, 3, 5]:
                 _logger.info(f"---------------- Running {dname} with {cname} and severity {severity} ---------------")
-
-                if dname == 'lsun':
-                    lsun = True
-
-                else:
-                    lsun = False
-
+                transform = get_corruption_transform(clip_transform, ccorr, severity)
                 dataset = dset(data_path=Config.DATAPATH,
                                split='test',
-                               transform=clip_transform)
-
-                # shorted_classes = random.sample(dataset.classes, 10)
-                # dataset.classes = shorted_classes
+                               transform=transform)
 
                 isolated_classes = IsolatedClasses(dataset,
-                                                   batch_size=512,
-                                                   lsun=lsun)
+                                                   batch_size=512)
                 if create_features:
                     _logger.info('Creating corruptions set')
                     feature_dict = get_feature_dict_from_isolated_classes(isolated_classes, clip_model)
@@ -66,20 +57,18 @@ def run_all(args):
                     _logger.info("Loading feature dict...")
                     feature_dict = load_corruptions_feature_dict(isolated_classes.classes, cname, dname + '-test',
                                                                  severity)
-                    # feature_dict = load_corruptions_feature_dict(isolated_classes.classes, cname, dname, severity)
+                metrics = baseline_detector_no_temperature_featuredict(feature_dict,
+                                                                       dset,
+                                                                       clip_model,
+                                                                       clip_transform,
+                                                                       Config.DEVICE,
+                                                                       id_classes_split=Config.ID_SPLIT,
+                                                                       runs=args.runs_ood)
 
-                for split in splits:
-                    # perform zsoodd
-                    metrics = baseline_detector_no_temperature_featuredict(feature_dict,
-                                                                           dset,
-                                                                           clip_model,
-                                                                           clip_transform,
-                                                                           Config.DEVICE,
-                                                                           id_classes_split=split[0],
-                                                                           runs=args.runs_ood)
-                    to_log = unpack_mean_metrics(metrics)
-                    to_log["severity"] = severity
-                    wandb.log(to_log)
+
+                to_log = unpack_mean_metrics(metrics)
+                to_log["severity"] = severity
+                wandb.log(to_log)
             run.finish()
 
 

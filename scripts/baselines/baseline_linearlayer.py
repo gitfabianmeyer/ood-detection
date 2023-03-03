@@ -36,7 +36,7 @@ def run_all(args):
                          name=dname)
 
         metrics = linear_layer_detector(args.classifier_type, dset, clip_model, clip_transform,
-                                        args.runs)
+                                        args.runs) # TODO
         wandb.log(metrics)
         run.finish()
 

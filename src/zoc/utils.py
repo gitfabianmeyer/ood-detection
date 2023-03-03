@@ -94,54 +94,6 @@ def get_mean_std(ls):
     return np.mean(ls), np.std(ls)
 
 
-@torch.no_grad()
-def image_decoder(clip_model,
-                  clip_tokenizer,
-                  bert_tokenizer,
-                  bert_model,
-                  device,
-                  isolated_classes: IsolatedClasses,
-                  id_classes,
-                  ood_classes,
-                  runs):
-    ablation_splits = get_ablation_splits(isolated_classes.classes, n=runs, id_classes=id_classes,
-                                          ood_classes=ood_classes)
-
-    auc_list_sum, auc_list_mean, auc_list_max = [], [], []
-    for split in ablation_splits:
-        seen_labels = split[:id_classes]
-        unseen_labels = split[id_classes:]
-        _logger.debug(f"Seen labels: {seen_labels}\nOOD Labels: {split[id_classes:]}")
-        seen_descriptions = [f"This is a photo of a {label}" for label in seen_labels]
-
-        f_probs_sum, acc_probs_sum, id_probs_sum = [], [], []
-
-        ood_probs_sum, ood_probs_mean, ood_probs_max = [], [], []
-        for i, semantic_label in enumerate(split):
-            loader = isolated_classes[semantic_label]
-            for idx, image in enumerate(tqdm(loader)):
-                clip_out = clip_model.encode_image(image.to(device)).float()
-                ood_prob_max, ood_prob_mean, ood_prob_sum = get_mean_max_sum_for_zoc_image(bert_model, bert_tokenizer,
-                                                                                           clip_model, clip_tokenizer,
-                                                                                           device, id_classes, clip_out,
-                                                                                           seen_descriptions,
-                                                                                           seen_labels)
-
-                ood_probs_sum.append(ood_prob_sum)
-                ood_probs_mean.append(ood_prob_mean)
-                ood_probs_max.append(ood_prob_max.detach().numpy())
-                id_probs_sum.append(1 - ood_prob_sum)
-
-        targets = get_split_specific_targets(isolated_classes, seen_labels, unseen_labels)
-        fill_auc_lists(auc_list_max, auc_list_mean, auc_list_sum, ood_probs_mean, ood_probs_max, ood_probs_sum,
-                       targets)
-        fill_f_acc_lists(acc_probs_sum, f_probs_sum, id_probs_sum, ood_probs_sum, targets)
-
-    metrics = get_result_mean_dict(acc_probs_sum, auc_list_max, auc_list_mean, auc_list_sum, f_probs_sum)
-
-    return metrics
-
-
 def get_zoc_probs(image_features, bert_model, bert_tokenizer, clip_model, clip_tokenizer, device, seen_descriptions,
                   seen_labels):
     text_features = get_caption_features_from_image_features(image_features, seen_descriptions,
@@ -180,50 +132,7 @@ def get_sum_max_mean_probs(zeroshot_probs, id_classes):
     return ood_prob_sum, ood_max_prob, ood_prob_mean
 
 
-@torch.no_grad()
-def image_decoder_featuredict(clip_model,
-                              clip_tokenizer,
-                              bert_tokenizer,
-                              bert_model,
-                              device,
-                              feature_dict,
-                              id_classes=6,
-                              ood_classes=4,
-                              runs=1, ):
-    ablation_splits = get_ablation_splits(feature_dict.keys(), n=runs, id_classes=id_classes,
-                                          ood_classes=ood_classes)
 
-    auc_list_sum, auc_list_mean, auc_list_max = [], [], []
-    for split in ablation_splits:
-        seen_labels = split[:id_classes]
-        unseen_labels = split[id_classes:]
-        _logger.debug(f"Seen labels: {seen_labels}\nOOD Labels: {split[id_classes:]}")
-        seen_descriptions = [f"This is a photo of a {label}" for label in seen_labels]
-
-        ood_probs_sum, ood_probs_mean, ood_probs_max = [], [], []
-        f_probs_sum, acc_probs_sum, id_probs_sum = [], [], []
-
-        for semantic_label in split:
-            image_features = feature_dict[semantic_label]
-            for image in tqdm(image_features):
-                ood_prob_max, ood_prob_mean, ood_prob_sum = get_mean_max_sum_for_zoc_image(bert_model, bert_tokenizer,
-                                                                                           clip_model, clip_tokenizer,
-                                                                                           device, id_classes, image,
-                                                                                           seen_descriptions,
-                                                                                           seen_labels)
-
-                ood_probs_sum.append(ood_prob_sum)
-                ood_probs_mean.append(ood_prob_mean)
-                ood_probs_max.append(ood_prob_max.detach().numpy())
-
-        targets = get_split_specific_targets(feature_dict, seen_labels, unseen_labels)
-        fill_auc_lists(auc_list_max, auc_list_mean, auc_list_sum, ood_probs_mean, ood_probs_max, ood_probs_sum,
-                       targets)
-        fill_f_acc_lists(acc_probs_sum, f_probs_sum, id_probs_sum, ood_probs_sum, targets)
-
-    metrics = get_result_mean_dict(acc_probs_sum, auc_list_max, auc_list_mean, auc_list_sum, f_probs_sum)
-
-    return metrics
 
 
 def get_mean_max_sum_for_zoc_image(bert_model, bert_tokenizer,
@@ -297,7 +206,7 @@ def get_split_specific_targets(isolated_classes, seen_labels, unseen_labels):
         len_id_targets = sum([len(isolated_classes[lab].dataset) for lab in seen_labels])
         len_ood_targets = sum([len(isolated_classes[lab].dataset) for lab in unseen_labels])
         targets = torch.tensor(len_id_targets * [0] + len_ood_targets * [1])
-    elif isinstance(isolated_classes, Dict):
+    elif isinstance(isolated_classes, Dict) or isinstance(isolated_classes, FeatureDict):
         len_id_targets = sum([len(isolated_classes[lab]) for lab in seen_labels])
         len_ood_targets = sum([len(isolated_classes[lab]) for lab in unseen_labels])
         targets = torch.tensor(len_id_targets * [0] + len_ood_targets * [1])
@@ -406,7 +315,8 @@ def get_zoc_feature_dict(dataset, clip_model, seen_labels):
 
 
 @torch.no_grad()
-def get_unnormed_featuredict_from_isolated_classes(clip_model, device, isolated_classes):
+def get_unnormed_featuredict_from_isolated_classes(isolated_classes, clip_model):
+    device = Config.DEVICE
     feature_dict = {}
     for cls in tqdm(isolated_classes.classes):
         loader = isolated_classes[cls]

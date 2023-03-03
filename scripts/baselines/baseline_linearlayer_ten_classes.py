@@ -39,7 +39,7 @@ def run_single_dataset_ood(dataset, clip_model, clip_transform, id_classes=.4, r
     labels = dset.classes
     id_classes = int(10 * id_classes)
     ood_classes = 10 - id_classes
-    metrics = linear_layer_detector(dataset, clip_model, clip_transform, id_classes, ood_classes, 5)
+    metrics = linear_layer_detector(dataset, clip_model, clip_transform, id_classes, ood_classes, 5) # TODO
     run = wandb.init(project="thesis-zoc_baseline_linear_ten_classes_val_sets",
                      entity="wandbefab",
                      name=dset.name)
