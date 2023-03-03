@@ -12,6 +12,7 @@ def run_all(args):
     from datasets.config import CorruptionSets
     from ood_detection.config import Config
     from zeroshot.utils import get_feature_dict_from_class
+    from zoc.detectors import linear_layer_detector
 
     # for each dataset
     clip_model, clip_transform = clip.load(Config.VISION_MODEL)
