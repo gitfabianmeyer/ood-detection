@@ -13,7 +13,7 @@ from torch.optim import AdamW
 from torch.utils.data import Dataset, DataLoader
 from tqdm import tqdm
 from ood_detection.ood_utils import sorted_zeroshot_weights
-from zeroshot.utils import FeatureDict
+from zeroshot.utils import FeatureDict, FeatureSet
 from zoc.utils import fill_auc_lists, fill_f_acc_lists, get_result_mean_dict, get_auroc_for_max_probs, get_mean_std, \
     get_ablation_splits, get_split_specific_targets, get_mean_max_sum_for_zoc_image
 
