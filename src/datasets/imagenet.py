@@ -226,8 +226,8 @@ class TinyImageNetImageFolder(ImageFolder):
 
 
 class OodTinyImageNet(TinyImageNetImageFolder):
-    def __init__(self, data_path, transform, split, templates=None):
-        super(OodTinyImageNet, self).__init__(root=os.path.join(data_path, 'tinyimagenet/tiny-imagenet-200'),
+    def __init__(self, data_path, transform, split, templates=None, clearml=False):
+        super(OodTinyImageNet, self).__init__(root=os.path.join(data_path, 'tinyimagenet/tiny-imagenet-200') if not clearml else data_path,
                                               transform=transform,
                                               split='train' if split == 'train' or split == 'val' else 'val',
                                               download=True

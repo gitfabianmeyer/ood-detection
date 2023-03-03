@@ -50,22 +50,48 @@ def run_all(args):
                 _logger.info(f"Jumping {dname}")
                 continue
 
+        if dname == 'imagenet' and args.clearml == True:
+            from clearml import Dataset
+            CLEARML_PATH = Dataset.get(dataset_name='tiny imagenet', dataset_project='Tiny Imagenet').get_local_copy()
+            dset = DATASETS_DICT[dname]
+            train_set = dset(CLEARML_PATH,
+                             transform=clip_transform,
+                             split='train',
+                             clearml=True)
+            train_dict = get_feature_dict(train_set,
+                                          clip_model)
+
+            train = FeatureSet(train_dict, train_set.classes, train_set.class_to_idx)
+            val_dict = get_feature_dict(dset(CLEARML_PATH,
+                                             transform=clip_transform,
+                                             split='val',
+                                             clearml=True),
+                                        clip_model)
+
+            val = FeatureSet(val_dict, train_set.classes, train_set.class_to_idx)
+
+            test_set = dset(CLEARML_PATH,
+                            transform=clip_transform,
+                            split='test',
+                            clearml=True)
+
+            test_dict = get_feature_dict(test_set, clip_model)
+            test = FeatureSet(test_dict, test_set.classes, test_set.class_to_idx)
+
+
+
+
+        else:
+            from zeroshot.utils import get_feature_dict_from_class
+            all_features = get_feature_dict_from_class(dset,
+                                                       ['train', 'val', 'test'],
+                                                       clip_model,
+                                                       clip_transform)
+            train = all_features['train']
+            val = all_features["val"]
+            test = all_features["test"]
         _logger.info(f"\t\t RUNNING {dname}")
         dset = DATASETS_DICT[dname]
-
-        train_set = dset(Config.DATAPATH,
-                         transform=clip_transform,
-                         split='train')
-        train_dict = get_feature_dict(train_set,
-                                      clip_model)
-
-        train = FeatureSet(train_dict, train_set.classes, train_set.class_to_idx)
-        val_dict = get_feature_dict(dset(Config.DATAPATH,
-                                         transform=clip_transform,
-                                         split='val'),
-                                    clip_model)
-
-        val = FeatureSet(val_dict, train_set.classes, train_set.class_to_idx)
 
         feature_shape = clip_model.visual.output_dim
         output_shape = len(train_set.classes)
@@ -96,12 +122,6 @@ def run_all(args):
                          config={'epochs': args.train_epochs,
                                  'lr': args.lr})
         _logger.info("Getting test acc")
-        test_set = dset(Config.DATAPATH,
-                        transform=clip_transform,
-                        split='test')
-
-        test_dict = get_feature_dict(test_set, clip_model)
-        test = FeatureSet(test_dict, test_set.classes, test_set.class_to_idx)
         acc = get_test_accuracy_from_dset(test, best_classifier)
         wandb.log({"test accuracy": acc})
         run.finish()
@@ -116,6 +136,7 @@ def main():
     parser.add_argument("--split", type=int, default=0)
     parser.add_argument("--max_split", type=int, default=0)
     parser.add_argument("--vision", type=str, default='ViT-L/14@336px')
+    parser.add_argument("--clearml", type=str, default=None)
     args = parser.parse_args()
 
     run_all(args)
