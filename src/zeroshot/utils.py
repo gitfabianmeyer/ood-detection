@@ -1,4 +1,5 @@
 import logging
+import random
 from typing import List
 
 import numpy as np
@@ -85,9 +86,22 @@ def get_image_features_and_targets(loader, clip_model, stop_at=np.inf):
     return torch.cat(features), torch.cat(targets)
 
 
+def get_feature_sets_from_class(dset, splits: List, clip_model, transform):
+    feature_sets = {}
+    for split in tqdm(splits):
+        dataset = dset(Config.DATAPATH,
+                       transform=transform,
+                       split=split)
+        feature_dict = get_feature_dict_from_dataset(dataset, clip_model)
+        feature_sets[split] = FeatureSet(feature_dict, dataset.classes, dataset.class_to_idx)
+
+    return feature_sets
+
+
 def get_feature_dict_from_dataset(dataset, clip_model):
     isolated_classes = IsolatedClasses(dataset, batch_size=512)
-    # return {random.randint(1, 1000): torch.rand((random.randint(1, 5), 4)) for i in range(3)}
+    # print("FAKING")
+    # return {cl: torch.rand((random.randint(1, 5), 512)) for cl in isolated_classes.classes}
     return get_feature_weight_dict_from_isolated_from_isolated_classes(isolated_classes, clip_model)
 
 

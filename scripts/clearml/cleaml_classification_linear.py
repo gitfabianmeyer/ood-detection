@@ -18,7 +18,7 @@ import pandas
 from datasets.config import DATASETS_DICT
 from clearml import Task
 from ood_detection.linear import get_test_accuracy_from_dset, train_classification_head
-from zeroshot.utils import get_feature_dict_from_dataset
+from zeroshot.utils import get_feature_sets_from_class, get_feature_dict_from_dataset
 
 import numpy as np
 from zeroshot.utils import FeatureSet
@@ -79,7 +79,7 @@ def run_all(args):
             from zeroshot.utils import get_feature_dict_from_class
 
             dset = DATASETS_DICT[dname]
-            all_features = get_feature_dict_from_class(dset,
+            all_features = get_feature_sets_from_class(dset,
                                                        ['train', 'val', 'test'],
                                                        clip_model,
                                                        clip_transform)
@@ -131,7 +131,7 @@ def main():
     parser.add_argument("--split", type=int, default=0)
     parser.add_argument("--max_split", type=int, default=0)
     parser.add_argument("--vision", type=str, default='ViT-L/14@336px')
-    parser.add_argument("--clearml", type=str, default=None)
+    parser.add_argument("--clearml", type=str, default="JO")
     args = parser.parse_args()
 
     run_all(args)
