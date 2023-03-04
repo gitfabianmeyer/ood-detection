@@ -11,6 +11,7 @@ from ood_detection.classification_utils import zeroshot_classifier
 from ood_detection.config import Config
 from torch.utils.data import Dataset
 from torchvision.datasets import ImageFolder
+from tqdm import tqdm
 
 _logger = logging.getLogger(__name__)
 
@@ -92,7 +93,7 @@ def get_feature_dict_from_dataset(dataset, clip_model):
 
 def get_feature_dict_from_class(dset, splits: List, clip_model, transform):
     feature_dicts = {}
-    for split in splits:
+    for split in tqdm(splits):
         dataset = dset(Config.DATAPATH,
                        transform=transform,
                        split=split)

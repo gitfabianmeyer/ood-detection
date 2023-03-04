@@ -89,7 +89,7 @@ def run_all(args):
         _logger.info(f"\t\t RUNNING {dname}")
 
         feature_shape = clip_model.visual.output_dim
-        output_shape = len(train.labels)
+        output_shape = len(train)
 
         max_accuracy = 0.
         # for learning_rate in np.logspace(np.log2(0.0001), np.log2(0.01), args.lr, base=2):
