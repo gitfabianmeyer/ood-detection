@@ -56,14 +56,14 @@ def run_all(args):
                              split='train',
                              clearml=True)
             train_dict = get_feature_dict_from_dataset(train_set,
-                                          clip_model)
+                                                       clip_model)
 
             train = FeatureSet(train_dict, train_set.classes, train_set.class_to_idx)
             val_dict = get_feature_dict_from_dataset(dset(CLEARML_PATH,
-                                             transform=clip_transform,
-                                             split='val',
-                                             clearml=True),
-                                        clip_model)
+                                                          transform=clip_transform,
+                                                          split='val',
+                                                          clearml=True),
+                                                     clip_model)
 
             val = FeatureSet(val_dict, train_set.classes, train_set.class_to_idx)
 
@@ -75,11 +75,10 @@ def run_all(args):
             test_dict = get_feature_dict_from_dataset(test_set, clip_model)
             test = FeatureSet(test_dict, test_set.classes, test_set.class_to_idx)
 
-
-
-
         else:
             from zeroshot.utils import get_feature_dict_from_class
+
+            dset = DATASETS_DICT[dname]
             all_features = get_feature_dict_from_class(dset,
                                                        ['train', 'val', 'test'],
                                                        clip_model,
@@ -88,10 +87,9 @@ def run_all(args):
             val = all_features["val"]
             test = all_features["test"]
         _logger.info(f"\t\t RUNNING {dname}")
-        dset = DATASETS_DICT[dname]
 
         feature_shape = clip_model.visual.output_dim
-        output_shape = len(train_set.classes)
+        output_shape = len(train.labels)
 
         max_accuracy = 0.
         # for learning_rate in np.logspace(np.log2(0.0001), np.log2(0.01), args.lr, base=2):
@@ -129,11 +127,11 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--train_epochs", type=int, default=300)
     parser.add_argument("--lr", type=int, default=10)
-    parser.add_argument("--dname", type=str, default="imagenet")
+    parser.add_argument("--dname", type=str, default="svhn")
     parser.add_argument("--split", type=int, default=0)
     parser.add_argument("--max_split", type=int, default=0)
     parser.add_argument("--vision", type=str, default='ViT-L/14@336px')
-    parser.add_argument("--clearml", type=str, default="Load")
+    parser.add_argument("--clearml", type=str, default=None)
     args = parser.parse_args()
 
     run_all(args)

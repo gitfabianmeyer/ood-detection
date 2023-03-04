@@ -49,7 +49,7 @@ class FeatureSet(Dataset):
     def __init__(self, feature_dict, labels, class_to_idx_mapping):
         self.labels = labels
         self.class_to_idx_mapping = class_to_idx_mapping
-        self.features, self.targets = self.get_features_labels(feature_dict)
+        self.features, self.targets = self.get_features_targets(feature_dict)
         self.features_dim = self.features[0].shape[0]
 
     def __len__(self):
@@ -58,7 +58,7 @@ class FeatureSet(Dataset):
     def __getitem__(self, idx):
         return self.features[idx], int(self.targets[idx])
 
-    def get_features_labels(self, feature_dict):
+    def get_features_targets(self, feature_dict):
         features, targets = [], []
         for label in self.labels:
             feats = feature_dict[label]
