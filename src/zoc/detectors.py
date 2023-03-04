@@ -218,7 +218,7 @@ def train_linear_id_classifier(train_set: FeatureSet, eval_set: FeatureSet, epoc
                              shuffle=True)
 
     early_stopping = 0
-    max_epoch_without_improvement = 3
+    max_epoch_without_improvement = 10
     optimizer = AdamW(params=classifier.parameters(), lr=learning_rate)
     criterion = CrossEntropyLoss()
 
@@ -227,6 +227,7 @@ def train_linear_id_classifier(train_set: FeatureSet, eval_set: FeatureSet, epoc
 
         epoch_loss = 0.
         # train
+        classifier.train()
         for image_features, targets in tqdm(train_loader):
             image_features = image_features.to(torch.float32).to(device)
             targets = targets.to(device)
@@ -243,6 +244,7 @@ def train_linear_id_classifier(train_set: FeatureSet, eval_set: FeatureSet, epoc
             optimizer.step()
 
         # eval
+        classifier.eval()
         epoch_val_loss = 0.
         eval_accs = []
         for eval_features, eval_targets in tqdm(eval_loader):
@@ -255,16 +257,17 @@ def train_linear_id_classifier(train_set: FeatureSet, eval_set: FeatureSet, epoc
                 eval_loss = criterion(eval_preds, eval_targets).detach().item()
 
             epoch_val_loss += eval_loss
-
-            if epoch_val_loss < best_val_loss:
-                best_val_loss = epoch_val_loss
-                best_classifier = classifier
-            else:
-                early_stopping += 1
-                _logger.info(f"No improvement on val loss ( {early_stopping} / {max_epoch_without_improvement}")
-                if early_stopping == max_epoch_without_improvement + 1:
-                    _logger.info(F"Hit the maximum epoch without improvement {max_epoch_without_improvement}. Exiting")
-                    return best_classifier
+        _logger.info(f"Epoch {epoch} Validation Loss: {epoch_val_loss}")
+        if epoch_val_loss < best_val_loss:
+            best_val_loss = epoch_val_loss
+            best_classifier = classifier
+            early_stopping = 0
+        else:
+            early_stopping += 1
+            _logger.info(f"No improvement on val loss ( {early_stopping} / {max_epoch_without_improvement})")
+            if early_stopping == max_epoch_without_improvement + 1:
+                _logger.info(F"Hit the maximum epoch of consecutive epichs without improvement {max_epoch_without_improvement}. Exiting")
+                return best_classifier
 
             _, indices = torch.topk(torch.softmax(eval_preds, dim=-1), k=1)
             eval_accs.append(accuracy_score(eval_targets.to('cpu').numpy(), indices.to('cpu').numpy()))

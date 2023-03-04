@@ -1,18 +1,36 @@
+import os
+import clip
+import logging
+import torch
+import numpy as np
+import wandb
+import sklearn
+import logging
+import tqdm
+import torchvision
+import PIL
+import imageio
+import skimage
+import sentencepiece
+import os
+import transformers
+import pandas
+import logging
+import wandb
+from ood_detection.config import Config
+from zoc.detectors import linear_layer_detector
+from datasets.config import DATASETS_DICT
+from zeroshot.utils import get_feature_dict_from_class
+from clearml import Task
+
+Task.add_requirements("git+https://github.com/gitfabianmeyer/ood-detection.git")
+task = Task.init(project_name="ma_fmeyer", task_name=f"OOD Detection -ViT-L")
+task.execute_remotely('5e62040adb57476ea12e8593fa612186')
+os.environ["WANDB_API_KEY"] = "a4628d0634b189525ab3a8352f52e2cd79f559b2"
+
 
 def run_all(args):
-    import os
 
-    os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
-    os.environ["CUDA_VISIBLE_DEVICES"] = f"{args.gpu}"
-
-    import logging
-    import clip
-    import numpy as np
-    import wandb
-    from ood_detection.config import Config
-    from zoc.detectors import linear_layer_detector
-    from datasets.config import DATASETS_DICT
-    from zeroshot.utils import get_feature_dict_from_class
 
     _logger = logging.getLogger(__name__)
 
@@ -31,7 +49,7 @@ def run_all(args):
                 continue
 
         _logger.info(f"---------------Running {dname}--------------")
-        run = wandb.init(project=f"TEST-thesis-ood-benchmark-{args.classifier_type}",
+        run = wandb.init(project=f"thesis-ood-benchmark-{args.classifier_type}",
                          entity="wandbefab",
                          name=dname,
                          config={'type': args.classifier_type,
@@ -66,8 +84,7 @@ def main():
     parser.add_argument("--split", type=int, default=0)
     parser.add_argument("--max_split", type=int, default=0)
     parser.add_argument('--classifier_type', type=str, required=True)
-    # parser.add_argument("--vision", type=str, default='ViT-L/14@336px')
-    parser.add_argument("--vision", type=str, default='ViT-B/32')
+    parser.add_argument("--vision", type=str, default='ViT-L/14@336px')
     parser.add_argument("--epochs", type=int, default=300)
     parser.add_argument("--lr", type=float, default=0.001)
 
