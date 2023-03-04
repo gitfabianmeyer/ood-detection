@@ -1,6 +1,3 @@
-import numpy as np
-from zeroshot.utils import get_feature_dict_from_class
-
 
 def run_all(args):
     import os
@@ -10,10 +7,12 @@ def run_all(args):
 
     import logging
     import clip
+    import numpy as np
     import wandb
     from ood_detection.config import Config
-    from zoc.baseline import linear_layer_detector
+    from zoc.detectors import linear_layer_detector
     from datasets.config import DATASETS_DICT
+    from zeroshot.utils import get_feature_dict_from_class
 
     _logger = logging.getLogger(__name__)
 
