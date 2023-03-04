@@ -65,5 +65,8 @@ if __name__ == '__main__':
     parser.add_argument("--gpu", type=str)
     parser.add_argument("--split", type=int, default=0)
     parser.add_argument("--max_splits", type=int, default=0)
+    parser.add_argument("--vision", type=str, default='ViT-L/14@336px')
+    parser.add_argument("--clearml", type=str, default=None)
+
     args = parser.parse_args()
     main(args)

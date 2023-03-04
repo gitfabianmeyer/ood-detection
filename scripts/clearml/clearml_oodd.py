@@ -32,7 +32,7 @@ def run_all(args):
                 continue
 
         _logger.info(f"---------------Running {dname}--------------")
-        run = wandb.init(project=f"thesis-ood_baseline-{args.classifier_type}-full_classes-test_sets",
+        run = wandb.init(project=f"TEST-thesis-ood-benchmark-{args.classifier_type}",
                          entity="wandbefab",
                          name=dname)
 
@@ -64,6 +64,9 @@ def main():
     parser.add_argument("--split", type=int, default=0)
     parser.add_argument("--max_split", type=int, default=0)
     parser.add_argument('--classifier_type', type=str, required=True)
+    # parser.add_argument("--vision", type=str, default='ViT-L/14@336px')
+    parser.add_argument("--vision", type=str, default='ViT-B/32')
+
     args = parser.parse_args()
     run_all(args)
 

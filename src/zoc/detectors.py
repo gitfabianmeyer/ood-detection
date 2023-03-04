@@ -152,6 +152,7 @@ def zoc_detector(isolated_classes: IsolatedClasses,
 
     return metrics
 
+
 @torch.no_grad()
 def zoc_detector_featuredict(feature_dict,
                              clip_model,
@@ -162,10 +163,9 @@ def zoc_detector_featuredict(feature_dict,
                              id_split,
                              runs,
                              shorten_classes=None):
-
     if shorten_classes:
         id_classes = int(shorten_classes * id_split)
-        ood_classes = shorten_classes -id_classes
+        ood_classes = shorten_classes - id_classes
 
     else:
         id_classes = int(len(feature_dict.keys)) * id_split
@@ -204,6 +204,8 @@ def zoc_detector_featuredict(feature_dict,
     metrics = get_result_mean_dict(acc_probs_sum, auc_list_max, auc_list_mean, auc_list_sum, f_probs_sum)
 
     return metrics
+
+
 def train_linear_id_classifier(train_set: FeatureSet, eval_set: FeatureSet, epochs=10, learning_rate=0.001):
     device = Config.DEVICE
     classifier = LinearClassifier(train_set.features_dim, len(train_set.labels)).to(device)
@@ -299,7 +301,9 @@ def linear_layer_detector(train_feature_dict,
                           runs,
                           id_classes_split,
                           classifier_type,
-                          num_cs=96):
+                          epochs=300,
+                          num_cs=96,
+                          learning_rate=0.001):
     assert classifier_type in ['linear', 'logistic', 'all']
 
     device = Config.DEVICE
@@ -319,17 +323,18 @@ def linear_layer_detector(train_feature_dict,
         unseen_labels = ablation_split[id_classes:]
 
         # train classifier to classify id set
+
         train_set = FeatureSet(train_feature_dict, seen_labels, class_to_idx_mapping)
         val_set = FeatureSet(eval_feature_dict, seen_labels, class_to_idx_mapping)
 
         if classifier_type == 'linear':
-            classifier = train_linear_id_classifier(train_set, val_set)
+            classifier = train_linear_id_classifier(train_set, val_set, epochs, learning_rate)
 
         elif classifier_type == 'logistic':
             classifier = train_log_reg_classifier(train_set, val_set, num_cs)
 
         else:
-            lin_classifier = train_linear_id_classifier(train_set, val_set)
+            lin_classifier = train_linear_id_classifier(train_set, val_set, epochs, learning_rate)
             log_classifier = train_log_reg_classifier(train_set, val_set, num_cs)
 
         ood_probs_max = []
@@ -376,5 +381,3 @@ def linear_layer_detector(train_feature_dict,
                    'lin_AUC': lin_mean,
                    'lin_std': lin_std}
     return metrics
-
-
