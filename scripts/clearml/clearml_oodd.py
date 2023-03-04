@@ -50,8 +50,8 @@ def run_all(args):
                                         args.runs,
                                         Config.ID_SPLIT,
                                         args.classifier_type,
-                                        epochs=300,
-                                        learning_rate=0.001)
+                                        epochs=args.epochs,
+                                        learning_rate=args.lr)
         wandb.log(metrics)
         run.finish()
 
@@ -69,6 +69,7 @@ def main():
     # parser.add_argument("--vision", type=str, default='ViT-L/14@336px')
     parser.add_argument("--vision", type=str, default='ViT-B/32')
     parser.add_argument("--epochs", type=int, default=300)
+    parser.add_argument("--lr", type=float, default=0.001)
 
     args = parser.parse_args()
     run_all(args)
