@@ -34,7 +34,9 @@ def run_all(args):
         _logger.info(f"---------------Running {dname}--------------")
         run = wandb.init(project=f"TEST-thesis-ood-benchmark-{args.classifier_type}",
                          entity="wandbefab",
-                         name=dname)
+                         name=dname,
+                         config={'type': args.classifier_type,
+                                 'lr': args.lr})
 
         dset = DATASETS_DICT[dname]
         all_features = get_feature_dict_from_class(dset,
@@ -49,7 +51,8 @@ def run_all(args):
                                         args.runs,
                                         Config.ID_SPLIT,
                                         args.classifier_type,
-                                        args.num_cs)
+                                        epochs=300,
+                                        learning_rate=0.001)
         wandb.log(metrics)
         run.finish()
 
@@ -66,6 +69,7 @@ def main():
     parser.add_argument('--classifier_type', type=str, required=True)
     # parser.add_argument("--vision", type=str, default='ViT-L/14@336px')
     parser.add_argument("--vision", type=str, default='ViT-B/32')
+    parser.add_argument("--epochs", type=int, default=300)
 
     args = parser.parse_args()
     run_all(args)
