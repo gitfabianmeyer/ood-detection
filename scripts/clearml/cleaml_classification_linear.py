@@ -131,7 +131,7 @@ def main():
     parser.add_argument("--split", type=int, default=0)
     parser.add_argument("--max_split", type=int, default=0)
     parser.add_argument("--vision", type=str, default='ViT-L/14@336px')
-    parser.add_argument("--clearml", type=str, default="JO")
+    parser.add_argument("--clearml", type=str, default=None)
     args = parser.parse_args()
 
     run_all(args)
