@@ -90,8 +90,6 @@ def run_all(args):
             test = all_features["test"]
         _logger.info(f"\t\t RUNNING {dname}")
 
-
-
         name = f"thesis-classification-logistic_head-large"
         run = wandb.init(project=name,
                          entity="wandbefab",
@@ -106,9 +104,6 @@ def run_all(args):
         acc = best_classifier.score(test.features, test.targets)
         wandb.log({"test accuracy": acc})
         run.finish()
-
-
-
 
 
 def main():
