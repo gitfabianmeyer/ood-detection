@@ -29,10 +29,20 @@ def save_csv(dataframe, name):
     dataframe.to_csv(os.path.join(csv_path, name))
 
 
-def save_plot(plot, name, dpi=1200):
-    plot_path = os.path.join(Config.DATAPATH, 'plots')
-    os.makedirs(plot_path, exist_ok=True)
-    plot.savefig(os.path.join(plot_path, name), bbox_inches='tight', dpi=dpi)
+def save_plot(plot, name, chapter, dpi, test_version):
+
+    if test_version:
+        plot_path = os.path.join(Config.DATAPATH, 'plots', 'low_res', chapter)
+        os.makedirs(plot_path, exist_ok=True)
+        plot.savefig(os.path.join(plot_path, name)+'.jpeg', bbox_inches='tight')
+        print(f"Saved to {plot_path}")
+
+    else:
+        plot_path = os.path.join(Config.DATAPATH, 'plots', chapter)
+        os.makedirs(plot_path, exist_ok=True)
+        plot.savefig(os.path.join(plot_path, name), bbox_inches='tight', dpi=dpi)
+        print(f"Saved to {plot_path}")
+        return True
 
 
 def plot_corruption_distances(df, split_by, group_by, metric):

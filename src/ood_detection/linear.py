@@ -4,6 +4,7 @@ import numpy as np
 import torch
 import wandb
 from ood_detection.config import Config
+from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import accuracy_score
 from torch.nn import CrossEntropyLoss
 from torch.optim import AdamW
@@ -37,7 +38,7 @@ def train_classification_head(train: FeatureSet,
     criterion = CrossEntropyLoss()
     best_val_acc = 0.
 
-    for epoch in range(1, train_epochs+1):
+    for epoch in range(1, train_epochs + 1):
         epoch_dict = {}
 
         classifier.train()

@@ -30,8 +30,6 @@ os.environ["WANDB_API_KEY"] = "a4628d0634b189525ab3a8352f52e2cd79f559b2"
 
 
 def run_all(args):
-
-
     _logger = logging.getLogger(__name__)
 
     clip_model, clip_transform = clip.load(Config.VISION_MODEL)
@@ -42,7 +40,16 @@ def run_all(args):
         datasets = datasets_splits[args.split - 1]
         _logger.info(f"Current split: {args.split}: {datasets}")
 
+    jumping = False
+    if args.start_at:
+        jumping = True
     for dname in datasets:
+
+        if dname == args.start_at:
+            jumping = False
+        if jumping:
+            _logger.info(f"Jumping {dname}")
+            continue
         if args.dname:
             if dname != args.dname:
                 _logger.info(f"Jumping {dname}")
@@ -63,32 +70,28 @@ def run_all(args):
                              transform=clip_transform,
                              split='train',
                              clearml=True)
-            train_dict = get_feature_dict_from_dataset(train_set,
-                                                       clip_model)
+            train = get_feature_dict_from_dataset(train_set,
+                                                  clip_model)
 
-            train = FeatureSet(train_dict, train_set.classes, train_set.class_to_idx)
-            val_dict = get_feature_dict_from_dataset(dset(CLEARML_PATH,
-                                                          transform=clip_transform,
-                                                          split='val',
-                                                          clearml=True),
-                                                     clip_model)
-
-            val = FeatureSet(val_dict, train_set.classes, train_set.class_to_idx)
+            val = get_feature_dict_from_dataset(dset(CLEARML_PATH,
+                                                     transform=clip_transform,
+                                                     split='val',
+                                                     clearml=True),
+                                                clip_model)
 
             test_set = dset(CLEARML_PATH,
                             transform=clip_transform,
                             split='test',
                             clearml=True)
 
-            test_dict = get_feature_dict_from_dataset(test_set, clip_model)
-            test = FeatureSet(test_dict, test_set.classes, test_set.class_to_idx)
+            test = get_feature_dict_from_dataset(test_set, clip_model)
 
         else:
             dset = DATASETS_DICT[dname]
             all_features = get_feature_dict_from_class(dset,
-                                                   ['train', 'val', 'test'],
-                                                   clip_model,
-                                                   clip_transform)
+                                                       ['train', 'val', 'test'],
+                                                       clip_model,
+                                                       clip_transform)
             train = all_features['train']
             val = all_features["val"]
             test = all_features["test"]
@@ -108,11 +111,12 @@ def main():
 
     parser = argparse.ArgumentParser()
     parser.add_argument('--runs', type=int, default=10)
-    parser.add_argument('--gpu', type=int, required=True, default=1)
+    parser.add_argument('--gpu', type=int, default=1)
     parser.add_argument("--dname", type=str, default=None)
+    parser.add_argument("--start_at", type=str, default="imagenet")
     parser.add_argument("--split", type=int, default=0)
     parser.add_argument("--max_split", type=int, default=0)
-    parser.add_argument('--classifier_type', type=str, required=True)
+    parser.add_argument('--classifier_type', type=str, default='logistic')
     parser.add_argument("--vision", type=str, default='ViT-L/14@336px')
     parser.add_argument("--epochs", type=int, default=300)
     parser.add_argument("--lr", type=float, default=0.001)

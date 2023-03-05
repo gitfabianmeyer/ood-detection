@@ -101,8 +101,8 @@ def get_feature_sets_from_class(dset, splits: List, clip_model, transform):
 def get_feature_dict_from_dataset(dataset, clip_model):
     isolated_classes = IsolatedClasses(dataset, batch_size=512)
     # print("FAKING")
-    # return {cl: torch.rand((random.randint(1, 5), 512)) for cl in isolated_classes.classes}
-    return get_feature_weight_dict_from_isolated_from_isolated_classes(isolated_classes, clip_model)
+    # return FeatureDict({cl: torch.rand((random.randint(1, 5), 512)) for cl in isolated_classes.classes}, None)
+    return FeatureDict(dataset, clip_model)
 
 
 def get_feature_dict_from_class(dset, splits: List, clip_model, transform):

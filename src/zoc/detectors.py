@@ -298,9 +298,9 @@ def train_log_reg_classifier(train_set, eval_set, num_cs):
     return best_classifier
 
 
-def linear_layer_detector(train_feature_dict,
-                          eval_feature_dict,
-                          test_feature_dict,
+def linear_layer_detector(train_feature_dict:FeatureDict,
+                          eval_feature_dict:FeatureDict,
+                          test_feature_dict: FeatureDict,
                           runs,
                           id_classes_split,
                           classifier_type,
