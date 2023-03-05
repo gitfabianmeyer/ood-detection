@@ -116,7 +116,7 @@ def main():
     parser.add_argument("--start_at", type=str, default="imagenet")
     parser.add_argument("--split", type=int, default=0)
     parser.add_argument("--max_split", type=int, default=0)
-    parser.add_argument('--classifier_type', type=str, default='logistic')
+    parser.add_argument('--classifier_type', type=str, default='linear')
     parser.add_argument("--vision", type=str, default='ViT-L/14@336px')
     parser.add_argument("--epochs", type=int, default=300)
     parser.add_argument("--lr", type=float, default=0.001)

@@ -18,7 +18,7 @@ import pandas
 from datasets.config import DATASETS_DICT
 from clearml import Task
 from ood_detection.linear import get_test_accuracy_from_dset, train_classification_head
-from zeroshot.utils import get_feature_sets_from_class, get_feature_dict_from_dataset
+from zeroshot.utils import get_feature_sets_from_class, get_feature_dict_from_dataset, FeatureDict
 
 import numpy as np
 from zeroshot.utils import FeatureSet
@@ -74,7 +74,7 @@ def run_all(args):
                             split='test',
                             clearml=True)
 
-            test_dict = get_feature_dict_from_dataset(test_set, clip_model)
+            test_dict = FeatureDict(test_set, clip_model)
             test = FeatureSet(test_dict, test_set.classes, test_set.class_to_idx)
 
         else:
