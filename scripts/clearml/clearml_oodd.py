@@ -20,7 +20,7 @@ import wandb
 from ood_detection.config import Config
 from zoc.detectors import linear_layer_detector
 from datasets.config import DATASETS_DICT
-from zeroshot.utils import get_feature_dict_from_class, get_feature_dict_from_dataset, FeatureSet
+from zeroshot.utils import get_feature_dict_from_class, get_feature_dict_from_dataset, FeatureSet, FeatureDict
 from clearml import Task
 
 Task.add_requirements("git+https://github.com/gitfabianmeyer/ood-detection.git")
@@ -70,21 +70,21 @@ def run_all(args):
                              transform=clip_transform,
                              split='train',
                              clearml=True)
-            train = get_feature_dict_from_dataset(train_set,
-                                                  clip_model)
+            train = FeatureDict(train_set,
+                                clip_model)
 
-            val = get_feature_dict_from_dataset(dset(CLEARML_PATH,
-                                                     transform=clip_transform,
-                                                     split='val',
-                                                     clearml=True),
-                                                clip_model)
+            val = FeatureDict(dset(CLEARML_PATH,
+                                   transform=clip_transform,
+                                   split='val',
+                                   clearml=True),
+                              clip_model)
 
             test_set = dset(CLEARML_PATH,
                             transform=clip_transform,
                             split='test',
                             clearml=True)
 
-            test = get_feature_dict_from_dataset(test_set, clip_model)
+            test = FeatureDict(test_set, clip_model)
 
         else:
             dset = DATASETS_DICT[dname]

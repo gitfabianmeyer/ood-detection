@@ -18,7 +18,7 @@ import pandas
 from datasets.config import DATASETS_DICT
 from clearml import Task
 from ood_detection.linear import get_test_accuracy_from_dset, train_classification_head
-from zeroshot.utils import get_feature_sets_from_class, get_feature_dict_from_dataset
+from zeroshot.utils import get_feature_sets_from_class, get_feature_dict_from_dataset, FeatureDict
 
 import numpy as np
 from zeroshot.utils import FeatureSet
@@ -55,15 +55,15 @@ def run_all(args):
                              transform=clip_transform,
                              split='train',
                              clearml=True)
-            train_dict = get_feature_dict_from_dataset(train_set,
-                                                       clip_model)
+            train_dict = FeatureDict(train_set,
+                                     clip_model)
 
             train = FeatureSet(train_dict, train_set.classes, train_set.class_to_idx)
-            val_dict = get_feature_dict_from_dataset(dset(CLEARML_PATH,
-                                                          transform=clip_transform,
-                                                          split='val',
-                                                          clearml=True),
-                                                     clip_model)
+            val_dict = FeatureDict(dset(CLEARML_PATH,
+                                        transform=clip_transform,
+                                        split='val',
+                                        clearml=True),
+                                   clip_model)
 
             val = FeatureSet(val_dict, train_set.classes, train_set.class_to_idx)
 
@@ -72,7 +72,7 @@ def run_all(args):
                             split='test',
                             clearml=True)
 
-            test_dict = get_feature_dict_from_dataset(test_set, clip_model)
+            test_dict = FeatureDict(test_set, clip_model)
             test = FeatureSet(test_dict, test_set.classes, test_set.class_to_idx)
 
         else:
@@ -115,7 +115,7 @@ def run_all(args):
                          entity="wandbefab",
                          name="test",
                          config={'epochs': args.train_epochs,
-                                 'lr': args.lr})
+                                 'lr': learning_rate})
         _logger.info("Getting test acc")
         acc = get_test_accuracy_from_dset(test, best_classifier)
         wandb.log({"test accuracy": acc})
@@ -126,7 +126,6 @@ def main():
     import argparse
     parser = argparse.ArgumentParser()
     parser.add_argument("--train_epochs", type=int, default=300)
-    parser.add_argument("--lr", type=int, default=10)
     parser.add_argument("--dname", type=str, default="svhn")
     parser.add_argument("--split", type=int, default=0)
     parser.add_argument("--max_split", type=int, default=0)
