@@ -13,12 +13,13 @@ from ood_detection.config import Config
 from ood_detection.ood_utils import sorted_zeroshot_weights
 from ood_detection.baseline import get_trained_linear_classifier
 
-from zeroshot.utils import get_normalized_image_features
+from zeroshot.utils import get_normalized_image_features, FeatureDict
 
 from zoc.utils import get_ablation_splits, get_split_specific_targets, get_auroc_for_max_probs, get_mean_std, \
     get_zoc_unique_entities, tokenize_for_clip, get_auroc_for_ood_probs, get_caption_features_from_image_features, \
-    get_zoc_feature_dict, get_feature_weight_dict, get_zeroshot_weight_dict_from_isolated_classes
+    get_zoc_feature_dict
 
+from zeroshot.utils import get_zeroshot_weight_dict_from_isolated_classes
 _logger = logging.getLogger(__name__)
 
 
@@ -46,7 +47,7 @@ def linear_adapter_zoc_ablation(dset,
     # CAREFUL: ADJUSTMENT FOR ZOC: THE TEMPLATES ( train tip on same )
     isolated_classes_fast_loader.templates = ["This is a photo of a {}"]
     _logger.info('Creating the test weight dicts')
-    feature_weight_dict = get_feature_weight_dict(isolated_classes_fast_loader, clip_model, device)
+    feature_weight_dict = FeatureDict(dataset, clip_model)
     classes_weight_dict = get_zeroshot_weight_dict_from_isolated_classes(isolated_classes_fast_loader, clip_model)
 
     _logger.info("Done creating weight dicts.")
@@ -200,7 +201,7 @@ def splits_adapter_zoc_ablation(dset,
     # CAREFUL: ADJUSTMENT FOR ZOC: THE TEMPLATES ( train tip on same )
     isolated_classes_fast_loader.templates = ["This is a photo of a {}"]
     _logger.info('Creating the test weight dicts')
-    feature_weight_dict = get_feature_weight_dict(isolated_classes_fast_loader, clip_model, device)
+    feature_weight_dict = FeatureDict(dataset, clip_model)
     classes_weight_dict = get_zeroshot_weight_dict_from_isolated_classes(isolated_classes_fast_loader, clip_model)
     _logger.info("Done creating weight dicts.")
 
@@ -390,7 +391,7 @@ def zoc_temp_ablation(dset,
 
     isolated_classes_fast_loader.templates = ["This is a photo of a {}"]
     _logger.info('Creating the test weight dicts')
-    feature_weight_dict = get_feature_weight_dict(isolated_classes_fast_loader, clip_model)
+    feature_weight_dict = FeatureDict(dataset, clip_model)
 
     num_id_classes = int(len(dataset.classes) * Config.ID_SPLIT)
     num_ood_classes = len(dataset.classes) - num_id_classes
@@ -462,7 +463,7 @@ def kshot_adapter_zoc_ablation(dset,
     # CAREFUL: ADJUSTMENT FOR ZOC: THE TEMPLATES ( train tip on same )
     isolated_classes_fast_loader.templates = ["This is a photo of a {}"]
     _logger.info('Creating the test weight dicts')
-    feature_weight_dict = get_feature_weight_dict(isolated_classes_fast_loader, clip_model, device)
+    feature_weight_dict = FeatureDict(dataset, clip_model)
     classes_weight_dict = get_zeroshot_weight_dict_from_isolated_classes(isolated_classes_fast_loader, clip_model)
     _logger.info("Done creating weight dicts.")
 
