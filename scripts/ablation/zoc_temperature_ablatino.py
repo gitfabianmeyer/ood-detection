@@ -26,7 +26,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--gpu", type=int)
     parser.add_argument("--dname", type=str)
-    parser.add_argument("--runs", type=int, default=10)
+    parser.add_argument("--runs", type=int, default=5)
     parser.add_argument("--temperatures", type=int, default=10)
     args = parser.parse_args()
 

@@ -23,10 +23,7 @@ from datasets.config import DATASETS_DICT
 from zeroshot.utils import get_feature_dict_from_class, get_feature_dict_from_dataset, FeatureSet, FeatureDict
 from clearml import Task
 
-Task.add_requirements("git+https://github.com/gitfabianmeyer/ood-detection.git")
-task = Task.init(project_name="ma_fmeyer", task_name=f"OOD Detection -ViT-L")
-task.execute_remotely('5e62040adb57476ea12e8593fa612186')
-os.environ["WANDB_API_KEY"] = "a4628d0634b189525ab3a8352f52e2cd79f559b2"
+
 
 
 def run_all(args):
@@ -101,6 +98,7 @@ def run_all(args):
                                         Config.ID_SPLIT,
                                         args.classifier_type,
                                         epochs=args.epochs,
+                                        num_cs=96,
                                         learning_rate=args.lr)
         wandb.log(metrics)
         run.finish()
@@ -116,12 +114,19 @@ def main():
     parser.add_argument("--start_at", type=str, default="imagenet")
     parser.add_argument("--split", type=int, default=0)
     parser.add_argument("--max_split", type=int, default=0)
-    parser.add_argument('--classifier_type', type=str, default='linear')
+    parser.add_argument('--classifier_type', type=str, default='logistic')
     parser.add_argument("--vision", type=str, default='ViT-L/14@336px')
     parser.add_argument("--epochs", type=int, default=300)
     parser.add_argument("--lr", type=float, default=0.001)
-
+    parser.add_argument('--clearml_worker', type=str)
+    parser.add_argument('--wandb', type=str)
     args = parser.parse_args()
+
+    Task.add_requirements("git+https://github.com/gitfabianmeyer/ood-detection.git")
+    task = Task.init(project_name="ma_fmeyer", task_name=f"OOD Detection -ViT-L")
+    task.execute_remotely(args.clearml_worker)
+    os.environ["WANDB_API_KEY"] = args.wandb
+
     run_all(args)
 
 

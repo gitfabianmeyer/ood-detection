@@ -8,8 +8,8 @@ import sentencepiece
 import pycocotools
 import clip
 import torch
+import wandb
 from transformers import BertGenerationTokenizer, BertGenerationDecoder, BertGenerationConfig, BertTokenizer
-
 from torch.optim import AdamW
 
 from PIL import Image
@@ -20,22 +20,7 @@ from tqdm import tqdm
 
 from clearml import Dataset, Task
 
-run_clearml = True
-load_from_clearml = True
-if run_clearml:
-    task = Task.init(project_name="ma_fmeyer", task_name="Caption Generator")
-    task.execute_remotely('5e62040adb57476ea12e8593fa612186')
-    dataset_name = "COCO 2017 Dataset"
-    DATASET_PATH = Dataset.get(dataset_project='COCO-2017',
-                               dataset_name=dataset_name
-                               ).get_local_copy()
-    logger = task.get_logger()
 
-else:
-    DATASET_PATH = '/mnt/c/users/fmeyer/git/ood-detection/data/coco'
-
-DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-print(f"Using: {DEVICE}")
 
 
 class MyCocoDetection:
@@ -98,7 +83,6 @@ def eval_decoder(bert_model, loader):
 
 
 def train_decoder(bert_model, train_loader, eval_loader, optimizer):
-    early_stop = 0
     num_batch_train = len(iter(train_loader))
     num_batch_val = len(iter(eval_loader))
     print(f"Starting training for max {args.num_epochs} epochs...")
@@ -127,25 +111,19 @@ def train_decoder(bert_model, train_loader, eval_loader, optimizer):
 
             curr_loss = out.loss.detach().item()
             acc_loss += curr_loss
-            if run_clearml:
-                logger.report_scalar("train", "loss",
-                                     iteration=(epoch * num_batch_train + batch_idx),
-                                     value=curr_loss)
-                logger.report_scalar("train", "mean loss",
-                                     iteration=(epoch * num_batch_train + batch_idx),
-                                     value=curr_loss / num_batch_train)
+
+            wandb.log({'batch loss': curr_loss,
+                       'iteration': epoch * num_batch_train + batch_idx})
 
         validation_loss = eval_decoder(bert_model, eval_loader)
-        if run_clearml:
-            logger.report_scalar("val", "loss",
-                                 iteration=epoch,
-                                 value=validation_loss)
+        train_epoch_loss = acc_loss / num_batch_train
+        val_epoch_loss = validation_loss / num_batch_val
 
-            logger.report_scalar("val", "mean loss",
-                                 iteration=epoch,
-                                 value=acc_loss / num_batch_val)
-
-        print('validation loss in this epoch: ', validation_loss)
+        wandb.log({'train loss': acc_loss,
+                   'train mean loss': train_epoch_loss,
+                   'val loss': validation_loss,
+                   'val mean loss': val_epoch_loss,
+                   'epoch': epoch})
         state = {'net': bert_model.state_dict(),
                  'epoch': epoch,
                  'validation loss': validation_loss}
@@ -158,16 +136,9 @@ def train_decoder(bert_model, train_loader, eval_loader, optimizer):
                 early_stop = 0
                 best_val_loss = validation_loss
                 torch.save(state, 'model.pt')
-            else:
-                early_stop += 1
 
         print('Average loss on {} training batches in this epoch:{}\n'.format(num_batch_train,
                                                                               acc_loss / num_batch_train))
-
-        if early_stop >= 4:
-            print(f"No improvements on val data for {early_stop} iterations. Breaking now")
-
-            break
     try:
         task.upload_artifact(name=f"model_{epoch}.pt",
                              artifact_object=state)
@@ -202,14 +173,14 @@ def get_clip_image_features(coco_dataset, split, clip_backbone, clip_model, torc
     features_path = 'clip_image_features_{}_{}.npy'.format(split,
                                                            clip_backbone)
 
-    if load_from_clearml:
+    try:
         artifact_task = Task.get_task(project_name='ma_fmeyer', task_name='clip_image_features')
         artifact = artifact_task.artifacts[features_path].get_local_copy()
         artifact = np.load(artifact)
         clip_out_all = artifact[features_path]
 
-    else:
-        print("Calculating clip image features")
+    except:
+        print("Loading image features failed. Generating now")
         loader = DataLoader(dataset=coco_dataset, batch_size=256, shuffle=False, collate_fn=collate_fn)
         clip_out_all = []
         for i, (images, annot) in enumerate(tqdm(loader)):
@@ -219,10 +190,10 @@ def get_clip_image_features(coco_dataset, split, clip_backbone, clip_model, torc
         clip_out_all = np.concatenate(clip_out_all)
 
         try:
-            if run_clearml:
-                task.upload_artifact(name=features_path,
-                                     artifact_object=clip_out_all)
-                print(f"Uploaded clip image features {split} as artifact")
+
+            task.upload_artifact(name=features_path,
+                                 artifact_object=clip_out_all)
+            print(f"Uploaded clip image features {split} as artifact")
         except:
             print(f"Couldn't store image features.")
 
@@ -231,25 +202,25 @@ def get_clip_image_features(coco_dataset, split, clip_backbone, clip_model, torc
 
 def get_bos_sentence_eos(coco_dataset, berttokenizer, split, backbone):
     features_path = "bos_sentence_eos_{}_{}.npy".format(backbone, split)
-    if load_from_clearml:
+
+    try:
         artifact_task = Task.get_task(project_name='ma_fmeyer', task_name='bos_sentence_eos')
         artifact = artifact_task.artifacts[features_path].get_local_copy()
         artifact = np.load(artifact)
         bos_sentence_eos = artifact[features_path]
         bos_sentence_eos = bos_sentence_eos.tolist()
 
-    else:
-        print('preprocessing all sentences...')
+    except:
+        print('Loading bos sentence failed. \npreprocessing all sentences...')
         bos_sentence_eos = []
         for i, (image, captions) in enumerate(tqdm(coco_dataset)):
 
             for caption in captions:
                 bos_sentence_eos.append(berttokenizer.bos_token + ' ' + caption + ' ' + berttokenizer.eos_token)
         try:
-            if run_clearml:
-                task.upload_artifact(name=features_path,
-                                     artifact_object=np.array(bos_sentence_eos))
-                print(f"Uploaded {features_path} as artifact")
+            task.upload_artifact(name=features_path,
+                                 artifact_object=np.array(bos_sentence_eos))
+            print(f"Uploaded {features_path} as artifact")
         except:
             print(f"Couldn't store in {features_path}, continuing...")
     return bos_sentence_eos
@@ -276,20 +247,7 @@ def get_loader(train, clip_backbone, clip_model, berttokenizer, datapath):
     return loader
 
 
-if __name__ == '__main__':
-
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--lr', type=float, default=1e-5, help="Learning rate")
-    parser.add_argument('--gamma', type=float, default=0.5)
-    parser.add_argument('--momentum', type=float, default=0.9)
-    parser.add_argument('--weight_decay', type=float, default=1e-4)
-    parser.add_argument('--num_epochs', type=int, default=25, help="End epoch")  # trained with 25 epochs
-    parser.add_argument('--trained_path', type=str, default='./trained_models/COCO/')
-    parser.add_argument('--bert_model', type=str, default='google/bert_for_seq_generation_L-24_bbc_encoder')
-    parser.add_argument('--clip_vision', type=str, default='ViT-B/32')
-
-    args = parser.parse_args()
-
+def main(args):
     # initialize tokenizers for clip and bert, these two use different tokenizers
     if args.bert_model == "google/bert_for_seq_generation_L-24_bbc_encoder":
         berttokenizer = BertGenerationTokenizer.from_pretrained(args.bert_model)
@@ -297,6 +255,10 @@ if __name__ == '__main__':
         berttokenizer = BertTokenizer.from_pretrained(args.bert_model)
 
     cmodel, _ = clip.load(args.clip_vision)
+    dataset_name = "COCO 2017 Dataset"
+    DATASET_PATH = Dataset.get(dataset_project='COCO-2017',
+                               dataset_name=dataset_name
+                               ).get_local_copy()
     tloader = get_loader(train=True, clip_backbone=args.clip_vision, clip_model=cmodel,
                          berttokenizer=berttokenizer, datapath=DATASET_PATH)
     eloader = get_loader(train=False, clip_backbone=args.clip_vision, clip_model=cmodel,
@@ -309,6 +271,33 @@ if __name__ == '__main__':
                                                    config=bert_config).to(DEVICE).train()
 
     optimizer = AdamW(bmodel.parameters(), lr=args.lr)
-
     loss = train_decoder(bmodel, tloader, eloader, optimizer)
     print('final training loss={}'.format(loss))
+
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--lr', type=float, default=1e-5, help="Learning rate")
+    parser.add_argument('--gamma', type=float, default=0.5)
+    parser.add_argument('--momentum', type=float, default=0.9)
+    parser.add_argument('--weight_decay', type=float, default=1e-4)
+    parser.add_argument('--num_epochs', type=int, default=25, help="End epoch")  # trained with 25 epochs
+    parser.add_argument('--trained_path', type=str, default='./trained_models/COCO/')
+    parser.add_argument('--bert_model', type=str, default='google/bert_for_seq_generation_L-24_bbc_encoder')
+    parser.add_argument('--clip_vision', type=str, default='ViT-B/32')
+    parser.add_argument('--clearml_worker', type=str)
+    parser.add_argument('--wandb', type=str)
+    args = parser.parse_args()
+
+    print(args.wandb)
+    print(args.clearml_worker)
+    Task.add_requirements("git+https://github.com/gitfabianmeyer/ood-detection.git")
+    task = Task.init(project_name="ma_fmeyer", task_name=f"Train Bert-L Decoder")
+    task.execute_remotely(args.clearml_worker)
+    os.environ["WANDB_API_KEY"] = args.wandb
+    run = wandb.init(project=f"Train Decoder",
+                     entity="wandbefab",
+                     name='COCO 25 Epochs 0.0001')
+    DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    print(f"Using: {DEVICE}")
+    main(args)
