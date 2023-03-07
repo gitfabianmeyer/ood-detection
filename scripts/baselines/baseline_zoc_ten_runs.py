@@ -5,7 +5,6 @@ os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 
 import numpy as np
 
-from zoc.baseline import baseline_detector_no_temperature
 
 import argparse
 import logging

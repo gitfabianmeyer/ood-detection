@@ -10,15 +10,15 @@ def run_single(args):
     dset = DATASETS_DICT[args.dname]
 
     temperatures = np.logspace(np.log2(0.001), np.log2(100), num=args.temperatures, base=2.0)
-    run = wandb.init(project=f"thesis-ablation-zoc_temps",
-                     entity="wandbefab",
-                     name=args.dname)
+    # run = wandb.init(project=f"thesis-ablation-zoc_temps",
+    #                  entity="wandbefab",
+    #                  name=args.dname)
     zoc_temp_ablation(dset,
                       clip_model,
                       clip_transform,
                       args.runs,
                       temperatures)
-    run.finish()
+    # run.finish()
 
 
 def main():

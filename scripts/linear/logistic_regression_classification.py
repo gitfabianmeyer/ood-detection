@@ -38,7 +38,6 @@ def run_all():
 def logreg_baseline(dataset, clip_model, clip_transform):
     from datasets.zoc_loader import IsolatedClasses
     from ood_detection.config import Config
-    from zoc.baseline import get_feature_weight_dict, FeatureSet, train_log_reg_classifier
 
     train_dataset = dataset(Config.DATAPATH,
                             split='train',

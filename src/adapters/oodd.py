@@ -1,7 +1,18 @@
 import logging
 
+import numpy as np
+import torch
+from adapters.tip_adapter import create_tip_train_set, get_cache_model, get_dataset_with_shorted_classes, \
+    get_dataset_features_from_dataset_with_split, run_tip_adapter_finetuned, WeightAdapter, load_adapter, search_hp, \
+    get_cache_logits, load_hyperparams_from_training
 from datasets.zoc_loader import IsolatedClasses
 from ood_detection.config import Config
+from ood_detection.ood_utils import sorted_zeroshot_weights
+from tqdm import tqdm
+from zeroshot.classification import get_cosine_similarity_matrix_for_normed_features
+from zeroshot.utils import get_feature_and_class_weight_dict, get_ablation_split_classes
+from zoc.utils import get_ablation_splits, get_split_specific_targets, get_auroc_for_max_probs, get_mean_std, \
+    get_caption_features_from_image_features, get_auroc_for_ood_probs
 
 _logger = logging.getLogger(__name__)
 
@@ -45,7 +56,7 @@ def tip_hyperparam_ood_detector(dset,
         zeroshot_weights = sorted_zeroshot_weights(classes_weight_dict, seen_labels)
 
         # get the kshot train set
-        tip_train_set = create_tip_train_set(dset, seen_labels, kshots)
+        tip_train_set = create_tip_train_set(dataset, seen_labels, kshots)
         tip_train_set.name = f"{tip_train_set.name}_{runs}_runs_ood"
         _logger.info(f"len train set: {len(tip_train_set)}. Should be: {len(tip_train_set.classes) * kshots} (max)")
         cache_keys, cache_values = get_cache_model(tip_train_set, clip_model, augment_epochs=augment_epochs)
@@ -181,7 +192,7 @@ def tip_ood_detector(dataset,
         # prepare split specific adapter
 
         # get the kshot train set
-        tip_train_set = create_tip_train_set(dset, seen_labels, kshots)
+        tip_train_set = create_tip_train_set(dataset, seen_labels, kshots)
         _logger.info(f"len trainset: {len(tip_train_set)}. Should be: {len(tip_train_set.classes) * kshots} (max)")
         cache_keys, cache_values = get_cache_model(tip_train_set, clip_model, augment_epochs=augment_epochs)
 
@@ -285,7 +296,7 @@ def adapter_zoc(dset,
         zeroshot_weights = zeroshot_weights.to(torch.float32)
 
         # get the kshot train set
-        tip_train_set = create_tip_train_set(dset, seen_labels, kshots)
+        tip_train_set = create_tip_train_set(dataset, seen_labels, kshots)
         tip_train_set.name = f"{tip_train_set.name}_{runs}-runs_ood_split-{split_idx}"
         _logger.info(f"len train set: {len(tip_train_set)}. Should be: {len(tip_train_set.classes) * kshots} (max)")
         cache_keys, cache_values = get_cache_model(tip_train_set, clip_model, augment_epochs=augment_epochs)

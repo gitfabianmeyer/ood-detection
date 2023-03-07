@@ -56,7 +56,6 @@ def logred_oodd(dataset, clip_model, clip_transform, id_split, runs):
     import numpy as np
     import torch
     from datasets.zoc_loader import IsolatedClasses
-    from zoc.baseline import get_feature_weight_dict, FeatureSet, train_log_reg_classifier
     from zoc.utils import get_ablation_splits, get_split_specific_targets, get_auroc_for_max_probs
     train_dataset = dataset(Config.DATAPATH,
                             split='train',

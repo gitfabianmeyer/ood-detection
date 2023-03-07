@@ -197,17 +197,15 @@ def get_cache_model(train_set, model, augment_epochs=10):
     return cache_keys.to(torch.float32), cache_values.to(torch.float32)
 
 
-def create_tip_train_set(dset, seen_labels, kshots, split='train'):
-    dataset = get_dataset_with_shorted_classes(dset, seen_labels, split)
+def create_tip_train_set(dataset, seen_labels, kshots, split='train'):
+    dataset = get_dataset_with_shorted_classes(dataset, seen_labels, split)
 
     dataset = get_kshot_set(dataset, kshots)
     return dataset
 
 
-def get_dataset_with_shorted_classes(dset, seen_labels, split):
-    dataset = dset(Config.DATAPATH,
-                   transform=get_train_transform(),
-                   split=split)
+def get_dataset_with_shorted_classes(dataset, seen_labels, split):
+
     _logger.info(f"Creating {split} set for the seen labels")
     new_class_to_idx = {seen_labels[i]: i for i in range(len(seen_labels))}
     new_idx_to_class = {value: key for (key, value) in new_class_to_idx.items()}

@@ -8,7 +8,6 @@ def run_all(args):
     import wandb
     import clip
     from ood_detection.config import Config
-    from zoc.baseline import FeatureSet
 
     _logger.info(f"Loading {args.vision}")
     clip_model, clip_transform = clip.load(args.vision)

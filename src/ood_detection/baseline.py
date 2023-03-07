@@ -1,5 +1,4 @@
 from datasets.zoc_loader import IsolatedClasses
-from zoc.baseline import get_feature_weight_dict, FeatureSet
 
 
 def get_trained_linear_classifier(train_set, val_set, seen_labels, clip_model=None, device=None):

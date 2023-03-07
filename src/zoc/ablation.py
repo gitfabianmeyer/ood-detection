@@ -15,10 +15,9 @@ from ood_detection.baseline import get_trained_linear_classifier
 
 from zeroshot.utils import get_normalized_image_features
 
-from zoc.baseline import get_feature_weight_dict, get_zeroshot_weight_dict_from_isolated_classes
 from zoc.utils import get_ablation_splits, get_split_specific_targets, get_auroc_for_max_probs, get_mean_std, \
     get_zoc_unique_entities, tokenize_for_clip, get_auroc_for_ood_probs, get_caption_features_from_image_features, \
-    get_zoc_feature_dict
+    get_zoc_feature_dict, get_feature_weight_dict, get_zeroshot_weight_dict_from_isolated_classes
 
 _logger = logging.getLogger(__name__)
 
@@ -35,6 +34,7 @@ def linear_adapter_zoc_ablation(dset,
                                 learning_rate,
                                 eps,
                                 shorten_classes=None):
+
     dataset = dset(data_path=Config.DATAPATH,
                    split='test',
                    transform=clip_transform)
@@ -77,7 +77,7 @@ def linear_adapter_zoc_ablation(dset,
             zeroshot_weights = zeroshot_weights.to(torch.float32).to(device)
 
             # get the kshot train set
-            tip_train_set = create_tip_train_set(dset, seen_labels, kshot)
+            tip_train_set = create_tip_train_set(dataset, seen_labels, kshot)
             tip_train_set.name = f"{tip_train_set.name}_ablation_kshot"
             _logger.info(f"len train set: {len(tip_train_set)}. Should be: {len(tip_train_set.classes) * kshot} (max)")
             cache_keys, cache_values = get_cache_model(tip_train_set, clip_model, augment_epochs=augment_epochs)
@@ -169,7 +169,7 @@ def linear_adapter_zoc_ablation(dset,
                    'linear_std': linear_std,
                    'shots': kshot
                    }
-        return
+        return metrics
 
 
 def splits_adapter_zoc_ablation(dset,
@@ -233,7 +233,7 @@ def splits_adapter_zoc_ablation(dset,
             zeroshot_weights = zeroshot_weights.to(torch.float32)
 
             # get the kshot train set
-            tip_train_set = create_tip_train_set(dset, seen_labels, kshots)
+            tip_train_set = create_tip_train_set(dataset, seen_labels, kshots)
             tip_train_set.name = f"{tip_train_set.name}_ablation_splits"
             _logger.info(f"len train set: {len(tip_train_set)}. Should be: {len(tip_train_set.classes) * kshots} (max)")
             cache_keys, cache_values = get_cache_model(tip_train_set, clip_model, augment_epochs=augment_epochs)
@@ -502,7 +502,7 @@ def kshot_adapter_zoc_ablation(dset,
             zeroshot_weights = zeroshot_weights.to(torch.float32)
 
             # get the kshot train set
-            tip_train_set = create_tip_train_set(dset, seen_labels, kshot)
+            tip_train_set = create_tip_train_set(dataset, seen_labels, kshot)
             tip_train_set.name = f"{tip_train_set.name}_ablation_kshot"
             _logger.info(f"len train set: {len(tip_train_set)}. Should be: {len(tip_train_set.classes) * kshots} (max)")
             cache_keys, cache_values = get_cache_model(tip_train_set, clip_model, augment_epochs=augment_epochs)

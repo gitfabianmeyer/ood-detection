@@ -12,7 +12,6 @@ def run_all(args):
     import clip
     import wandb
     from ood_detection.config import Config
-    from zoc.baseline import linear_layer_detector
     from datasets.config import DATASETS_DICT
 
     _logger = logging.getLogger(__name__)
