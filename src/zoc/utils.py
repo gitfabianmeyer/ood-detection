@@ -100,16 +100,17 @@ def get_zoc_probs(image_features, bert_model, bert_tokenizer, clip_model, clip_t
     text_features = get_caption_features_from_image_features(image_features, seen_descriptions,
                                                              seen_labels, bert_model,
                                                              bert_tokenizer, clip_model,
-                                                             clip_tokenizer, device)
+                                                             clip_tokenizer)
     image_features /= image_features.norm(dim=-1, keepdim=True)
     zeroshot_probs = get_cosine_similarity_matrix_for_normed_features(image_features, text_features, 0.01)
     return zeroshot_probs.softmax(dim=1).squeeze()
 
 
 @torch.no_grad()
-def get_caption_features_from_image_features(unnormed_image_feature, seen_descriptions, seen_labels, bert_model,
-                                             bert_tokenizer,
-                                             clip_model, clip_tokenizer):
+def get_caption_features_from_image_features(unnormed_image_feature, seen_descriptions,
+                                             seen_labels, bert_model,
+                                             bert_tokenizer, clip_model,
+                                             clip_tokenizer):
     device = Config.DEVICE
     clip_extended_embed = unnormed_image_feature.repeat(1, 2).type(torch.FloatTensor)
     # greedy generation
@@ -309,7 +310,7 @@ def get_zoc_feature_dict(dataset, clip_model, seen_labels):
             tf = get_caption_features_from_image_features(image_feat, seen_descriptions,
                                                           seen_labels, bert_model,
                                                           bert_tokenizer, clip_model,
-                                                          clip_tokenizer, device)
+                                                          clip_tokenizer)
             text_features.append(tf)
         zoc_featuredict[semantic_label] = text_features
     return FeatureDict(zoc_featuredict, None)

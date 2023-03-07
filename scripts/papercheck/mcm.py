@@ -33,7 +33,7 @@ def get_zoc_scores(in_distribution, loader, seen_labels, clip_model, clip_tokeni
     for idx, (image, target) in enumerate(tqdm(loader)):
         clip_out = clip_model.encode_image(image.to(device)).float()
         text_features = get_caption_features_from_image_features(clip_out, seen_descriptions, seen_labels, bert_model,
-                                                                 bert_tokenizer, clip_model, clip_tokenizer, device)
+                                                                 bert_tokenizer, clip_model, clip_tokenizer)
         image_feature = clip_out
         image_feature /= image_feature.norm(dim=-1, keepdim=True)
 

@@ -354,7 +354,7 @@ def adapter_zoc(dset,
                 # get id/ood label features
                 text_features = get_caption_features_from_image_features(clip_out, seen_descriptions, seen_labels,
                                                                          bert_model, bert_tokenizer, clip_model,
-                                                                         clip_tokenizer, device)
+                                                                         clip_tokenizer)
                 # get image features
                 image_feature = clip_out
                 image_feature /= image_feature.norm(dim=-1, keepdim=True)
