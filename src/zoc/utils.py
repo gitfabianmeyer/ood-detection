@@ -21,7 +21,8 @@ _logger = logging.getLogger()
 
 
 @torch.no_grad()
-def greedysearch_generation_topk(clip_embed, berttokenizer, bert_model, device):
+def greedysearch_generation_topk(clip_embed, berttokenizer, bert_model):
+    device = Config.DEVICE
     N = 1  # batch has single sample
     max_len = 77
     target_list = [torch.tensor(berttokenizer.bos_token_id)]
@@ -108,13 +109,13 @@ def get_zoc_probs(image_features, bert_model, bert_tokenizer, clip_model, clip_t
 @torch.no_grad()
 def get_caption_features_from_image_features(unnormed_image_feature, seen_descriptions, seen_labels, bert_model,
                                              bert_tokenizer,
-                                             clip_model, clip_tokenizer, device):
+                                             clip_model, clip_tokenizer):
+    device = Config.DEVICE
     clip_extended_embed = unnormed_image_feature.repeat(1, 2).type(torch.FloatTensor)
     # greedy generation
     target_list, topk_list = greedysearch_generation_topk(clip_extended_embed,
                                                           bert_tokenizer,
-                                                          bert_model,
-                                                          device)
+                                                          bert_model)
     topk_tokens = [bert_tokenizer.decode(int(pred_idx.cpu().numpy())) for pred_idx in topk_list]
     entities = [ent.lower() for ent in topk_tokens]
     unique_entities = list(set(entities) - set(seen_labels))
@@ -260,7 +261,8 @@ def get_feature_dict_from_isolated_classes(isolated_classes: IsolatedClasses, cl
 
 
 @torch.no_grad()
-def get_zoc_unique_entities(dataset, clip_model, bert_tokenizer, bert_model, device):
+def get_zoc_unique_entities(dataset, clip_model, bert_tokenizer, bert_model):
+    device = Config.DEVICE
     isolated_classes_slow_loader = IsolatedClasses(dataset,
                                                    batch_size=1,
                                                    lsun=False)
@@ -275,8 +277,7 @@ def get_zoc_unique_entities(dataset, clip_model, bert_tokenizer, bert_model, dev
             # greedy generation
             target_list, topk_list = greedysearch_generation_topk(clip_extended_embed,
                                                                   bert_tokenizer,
-                                                                  bert_model,
-                                                                  device)
+                                                                  bert_model)
 
             topk_tokens = [bert_tokenizer.decode(int(pred_idx.cpu().numpy())) for pred_idx in topk_list]
             unique_entities = list(set(topk_tokens) - {semantic_label})
@@ -290,7 +291,7 @@ def get_zoc_feature_dict(dataset, clip_model, seen_labels):
     isolated_classes = IsolatedClasses(dataset,
                                        batch_size=512,
                                        lsun=False)
-    image_featuredict = get_unnormed_featuredict_from_isolated_classes(clip_model, device, isolated_classes)
+    image_featuredict = get_unnormed_featuredict_from_isolated_classes(clip_model, isolated_classes)
 
     from transformers import BertGenerationTokenizer
     bert_tokenizer = BertGenerationTokenizer.from_pretrained('google/bert_for_seq_generation_L-24_bbc_encoder')

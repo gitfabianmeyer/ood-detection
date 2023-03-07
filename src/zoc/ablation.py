@@ -192,7 +192,7 @@ def splits_adapter_zoc_ablation(dset,
                    split='test',
                    transform=clip_transform)
     # prepare features ...
-    zoc_unique_entities = get_zoc_unique_entities(dataset, clip_model, bert_tokenizer, bert_model, device)
+    zoc_unique_entities = get_zoc_unique_entities(dataset, clip_model, bert_tokenizer, bert_model)
 
     isolated_classes_fast_loader = IsolatedClasses(dataset,
                                                    batch_size=512,
@@ -443,7 +443,6 @@ def kshot_adapter_zoc_ablation(dset,
                                clip_tokenizer,
                                bert_tokenizer,
                                bert_model,
-                               device,
                                id_classes_split,
                                augment_epochs,
                                runs_per_setting,
@@ -479,7 +478,7 @@ def kshot_adapter_zoc_ablation(dset,
     all_seen_descriptions = [f"This is a photo of a {label}" for label in dataset.classes]
     zoc_unique_entities = get_zoc_unique_entities(dataset, all_seen_descriptions, clip_model, clip_tokenizer,
                                                   bert_tokenizer,
-                                                  bert_model, device)
+                                                  bert_model)
 
     isolated_classes_slow_loader = IsolatedClasses(dataset,
                                                    batch_size=1,
@@ -558,7 +557,7 @@ def kshot_adapter_zoc_ablation(dset,
                     text_features = get_caption_features_from_image_features(image, seen_descriptions,
                                                                              seen_labels, bert_model,
                                                                              bert_tokenizer, clip_model,
-                                                                             clip_tokenizer, device)
+                                                                             clip_tokenizer)
                     image_feature = get_normalized_image_features(clip_model, image)
 
                     zoc_logits_for_image = get_cosine_similarity_matrix_for_normed_features(image_feature,

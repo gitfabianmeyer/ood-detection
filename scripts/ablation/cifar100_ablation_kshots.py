@@ -29,7 +29,6 @@ eps = 1e-4
 def main():
     failed = []
     clip_model, clip_transform = clip.load(Config.VISION_MODEL)
-    device = Config.DEVICE
     bert_tokenizer = BertGenerationTokenizer.from_pretrained('google/bert_for_seq_generation_L-24_bbc_encoder')
     clip_tokenizer = SimpleTokenizer()
     bert_model = get_decoder()
@@ -49,7 +48,6 @@ def main():
                                                  clip_tokenizer,
                                                  bert_tokenizer,
                                                  bert_model,
-                                                 device,
                                                  Config.ID_SPLIT,
                                                  augment_epochs,
                                                  runs,
