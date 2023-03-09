@@ -8,6 +8,8 @@ def main():
     import clip
     import numpy as np
     import wandb
+    from tqdm import tqdm
+
     from datasets.config import DATASETS_DICT
     from ood_detection.classification_utils import zeroshot_classifier
     from ood_detection.config import Config
@@ -33,7 +35,8 @@ def main():
 
         id_set_features = get_set_features_no_classes(id_dataset, clip_model)
         zeroshot_weights = zeroshot_classifier(id_dataset.classes, base_template, clip_model)
-        for od_name, od_set in DATASETS_DICT.items():
+        for od_name, od_set in tqdm(DATASETS_DICT.items()):
+            _logger.info(f"Running {id_name} vs {od_name}")
             if od_name == id_name:
                 continue
             run = wandb.init(project=f"thesis-far-{id_name}",
