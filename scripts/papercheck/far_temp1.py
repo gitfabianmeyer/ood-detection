@@ -53,7 +53,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--gpu', type=str, required=True)
     parser.add_argument('-t', '--temps', help='delimited list input',
-                        type=lambda s: [int(item) for item in s.split(',')])
+                        type=lambda s: [float(item) for item in s.split(',')])
     args = parser.parse_args()
 
     import os
