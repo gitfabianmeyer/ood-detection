@@ -36,7 +36,7 @@ def main():
             id_set_features = features[id_name]
             zeroshot_weights = classifiers[id_name]
             for od_name in datasets:
-                run = wandb.init(project=f"thesis-far-ood-msp-{str(args.temp)}",
+                run = wandb.init(project=f"thesis-far-ood-msp-{str(temp)}",
                                  entity="wandbefab",
                                  name=id_name + "-" + od_name)
                 _logger.info(f"Running {id_name} vs {od_name}")
