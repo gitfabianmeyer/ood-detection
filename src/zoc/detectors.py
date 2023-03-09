@@ -105,7 +105,7 @@ def zoc_detector(isolated_classes: IsolatedClasses,
     all_classes = isolated_classes.classes
     device = Config.DEVICE
     if not shorten_classes:
-        id_classes = len(isolated_classes.classes) * id_split
+        id_classes = int(len(isolated_classes.classes) * id_split)
         ood_classes = len(isolated_classes.classes) - id_classes
 
 

@@ -1,10 +1,9 @@
 import logging
 
-
 _logger = logging.getLogger(__name__)
 
 
-def run_single_dataset_ood(isolated_classes, clip_model, clip_tokenizer, bert_tokenizer, bert_model, runs):
+def run_single_dataset_ood(isolated_classes, clip_model, clip_tokenizer, bert_tokenizer, bert_model, runs, shorten):
     from ood_detection.config import Config
     from zoc.detectors import zoc_detector
 
@@ -15,7 +14,7 @@ def run_single_dataset_ood(isolated_classes, clip_model, clip_tokenizer, bert_to
                            bert_model,
                            Config.ID_SPLIT,
                            runs,
-                           shorten_classes=None)
+                           shorten_classes=None if shorten == 0 else shorten)
     return metrics
 
 
@@ -50,10 +49,6 @@ def run_all(args):
                        split='test',
                        transform=clip_transform)
 
-        if args.shorten > 0:
-            _logger.warning("USE SHORTENED CLASSSES")
-            shorted_classes = random.sample(dataset.classes, args.shorten)
-            dataset.classes = shorted_classes
         isolated_classes = IsolatedClasses(dataset)
         run = wandb.init(project=f"thesis-zsoodd_{args.runs}_runs-std",
                          entity="wandbefab",
@@ -64,7 +59,8 @@ def run_all(args):
                                               clip_tokenizer=clip_tokenizer,
                                               bert_tokenizer=bert_tokenizer,
                                               bert_model=bert_model,
-                                              runs=args.runs)
+                                              runs=args.runs,
+                                              shorten=args.shorten)
 
         wandb.log(metrics_dict)
         run.finish()
