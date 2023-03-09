@@ -31,6 +31,7 @@ def main():
         classifiers[name] = zeroshot_classifier(dset.classes, base_template, clip_model)
 
     for temp in args.temps:
+        _logger.info(f'temperature: {temp}')
         for id_name in datasets:
             id_set_features = features[id_name]
             zeroshot_weights = classifiers[id_name]
@@ -42,7 +43,9 @@ def main():
                 if od_name == id_name:
                     continue
                 ood_set_features = features[od_name]
-                auroc_clip_score = get_clip_auroc_from_features(id_set_features, ood_set_features, zeroshot_weights, temp)
+                auroc_clip_score = get_clip_auroc_from_features(id_set_features, ood_set_features, zeroshot_weights,
+                                                                temp)
+                print(auroc_clip_score)
                 wandb.log({'AUROC': auroc_clip_score})
                 run.finish()
 
