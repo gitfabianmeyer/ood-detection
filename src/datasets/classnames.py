@@ -552,4 +552,4 @@ mnist_templates = [
     'a photo of the number: "{}".',
 ]
 
-base_template = ['a photo of a {}']
+base_template = ['This is a photo of a {}']

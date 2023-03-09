@@ -5,7 +5,7 @@ from ood_detection.config import Config
 import wandb
 
 
-def get_history_from_project(project, drop_subs=True):
+def get_history_from_project(project, set_name_index=True, drop_subs=True):
     api = wandb.Api()
     # Project is specified by <entity/project-name>
     runs = api.runs(project)
@@ -20,6 +20,8 @@ def get_history_from_project(project, drop_subs=True):
     concat = pd.concat(histories)
     if drop_subs:
         concat = concat.drop([name for name in concat.columns if name.startswith("_")], axis=1).reset_index(drop=True)
+    if set_name_index:
+        concat = concat.set_index('name', drop=True)
     return concat
 
 

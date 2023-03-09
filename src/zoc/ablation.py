@@ -20,6 +20,7 @@ from zoc.utils import get_ablation_splits, get_split_specific_targets, get_auroc
     get_zoc_feature_dict
 
 from zeroshot.utils import get_zeroshot_weight_dict_from_isolated_classes
+
 _logger = logging.getLogger(__name__)
 
 
@@ -35,7 +36,6 @@ def linear_adapter_zoc_ablation(dset,
                                 learning_rate,
                                 eps,
                                 shorten_classes=None):
-
     dataset = dset(data_path=Config.DATAPATH,
                    split='test',
                    transform=clip_transform)
@@ -643,3 +643,18 @@ def kshot_adapter_zoc_ablation(dset,
                    'shots': kshot
                    }
         return metrics
+
+
+@torch.no_grad()
+def get_clip_auroc_from_features(id_features, ood_features, zeroshot_weights, temperature):
+    top_probs = []
+    for features in [id_features, ood_features]:
+        zsw = get_cosine_similarity_matrix_for_normed_features(features, zeroshot_weights, temperature)
+        clip_probs = torch.softmax(zsw, dim=-1).squeeze()
+        top_clip_prob, _ = clip_probs.cpu().topk(1, dim=-1)
+        top_probs.extend(top_clip_prob)
+
+    top_probs = torch.stack(top_probs).squeeze()
+    targets = torch.Tensor([0] * len(id_features) + [1] * len(ood_features))
+    score = get_auroc_for_max_probs(targets, top_probs)
+    return score

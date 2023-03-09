@@ -10,7 +10,7 @@ from datasets.zoc_loader import IsolatedClasses
 from ood_detection.classification_utils import zeroshot_classifier
 
 from ood_detection.config import Config
-from torch.utils.data import Dataset
+from torch.utils.data import Dataset, DataLoader
 from torchvision.datasets import ImageFolder
 from tqdm import tqdm
 
@@ -68,7 +68,20 @@ class FeatureSet(Dataset):
             features.append(feats)
         return torch.cat(features), torch.Tensor(targets)
 
+@torch.no_grad()
+def get_set_features_no_classes(dataset, clip_model):
+    device = Config.DEVICE
+    loader = DataLoader(dataset,
+                        batch_size=512)
+    image_features_full = []
+    for imgs, _ in loader:
+        imgs = imgs.to(device)
 
+        image_features = clip_model.encode_image(imgs)
+        image_features /= image_features.norm(dim=-1, keepdim=True)
+        image_features_full.append(image_features)
+
+    return torch.cat(image_features_full, dim=0)
 @torch.no_grad()
 def get_image_features_and_targets(loader, clip_model, stop_at=np.inf):
     features, targets = [], []
