@@ -1,26 +1,21 @@
 import logging
 
+
 _logger = logging.getLogger(__name__)
 
 
-def run_single_dataset_ood(isolated_classes, clip_model, clip_tokenizer, bert_tokenizer, bert_model,
-                           id_classes=.6, runs=5):
-
-    from zoc.utils import image_decoder
+def run_single_dataset_ood(isolated_classes, clip_model, clip_tokenizer, bert_tokenizer, bert_model, runs):
     from ood_detection.config import Config
+    from zoc.detectors import zoc_detector
 
-    labels = isolated_classes.classes
-    id_classes = int(len(labels) * id_classes)
-    ood_classes = len(labels) - id_classes
-    metrics = image_decoder(clip_model=clip_model,
-                            clip_tokenizer=clip_tokenizer,
-                            bert_tokenizer=bert_tokenizer,
-                            bert_model=bert_model,
-                            device=Config.DEVICE,
-                            isolated_classes=isolated_classes,
-                            id_classes=id_classes,
-                            ood_classes=ood_classes,
-                            runs=runs)
+    metrics = zoc_detector(isolated_classes,
+                           clip_model,
+                           clip_tokenizer,
+                           bert_tokenizer,
+                           bert_model,
+                           Config.ID_SPLIT,
+                           runs,
+                           shorten_classes=None)
     return metrics
 
 
@@ -42,12 +37,10 @@ def run_all(args):
     clip_tokenizer = SimpleTokenizer()
     bert_model = get_decoder()
 
-    assert args.split in range(5), f'Way too high split {args.split}'
-
     if args.split == 0:
         datasets = DATASETS_DICT.keys()
     else:
-        datasets_splits = np.array_split(list(DATASETS_DICT.keys()), 4)
+        datasets_splits = np.array_split(list(DATASETS_DICT.keys()), args.max_split)
         datasets = datasets_splits[args.split - 1]
         _logger.info(f"Current split: {args.split}: {datasets}")
     for dname in datasets:
@@ -57,12 +50,12 @@ def run_all(args):
                        split='test',
                        transform=clip_transform)
 
-        if args.shorten:
+        if args.shorten > 0:
             _logger.warning("USE SHORTENED CLASSSES")
-            shorted_classes = random.sample(dataset.classes, 10)
+            shorted_classes = random.sample(dataset.classes, args.shorten)
             dataset.classes = shorted_classes
         isolated_classes = IsolatedClasses(dataset)
-        run = wandb.init(project=f"thesis-zsoodd_{args.runs}_runs",
+        run = wandb.init(project=f"thesis-zsoodd_{args.runs}_runs-std",
                          entity="wandbefab",
                          name=dname)
         # perform zsoodd
@@ -86,7 +79,8 @@ def main():
     parser.add_argument("--gpu", type=str)
     parser.add_argument('--runs', type=int, required=True)
     parser.add_argument('--split', type=int)
-    parser.add_argument("--shorten", type=bool, default=False)
+    parser.add_argument('--max_split', type=int)
+    parser.add_argument("--shorten", type=int, default=0)
     args = parser.parse_args()
 
     os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"

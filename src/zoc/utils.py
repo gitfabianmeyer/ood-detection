@@ -222,9 +222,13 @@ def get_result_mean_dict(acc_probs_sum, auc_list_max, auc_list_mean, auc_list_su
     mean_mean_auc, mean_std_auc = get_mean_std(auc_list_mean)
     max_mean_auc, max_std_auc = get_mean_std(auc_list_max)
     metrics = {'auc-mean': mean_mean_auc,
+               'auc-mean-std': mean_std_auc,
                'auc-max': max_mean_auc,
+               'auc-max-std': max_std_auc,
                'auc-sum': sum_mean_auc,
+               'auc-sum-std': sum_std_auc,
                'f1_mean': sum_mean_f1,
+               'f1_mean-std': sum_std_f1,
                'acc_mean': sum_mean_acc}
     return metrics
 
