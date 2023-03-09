@@ -64,7 +64,6 @@ def run_all(args):
                                               clip_tokenizer=clip_tokenizer,
                                               bert_tokenizer=bert_tokenizer,
                                               bert_model=bert_model,
-                                              id_classes=Config.ID_SPLIT,
                                               runs=args.runs)
 
         wandb.log(metrics_dict)
