@@ -18,7 +18,7 @@ def main():
     from datasets.classnames import base_template
 
     clip_model, clip_transform = clip.load(Config.VISION_MODEL)
-    temperatures = np.logspace(np.log2(0.001), np.log2(1000), num=args.temps, base=2.0)
+    temperatures = np.logspace(np.log2(0.0001), np.log2(1000), num=args.temps, base=2.0)
 
     if args.split == 0:
         datasets = DATASETS_DICT.keys()
