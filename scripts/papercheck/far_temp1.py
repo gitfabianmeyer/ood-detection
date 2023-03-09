@@ -29,20 +29,22 @@ def main():
                  split='test')
         features[name] = get_set_features_no_classes(dset, clip_model)
         classifiers[name] = zeroshot_classifier(dset.classes, base_template, clip_model)
-    for id_name in datasets:
-        id_set_features = features[id_name]
-        zeroshot_weights = classifiers[id_name]
-        for od_name in datasets:
-            _logger.info(f"Running {id_name} vs {od_name}")
-            if od_name == id_name:
-                continue
-            run = wandb.init(project=f"thesis-far-ood-msp",
-                             entity="wandbefab",
-                             name=id_name + "-" + od_name)
-            ood_set_features = features[od_name]
-            auroc_clip_score = get_clip_auroc_from_features(id_set_features, ood_set_features, zeroshot_weights, args.temp)
-            wandb.log({'MCM AUROC': auroc_clip_score})
-            run.finish()
+
+    for temp in args.temps:
+        for id_name in datasets:
+            id_set_features = features[id_name]
+            zeroshot_weights = classifiers[id_name]
+            for od_name in datasets:
+                run = wandb.init(project=f"thesis-far-ood-msp-{str(args.temp)}",
+                                 entity="wandbefab",
+                                 name=id_name + "-" + od_name)
+                _logger.info(f"Running {id_name} vs {od_name}")
+                if od_name == id_name:
+                    continue
+                ood_set_features = features[od_name]
+                auroc_clip_score = get_clip_auroc_from_features(id_set_features, ood_set_features, zeroshot_weights, temp)
+                wandb.log({'AUROC': auroc_clip_score})
+                run.finish()
 
 
 if __name__ == '__main__':
@@ -50,7 +52,8 @@ if __name__ == '__main__':
 
     parser = argparse.ArgumentParser()
     parser.add_argument('--gpu', type=str, required=True)
-    parser.add_argument("--temp", type=float, default=0.01)
+    parser.add_argument('-t', '--temps', help='delimited list input',
+                        type=lambda s: [int(item) for item in s.split(',')])
     args = parser.parse_args()
 
     import os
