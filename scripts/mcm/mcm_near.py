@@ -55,7 +55,6 @@ if __name__ == '__main__':
     parser.add_argument('--runs', type=int, default=10)
 
     args = parser.parse_args()
-    raise ValueError
     import os
 
     os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
