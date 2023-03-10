@@ -47,7 +47,7 @@ def zeroshot_detector(feature_weight_dict: FeatureDict,
     all_classes = feature_weight_dict.classes
     if not shorten_classes:
         id_classes = int(len(all_classes) * id_split)
-        ood_classes = len(all_classes.classes) - id_classes
+        ood_classes = len(all_classes) - id_classes
     else:
         _logger.warning(f"SHORTENING CLASSES TO {shorten_classes}")
 
