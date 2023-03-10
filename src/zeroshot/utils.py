@@ -173,7 +173,7 @@ def get_zeroshot_weight_dict_from_isolated_classes(isolated_classes, clip_model)
         for classname, weight in zip(isolated_classes.classes, weights):
             weights_dict[classname] = weight
 
-    return FeatureDict(weights_dict)
+    return weights_dict
 
 
 @torch.no_grad()

@@ -21,8 +21,8 @@ def main(args):
         dset = DATASETS_DICT[dname]
         dataset = dset(Config.DATAPATH,
                        transform=clip_transform,
-                       split='test')
-        dataset.templates = base_template
+                       split='test',
+                       templates=base_template)
         feature_dict, classes_weight_dict = get_feature_and_class_weight_dict_from_dataset(dataset,
                                                                                            clip_model)
         for temp in args.temps:
