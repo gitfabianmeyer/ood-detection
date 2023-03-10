@@ -23,7 +23,7 @@ def main(args):
                        transform=clip_transform,
                        split='test')
         dataset.templates = base_template
-        feature_dict, classes_weight_dict = get_feature_and_class_weight_dict_from_dataset(dset,
+        feature_dict, classes_weight_dict = get_feature_and_class_weight_dict_from_dataset(dataset,
                                                                                            clip_model)
         for temp in args.temps:
             _logger.info(f'temperature: {temp}')
