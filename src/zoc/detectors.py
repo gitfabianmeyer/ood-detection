@@ -38,15 +38,25 @@ def get_fake_dict(isolated_classe):
 @torch.no_grad()
 def zeroshot_detector(feature_weight_dict: FeatureDict,
                       classes_weight_dict: FeatureDict,
-                      id_classes,
-                      ood_classes,
+                      id_split,
                       runs,
-                      temperature=1):
+                      temperature,
+                      use_softmax,
+                      shorten_classes=None
+                      ):
+    all_classes = feature_weight_dict.classes
+    if not shorten_classes:
+        id_classes = int(len(all_classes) * id_split)
+        ood_classes = len(all_classes.classes) - id_classes
+    else:
+        _logger.warning(f"SHORTENING CLASSES TO {shorten_classes}")
+
+        id_classes = int(shorten_classes * Config.ID_SPLIT)
+        ood_classes = shorten_classes - id_classes
+
     ablation_splits = get_ablation_splits(feature_weight_dict.classes, n=runs, id_classes=id_classes,
                                           ood_classes=ood_classes)
 
-    metrics_list = []
-    # for each temperature..
     auc_list_sum, auc_list_mean, auc_list_max = [], [], []
     for split in ablation_splits:
 
@@ -65,7 +75,9 @@ def zeroshot_detector(feature_weight_dict: FeatureDict,
             # calc the logits and softmaxs
             zeroshot_probs = get_cosine_similarity_matrix_for_normed_features(image_features_for_label,
                                                                               zeroshot_weights,
-                                                                              1)
+                                                                              temperature)
+            if use_softmax:
+                zeroshot_probs = torch.softmax(zeroshot_probs, 1)
             assert zeroshot_probs.shape[1] == id_classes
             # detection score is accumulative sum of probs of generated entities
             # careful, only for this setting axis=1
@@ -88,9 +100,8 @@ def zeroshot_detector(feature_weight_dict: FeatureDict,
     metrics = get_result_mean_dict(acc_probs_sum, auc_list_max, auc_list_mean, auc_list_sum, f_probs_sum)
     metrics["temperature"] = temperature
 
-    metrics_list.append(metrics)
 
-    return metrics_list
+    return metrics
 
 
 @torch.no_grad()

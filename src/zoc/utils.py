@@ -292,7 +292,6 @@ def get_zoc_unique_entities(dataset, clip_model, bert_tokenizer, bert_model):
 
 
 def get_zoc_feature_dict(dataset, clip_model, seen_labels):
-    device = Config.DEVICE
     isolated_classes = IsolatedClasses(dataset,
                                        batch_size=512,
                                        lsun=False)

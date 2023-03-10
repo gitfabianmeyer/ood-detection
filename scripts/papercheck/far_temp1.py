@@ -18,18 +18,10 @@ def main():
 
     clip_model, clip_transform = clip.load(Config.VISION_MODEL)
     datasets = DATASETS_DICT.keys()
-    features = {}
-    classifiers = {}
-    _logger.info('generating all features')
-    for name in tqdm(datasets):
-        _logger.info(name)
-        d = DATASETS_DICT[name]
-        dset = d(Config.DATAPATH,
-                 transform=clip_transform,
-                 split='test')
-        features[name] = get_set_features_no_classes(dset, clip_model)
-        classifiers[name] = zeroshot_classifier(dset.classes, base_template, clip_model)
-
+    features, classifiers = get_feature_and_classifier_dict_for_datasets(datasets, clip_model,
+                                                 clip_transform,
+                                                 split='test',
+                                                 template=base_template)
     for temp in args.temps:
         _logger.info(f'temperature: {temp}')
         for id_name in datasets:

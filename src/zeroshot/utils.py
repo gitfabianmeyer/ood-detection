@@ -68,6 +68,7 @@ class FeatureSet(Dataset):
             features.append(feats)
         return torch.cat(features), torch.Tensor(targets)
 
+
 @torch.no_grad()
 def get_set_features_no_classes(dataset, clip_model):
     device = Config.DEVICE
@@ -82,6 +83,8 @@ def get_set_features_no_classes(dataset, clip_model):
         image_features_full.append(image_features)
 
     return torch.cat(image_features_full, dim=0)
+
+
 @torch.no_grad()
 def get_image_features_and_targets(loader, clip_model, stop_at=np.inf):
     features, targets = [], []
@@ -139,9 +142,14 @@ def get_ablation_split_classes(num_id_classes, split):
 
 
 def get_feature_and_class_weight_dict_from_dset(dset, clip_model, clip_transform, split='test'):
-    isolated_classes = IsolatedClasses(dset(Config.DATAPATH,
-                                            transform=clip_transform,
-                                            split=split),
+    dataset = dset(Config.DATAPATH,
+                   transform=clip_transform,
+                   split=split),
+    return get_feature_and_class_weight_dict_from_dataset(dataset, clip_model)
+
+
+def get_feature_and_class_weight_dict_from_dataset(dataset, clip_model):
+    isolated_classes = IsolatedClasses(dataset,
                                        batch_size=512)
 
     return get_feature_and_class_weight_dict(isolated_classes, clip_model)
@@ -199,3 +207,21 @@ def get_normalized_image_features(clip_model, images):
     image_features = clip_model.encode_image(images)
     image_features /= image_features.norm(dim=1, keepdim=True)
     return image_features
+
+
+def get_feature_and_classifier_dict_for_datasets(datasets: list,
+                                                 clip_model,
+                                                 clip_transform,
+                                                 split='test',
+                                                 template=base_template):
+    from datasets.config import DATASETS_DICT
+    features = {}
+    classifiers = {}
+    for name in tqdm(datasets):
+        _logger.info(name)
+        d = DATASETS_DICT[name]
+        dset = d(Config.DATAPATH,
+                 transform=clip_transform,
+                 split='test')
+        features[name] = get_set_features_no_classes(dset, clip_model)
+        classifiers[name] = zeroshot_classifier(dset.classes, template, clip_model)
