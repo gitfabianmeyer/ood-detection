@@ -36,12 +36,14 @@ def main():
             id_set_features = features[id_name]
             zeroshot_weights = classifiers[id_name]
             for od_name in datasets:
+                if od_name == id_name:
+                    _logger(f"Cant run against myself: {id_name}vs {od_name}")
+                    continue
                 run = wandb.init(project=f"thesis-far-ood-msp-{str(temp)}",
                                  entity="wandbefab",
                                  name=id_name + "-" + od_name)
                 _logger.info(f"Running {id_name} vs {od_name}")
-                if od_name == id_name:
-                    continue
+
                 ood_set_features = features[od_name]
                 auroc_clip_score = get_clip_auroc_from_features(id_set_features, ood_set_features, zeroshot_weights,
                                                                 temp)
