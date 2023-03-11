@@ -147,8 +147,8 @@ class MaximumMeanDiscrepancy(Distance):
     def get_distance(self):
         # for near OOD
         id_classes, ood_classes = self.get_id_ood_split()
-        id_features = self.get_distribution_features(id_classes).cpu().numpy()
-        ood_features = self.get_distribution_features(ood_classes).cpu().numpy()
+        id_features = self.get_distribution_features(id_classes)
+        ood_features = self.get_distribution_features(ood_classes)
         x_matrix, y_matrix = shorten_to_min(id_features, ood_features)
         kernel_size = get_mmd_rbf_kernel(x_matrix, y_matrix)
 
