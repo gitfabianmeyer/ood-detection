@@ -29,7 +29,10 @@ def main(args):
             _logger.info(f'temperature: {temp}')
             use_softmax = True if args.strategy == 'msp' else 'mls'
             shorten_classes = None if args.shorten == 0 else args.shorten
-            project_name = f"thesis-near-mcm-{args.strategy}-{temp}"
+            if shorten_classes:
+                project_name = f"thesis-near-mcm-{args.strategy}-{temp}-{shorten_classes}"
+            else:
+                project_name = f"thesis-near-mcm-{args.strategy}-{temp}"
             run = wandb.init(project=project_name,
                              entity="wandbefab",
                              name=dname,
