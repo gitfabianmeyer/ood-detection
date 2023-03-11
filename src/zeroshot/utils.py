@@ -75,10 +75,10 @@ def get_set_features_no_classes(dataset, clip_model):
     loader = DataLoader(dataset,
                         batch_size=512)
     image_features_full = []
-    for imgs, _ in loader:
-        imgs = imgs.to(device)
+    for images, _ in loader:
+        images = images.to(device)
 
-        image_features = clip_model.encode_image(imgs)
+        image_features = clip_model.encode_image(images)
         image_features /= image_features.norm(dim=-1, keepdim=True)
         image_features_full.append(image_features)
 
@@ -222,6 +222,8 @@ def get_feature_and_classifier_dict_for_datasets(datasets: list,
         d = DATASETS_DICT[name]
         dset = d(Config.DATAPATH,
                  transform=clip_transform,
-                 split='test')
+                 split=split)
         features[name] = get_set_features_no_classes(dset, clip_model)
         classifiers[name] = zeroshot_classifier(dset.classes, template, clip_model)
+
+    return features, classifiers
