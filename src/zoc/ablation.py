@@ -653,6 +653,8 @@ def get_clip_auroc_from_features(id_features, ood_features, zeroshot_weights, te
         zsw = get_cosine_similarity_matrix_for_normed_features(features, zeroshot_weights, temperature)
         if strategy == 'msp':
             clip_probs = torch.softmax(zsw, dim=-1).squeeze()
+        else:
+            clip_probs = zsw
         top_clip_prob, _ = clip_probs.cpu().topk(1, dim=-1)
         top_probs.extend(top_clip_prob)
 
