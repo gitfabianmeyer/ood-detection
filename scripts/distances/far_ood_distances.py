@@ -68,7 +68,6 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--gpu", type=str)
     parser.add_argument("--split", type=int)
-    parser.add_argument('--split', type=int)
     parser.add_argument('--max_split', type=int)
     args = parser.parse_args()
 
