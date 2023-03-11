@@ -647,7 +647,7 @@ def kshot_adapter_zoc_ablation(dset,
 
 @torch.no_grad()
 def get_clip_auroc_from_features(id_features, ood_features, zeroshot_weights, temperature, strategy):
-    assert strategy in ["msp", "mlp"]
+    assert strategy in ["msp", "mls"]
     top_probs = []
     for features in [id_features, ood_features]:
         zsw = get_cosine_similarity_matrix_for_normed_features(features, zeroshot_weights, temperature)
