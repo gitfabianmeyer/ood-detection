@@ -1,11 +1,7 @@
 import logging
 
-
-
 _logger = logging.getLogger(__name__)
 
-
-# run this script 2 times: 1. with imagenet templates, 2 with custom templates
 
 def main():
     import clip
@@ -13,14 +9,18 @@ def main():
     import torch
     import wandb
     from datasets.config import DATASETS_DICT
-    from datasets.zoc_loader import IsolatedClasses
     from metrics.distances import Distancer, MaximumMeanDiscrepancy
     from ood_detection.config import Config
 
-    for dname, dset in DATASETS_DICT.items():
+    if args.split == 0:
+        datasets = DATASETS_DICT.keys()
+    else:
+        datasets_splits = np.array_split(list(DATASETS_DICT.keys()), args.max_split)
+        datasets = datasets_splits[args.split - 1]
+        _logger.info(f"Current split: {args.split}: {datasets}")
 
-        if dname!= 'imagenet':
-            continue
+    for dname in datasets:
+        dset = DATASETS_DICT[dname]
         print(f"Running {dname}")
         run = wandb.init(project=f"thesis-mmd-{args.runs}",
                          entity="wandbefab",
@@ -41,7 +41,7 @@ def main():
         results = []
         for i in range(args.runs):
             results.append(mmd.get_distance())
-            print(results[-1])
+            _logger.info(results[-1])
         wandb.log({'mmd': np.mean(results),
                    'std': np.std(results)})
 
