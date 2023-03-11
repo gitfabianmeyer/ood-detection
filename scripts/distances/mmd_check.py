@@ -35,7 +35,7 @@ def main(main):
 
         _logger.info("Initializing distancer")
         from zeroshot.utils import FeatureDict
-        feature_dict = FeatureDict(dataset)
+        feature_dict = FeatureDict(dataset, clip_model)
 
         mmd = MaximumMeanDiscrepancy(feature_dict)
         results = []
