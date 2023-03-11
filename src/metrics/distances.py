@@ -88,9 +88,9 @@ class Distancer:
 
 
 class Distance(ABC):
-    def __init__(self, feature_dict):
+    def __init__(self, feature_dict: FeatureDict):
         self.feature_dict = feature_dict
-        self.classes = list(self.feature_dict.keys())
+        self.classes = list(self.feature_dict.classes)
 
     def get_distance_for_n_splits(self, splits=5):
         distances = [self.get_distance() for _ in range(splits)]
@@ -143,36 +143,33 @@ class ZeroShotAccuracy(Distance):
 class MaximumMeanDiscrepancy(Distance):
     def __init__(self, feature_dict):
         super(MaximumMeanDiscrepancy, self).__init__(feature_dict)
-        self.kernel_size = self.get_kernel_size()
 
     def get_distance(self):
         # for near OOD
         id_classes, ood_classes = self.get_id_ood_split()
-        id_ood_printer(id_classes, ood_classes)
         id_features = self.get_distribution_features(id_classes).cpu().numpy()
         ood_features = self.get_distribution_features(ood_classes).cpu().numpy()
-        return self.get_mmd(x_matrix=id_features,
-                            y_matrix=ood_features)
+        x_matrix, y_matrix = shorten_to_min(id_features, ood_features)
+        kernel_size = get_mmd_rbf_kernel(x_matrix, y_matrix)
+        return self.get_mmd(x_matrix=x_matrix,
+                            y_matrix=y_matrix,
+                            kernel_size=kernel_size)
 
     @property
     def name(self):
         return "Maximum Mean Discrepancy"
 
-    def get_mmd(self, x_matrix, y_matrix):
+    def get_mmd(self, x_matrix, y_matrix, kernel_size):
         batch_size = x_matrix.shape[0]
         beta = (1. / (batch_size * (batch_size - 1)))
 
         gamma = (2. / (batch_size * batch_size))
 
-        XX = rbf_kernel(x_matrix, x_matrix, self.kernel_size)
-        YY = rbf_kernel(y_matrix, y_matrix, self.kernel_size)
-        XY = rbf_kernel(x_matrix, y_matrix, self.kernel_size)
+        XX = rbf_kernel(x_matrix, x_matrix, kernel_size)
+        YY = rbf_kernel(y_matrix, y_matrix, kernel_size)
+        XY = rbf_kernel(x_matrix, y_matrix, kernel_size)
 
         return beta * (XX.sum() + YY.sum()) - gamma * XY.sum()
-
-    def get_kernel_size(self):
-        X = torch.cat(list(self.feature_dict.values()))
-        return torch.mean(torch.cdist(X, X)).cpu().numpy()
 
 
 class ConfusionLogProbability(Distance):
