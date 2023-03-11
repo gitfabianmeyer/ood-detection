@@ -235,9 +235,30 @@ def get_mmd_rbf_kernel(id_features, ood_features):
     return float_kernel
 
 
+def shorten_to_min(x_matrix, y_matrix):
+    min_length = min(len(x_matrix), len(y_matrix))
+    if len(x_matrix) > min_length:
+        sample_list = random.sample(range(len(x_matrix)), min_length)
+        new_x = x_matrix[sample_list, :]
+    else:
+        new_x = x_matrix
+    if len(y_matrix) > min_length:
+        sample_list = random.sample(range(len(y_matrix)), min_length)
+        new_y = y_matrix[sample_list, :]
+    else:
+        new_y = y_matrix
+
+    assert len(new_x) == len(new_y), f"{len(new_x)} != {len(new_y)}"
+    return new_x, new_y
+
+
 def get_far_mmd(id_dict: FeatureDict, ood_dict: FeatureDict):
+    # both need to have the same size - repeat everything!
     x_matrix = id_dict.get_features()
     y_matrix = ood_dict.get_features()
+
+    x_matrix, y_matrix = shorten_to_min(x_matrix, y_matrix)
+
     try:
         kernel_size = get_mmd_rbf_kernel(x_matrix, y_matrix)
     except ValueError as e:
@@ -249,7 +270,6 @@ def get_far_mmd(id_dict: FeatureDict, ood_dict: FeatureDict):
 
     gamma = (2. / (batch_size * batch_size))
 
-    _logger.warning(f"kernel: {kernel_size}\nbeta:{beta}\ngamma:{gamma}") # TODO
     x_matrix = x_matrix.detach().cpu().numpy()
     y_matrix = y_matrix.detach().cpu().numpy()
     XX = rbf_kernel(x_matrix, x_matrix, kernel_size)
@@ -257,16 +277,6 @@ def get_far_mmd(id_dict: FeatureDict, ood_dict: FeatureDict):
     XY = rbf_kernel(x_matrix, y_matrix, kernel_size)
 
     return beta * (XX.sum() + YY.sum()) - gamma * XY.sum()
-
-
-class WassersteinDistance(Distance):
-
-    @property
-    def name(self):
-        return "Wasserstein Distance"
-
-    def get_distance(self):
-        pass
 
 
 def get_distances_for_dataset(dataset, clip_model, splits=10, id_split=.4, corruption=None, severity=None,

@@ -1,6 +1,7 @@
 import os
 
 import pandas as pd
+from datasets.config import DATASETS_DICT
 from ood_detection.config import Config
 import wandb
 
@@ -25,18 +26,32 @@ def get_history_from_project(project, set_name_index=True, drop_subs=True):
     return concat
 
 
-def save_csv(dataframe, name):
-    csv_path = os.path.join(Config.DATAPATH, 'csvs')
+def save_csv(dataframe, folder, name):
+    csv_path = os.path.join(Config.DATAPATH, 'csvs', folder)
     os.makedirs(csv_path, exist_ok=True)
-    dataframe.to_csv(os.path.join(csv_path, name))
+    dataframe.to_csv(os.path.join(csv_path, name + '.csv'))
+
+
+def get_dataset_name_mapping():
+    return {'cifar10': 'CIFAR10',
+            'cifar100': 'CIFAR100',
+            'dtd': 'DTD',
+            'caltech101': 'Caltech101',
+            'caltech cub': 'Caltech CUB',
+            'fashion mnist': 'Fashion MNIST',
+            'mnist': 'MNIST',
+            'stanford cars': 'Stanford Cars',
+            'flowers102': 'Flowers102',
+            'imagenet': 'TinyImagenet',
+            'gtsrb': 'GTSRB',
+            'svhn': 'SVHN'}
 
 
 def save_plot(plot, name, chapter, dpi, test_version):
-
     if test_version:
         plot_path = os.path.join(Config.DATAPATH, 'plots', 'low_res', chapter)
         os.makedirs(plot_path, exist_ok=True)
-        plot.savefig(os.path.join(plot_path, name)+'.jpeg', bbox_inches='tight')
+        plot.savefig(os.path.join(plot_path, name) + '.jpeg', bbox_inches='tight')
         print(f"Saved to {plot_path}")
 
     else:
