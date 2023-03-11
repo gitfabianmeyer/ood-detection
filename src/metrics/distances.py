@@ -151,6 +151,9 @@ class MaximumMeanDiscrepancy(Distance):
         ood_features = self.get_distribution_features(ood_classes).cpu().numpy()
         x_matrix, y_matrix = shorten_to_min(id_features, ood_features)
         kernel_size = get_mmd_rbf_kernel(x_matrix, y_matrix)
+
+        x_matrix = x_matrix.detach().cpu().numpy()
+        y_matrix = y_matrix.detach().cpu().numpy()
         return self.get_mmd(x_matrix=x_matrix,
                             y_matrix=y_matrix,
                             kernel_size=kernel_size)
