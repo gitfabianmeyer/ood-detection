@@ -59,7 +59,8 @@ def zeroshot_detector(feature_weight_dict: FeatureDict,
 
     auc_list_sum, auc_list_mean, auc_list_max = [], [], []
     for split in ablation_splits:
-
+        if shorten_classes:
+            assert len(split) != shorten_classes, f"Split len {len(split)} is not {shorten_classes}"
         seen_labels = split[:id_classes]
         unseen_labels = split[id_classes:]
         _logger.debug(f"Seen labels: {seen_labels}\nOOD Labels: {split[id_classes:]}")
