@@ -3,7 +3,7 @@ import logging
 _logger = logging.getLogger(__name__)
 
 
-def main():
+def main(main):
     import clip
     import numpy as np
     import torch
