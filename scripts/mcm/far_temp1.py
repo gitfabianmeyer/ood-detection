@@ -27,7 +27,7 @@ def main(args):
             zeroshot_weights = classifiers[id_name]
             for od_name in tqdm(datasets):
                 if od_name == id_name:
-                    _logger(f"Cant run against myself: {id_name}vs {od_name}")
+                    _logger.info(f"Cant run against myself: {id_name}vs {od_name}")
                     continue
                 run = wandb.init(project=f"thesis-far-ood-{args.strategy}-{str(temp)}",
                                  entity="wandbefab",
