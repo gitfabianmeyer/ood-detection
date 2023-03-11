@@ -27,7 +27,7 @@ def main(args):
                                                                                            clip_model)
         for temp in args.temps:
             _logger.info(f'temperature: {temp}')
-            use_softmax = True if args.strategy == 'msp' else 'mls'
+            use_softmax = True if args.strategy == 'msp' else False
             shorten_classes = None if args.shorten == 0 else args.shorten
             if shorten_classes:
                 project_name = f"thesis-near-mcm-{args.strategy}-{temp}-{shorten_classes}"
