@@ -50,7 +50,10 @@ def run_all(args):
                        transform=clip_transform)
 
         isolated_classes = IsolatedClasses(dataset)
-        run = wandb.init(project=f"thesis-zsoodd_{args.runs}_runs-std",
+        run_name = f"thesis-zsoodd_{args.runs}_runs-std"
+        if args.shorten > 0:
+            run_name = f"thesis-zsoodd_{args.runs}_runs-std-{args.shorten}"
+        run = wandb.init(project=run_name,
                          entity="wandbefab",
                          name=dname)
         # perform zsoodd
