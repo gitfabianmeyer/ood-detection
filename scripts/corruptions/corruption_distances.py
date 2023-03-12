@@ -1,7 +1,8 @@
-import torch
 
 
 def run_all(args):
+    import torch
+
     import logging
     import clip
     import numpy as np

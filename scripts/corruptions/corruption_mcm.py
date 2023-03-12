@@ -20,7 +20,7 @@ def run_all(args):
 
     if args.max_splits !=0:
         splits = np.array_split(list(CorruptionSets.keys()), args.max_splits)
-        datasets = splits[args.split]
+        datasets = splits[args.split-1]
     else:
         datasets = CorruptionSets.keys()
     for dname in datasets:
