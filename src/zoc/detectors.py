@@ -101,7 +101,6 @@ def zeroshot_detector(feature_weight_dict: FeatureDict,
     metrics = get_result_mean_dict(acc_probs_sum, auc_list_max, auc_list_mean, auc_list_sum, f_probs_sum)
     metrics["temperature"] = temperature
 
-
     return metrics
 
 
@@ -260,7 +259,6 @@ def train_linear_id_classifier(train_set: FeatureSet, eval_set: FeatureSet, epoc
         epoch_val_loss = 0.
         eval_accs = []
         for eval_features, eval_targets in tqdm(eval_loader):
-
             eval_features = eval_features.to(torch.float32).to(device)
             eval_targets = eval_targets.to(device)
 
@@ -278,7 +276,8 @@ def train_linear_id_classifier(train_set: FeatureSet, eval_set: FeatureSet, epoc
             early_stopping += 1
             _logger.info(f"No improvement on val loss ( {early_stopping} / {max_epoch_without_improvement})")
             if early_stopping == max_epoch_without_improvement + 1:
-                _logger.info(F"Hit the maximum epoch of consecutive epichs without improvement {max_epoch_without_improvement}. Exiting")
+                _logger.info(
+                    F"Hit the maximum epoch of consecutive epichs without improvement {max_epoch_without_improvement}. Exiting")
                 return best_classifier
 
             _, indices = torch.topk(torch.softmax(eval_preds, dim=-1), k=1)
@@ -289,7 +288,7 @@ def train_linear_id_classifier(train_set: FeatureSet, eval_set: FeatureSet, epoc
     return best_classifier
 
 
-def train_log_reg_classifier(train_set, eval_set, num_cs):
+def train_log_reg_classifier(train_set: FeatureSet, eval_set: FeatureSet, num_cs):
     _logger.info(f"Training logistic regression for {num_cs} Cs....")
     if train_set.features.is_cuda:
         train_set.features = train_set.features.cpu()
@@ -310,8 +309,8 @@ def train_log_reg_classifier(train_set, eval_set, num_cs):
     return best_classifier
 
 
-def linear_layer_detector(train_feature_dict:FeatureDict,
-                          eval_feature_dict:FeatureDict,
+def linear_layer_detector(train_feature_dict: FeatureDict,
+                          eval_feature_dict: FeatureDict,
                           test_feature_dict: FeatureDict,
                           runs,
                           id_classes_split,
