@@ -66,6 +66,8 @@ if __name__ == '__main__':
     parser.add_argument('--runs', type=int, default=10)
     parser.add_argument("--gpu", type=str)
     parser.add_argument("--strategy", type=str)
+    parser.add_argument("--max_splits", type=int)
+    parser.add_argument("--split", type=int)
 
     args = parser.parse_args()
     main(args)
