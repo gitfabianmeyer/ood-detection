@@ -68,6 +68,7 @@ if __name__ == '__main__':
     parser.add_argument("--strategy", type=str)
     parser.add_argument("--max_splits", type=int)
     parser.add_argument("--split", type=int)
+    parser.add_argument("--shorten", type=int, default=0)
 
     args = parser.parse_args()
     main(args)
