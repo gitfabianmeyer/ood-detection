@@ -29,26 +29,20 @@ def run_all(args):
                 corruption_transform = get_corruption_transform(clip_transform, ccorr, severity)
 
                 dataset = dset(Config.DATAPATH,
-                               split='train',
+                               split='test',
                                transform=corruption_transform)
 
-                loaders = IsolatedClasses(dataset, batch_size=512, lsun=False)
-
                 runs = args.runs  # run each exp 10 times
-                id_split = Config.ID_SPLIT
 
                 _logger.info("Initializing distancer")
+                from zeroshot.utils import FeatureDict
+                feature_dict = FeatureDict(dataset, clip_model)
 
-                distancer = Distancer(isolated_classes=loaders,
-                                      clip_model=clip_model,
-                                      splits=runs,
-                                      id_split=id_split)
-
-                clp = ConfusionLogProbability(distancer.feature_dict, clip_model)
-                mmd = MaximumMeanDiscrepancy(distancer.feature_dict)
-                zsa = ZeroShotAccuracy(distancer.feature_dict,
+                clp = ConfusionLogProbability(feature_dict, clip_model)
+                mmd = MaximumMeanDiscrepancy(feature_dict)
+                zsa = ZeroShotAccuracy(feature_dict,
                                        clip_model,
-                                       distancer.targets)
+                                       dataset.targets)
 
                 # zsa doesn't change!
                 zsa_result = zsa.get_distance()["zsa"]

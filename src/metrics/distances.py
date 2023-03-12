@@ -119,7 +119,7 @@ class ZeroShotAccuracy(Distance):
     def __init__(self, feature_dict, clip_model, dataset_targets):
         super(ZeroShotAccuracy, self).__init__(feature_dict)
         self.clip_model = clip_model
-        self.labels = zeroshot_classifier(self.classes, imagenet_templates, self.clip_model)
+        self.labels = zeroshot_classifier(self.classes, base_template, self.clip_model)
         self.dataset_targets = dataset_targets
 
     @property
