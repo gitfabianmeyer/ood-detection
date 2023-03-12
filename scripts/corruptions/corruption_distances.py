@@ -1,3 +1,6 @@
+import torch
+
+
 def run_all(args):
     import logging
     import clip
@@ -42,7 +45,7 @@ def run_all(args):
                 mmd = MaximumMeanDiscrepancy(feature_dict)
                 zsa = ZeroShotAccuracy(feature_dict,
                                        clip_model,
-                                       dataset.targets)
+                                       torch.Tensor(dataset.targets))
 
                 # zsa doesn't change!
                 zsa_result = zsa.get_distance()["zsa"]
