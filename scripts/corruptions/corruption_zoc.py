@@ -72,7 +72,7 @@ def main(args):
                                                       bert_tokenizer=bert_tokenizer,
                                                       bert_model=bert_model,
                                                       id_split=Config.ID_SPLIT,
-                                                      runs=args.runs_ood)
+                                                      runs=args.runs)
                 metrics_dict['severity'] = severity
 
                 wandb.log(metrics_dict)
