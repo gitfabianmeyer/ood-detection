@@ -68,7 +68,8 @@ def run_all(args):
                                                       clip_tokenizer=clip_tokenizer,
                                                       bert_tokenizer=bert_tokenizer,
                                                       bert_model=bert_model,
-                                                      runs=args.runs)
+                                                      runs=args.runs,
+                                                      shorten=args.shorten)
                 metrics_dict['severity'] = severity
 
                 wandb.log(metrics_dict)
