@@ -87,7 +87,7 @@ def main():
     parser.add_argument("--shorten", type=int, default=0)
 
     args = parser.parse_args()
-    main(args)
+    run_all(args)
 
 
 if __name__ == '__main__':
