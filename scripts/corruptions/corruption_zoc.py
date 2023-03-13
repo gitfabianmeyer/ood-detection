@@ -60,7 +60,7 @@ def run_all(args):
                                split='test',
                                transform=corruption_transform)
                 isolated_classes = IsolatedClasses(dataset,
-                                                   batch_size=512
+                                                   batch_size=1
                                                    )
                 # perform zsoodd
                 metrics_dict = run_single_dataset_ood(isolated_classes=isolated_classes,
