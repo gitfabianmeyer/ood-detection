@@ -86,7 +86,8 @@ def main():
     parser.add_argument("--max_splits", type=int)
     parser.add_argument("--split", type=int)
     parser.add_argument("--shorten", type=int, default=0)
-
+    os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
+    os.environ["CUDA_VISIBLE_DEVICES"] = args.gpu
     args = parser.parse_args()
     run_all(args)
 
