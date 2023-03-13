@@ -48,7 +48,7 @@ def run_all(args):
         dset = CorruptionSets[dname]
         for cname, ccorr in THESIS_CORRUPTIONS.items():
 
-            run = wandb.init(project="thesis-corruptions-zoc",
+            run = wandb.init(project=f"thesis-corruptions-zoc-final-{args.runs}",
                              entity="wandbefab",
                              name="_".join([dname, cname]),
                              tags=['distance',
