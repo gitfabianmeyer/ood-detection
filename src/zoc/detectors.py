@@ -164,59 +164,6 @@ def zoc_detector(isolated_classes: IsolatedClasses,
     return metrics
 
 
-@torch.no_grad()
-def zoc_detector_featuredict(feature_dict,
-                             clip_model,
-                             clip_tokenizer,
-                             bert_tokenizer,
-                             bert_model,
-                             device,
-                             id_split,
-                             runs,
-                             shorten_classes=None):
-    if shorten_classes:
-        id_classes = int(shorten_classes * id_split)
-        ood_classes = shorten_classes - id_classes
-
-    else:
-        id_classes = int(len(feature_dict.keys)) * id_split
-        ood_classes = len(feature_dict.keys) - id_classes
-    ablation_splits = get_ablation_splits(feature_dict.keys(), n=runs, id_classes=id_classes,
-                                          ood_classes=ood_classes)
-
-    auc_list_sum, auc_list_mean, auc_list_max = [], [], []
-    for split in ablation_splits:
-        seen_labels = split[:id_classes]
-        unseen_labels = split[id_classes:]
-        _logger.debug(f"Seen labels: {seen_labels}\nOOD Labels: {split[id_classes:]}")
-        seen_descriptions = [f"This is a photo of a {label}" for label in seen_labels]
-
-        ood_probs_sum, ood_probs_mean, ood_probs_max = [], [], []
-        f_probs_sum, acc_probs_sum, id_probs_sum = [], [], []
-
-        for semantic_label in split:
-            image_features = feature_dict[semantic_label]
-            for image in tqdm(image_features):
-                ood_prob_max, ood_prob_mean, ood_prob_sum = get_mean_max_sum_for_zoc_image(bert_model, bert_tokenizer,
-                                                                                           clip_model, clip_tokenizer,
-                                                                                           device, id_classes, image,
-                                                                                           seen_descriptions,
-                                                                                           seen_labels)
-
-                ood_probs_sum.append(ood_prob_sum)
-                ood_probs_mean.append(ood_prob_mean)
-                ood_probs_max.append(ood_prob_max.detach().numpy())
-
-        targets = get_split_specific_targets(feature_dict, seen_labels, unseen_labels)
-        fill_auc_lists(auc_list_max, auc_list_mean, auc_list_sum, ood_probs_mean, ood_probs_max, ood_probs_sum,
-                       targets)
-        fill_f_acc_lists(acc_probs_sum, f_probs_sum, id_probs_sum, ood_probs_sum, targets)
-
-    metrics = get_result_mean_dict(acc_probs_sum, auc_list_max, auc_list_mean, auc_list_sum, f_probs_sum)
-
-    return metrics
-
-
 def train_linear_id_classifier(train_set: FeatureSet, eval_set: FeatureSet, epochs=10, learning_rate=0.001):
     device = Config.DEVICE
     classifier = LinearClassifier(train_set.features_dim, len(train_set.labels)).to(device)
