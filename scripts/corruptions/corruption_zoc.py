@@ -40,7 +40,7 @@ def run_all(args):
     if args.split == 0:
         datasets = CorruptionSets.keys()
     else:
-        datasets_splits = np.array_split(list(CorruptionSets.keys()), args.max_split)
+        datasets_splits = np.array_split(list(CorruptionSets.keys()), args.max_splits)
         datasets = datasets_splits[args.split - 1]
         _logger.info(f"Current split: {args.split}: {datasets}")
 
