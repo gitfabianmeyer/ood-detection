@@ -58,7 +58,7 @@ def run_all(args):
                 corruption_transform = get_corruption_transform(clip_transform, ccorr, severity)
                 dataset = dset(data_path=Config.DATAPATH,
                                split='test',
-                               transform=corruption_transform),
+                               transform=corruption_transform)
                 isolated_classes = IsolatedClasses(dataset,
                                                    batch_size=512
                                                    )
