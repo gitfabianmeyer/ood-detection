@@ -47,6 +47,10 @@ def run_all(args):
     for dname in datasets:
         dset = CorruptionSets[dname]
         for cname, ccorr in THESIS_CORRUPTIONS.items():
+            if args.corruption:
+                if cname != args.corruption:
+                    _logger.info(f"Jumping over {cname}")
+                    continue
 
             run = wandb.init(project=f"thesis-corruptions-zoc-final-{args.runs}",
                              entity="wandbefab",
@@ -86,6 +90,7 @@ def main():
     parser.add_argument("--max_splits", type=int)
     parser.add_argument("--split", type=int)
     parser.add_argument("--shorten", type=int, default=0)
+    parser.add_argument("--corruption", type=str, default=None)
 
     args = parser.parse_args()
 
