@@ -60,7 +60,7 @@ def run_all(args):
             for severity in [1, 3, 5]:
                 if args.severity != 0:
                     if args.severity != severity:
-                        _logger(f"Jumping Sev: {severity}")
+                        _logger.info(f"Jumping Sev: {severity}")
                         continue
                 _logger.info(f"Running {dname} with {cname} and severity {severity}")
                 corruption_transform = get_corruption_transform(clip_transform, ccorr, severity)
