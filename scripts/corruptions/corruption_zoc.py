@@ -58,6 +58,10 @@ def run_all(args):
                              tags=['distance',
                                    'metrics'])
             for severity in [1, 3, 5]:
+                if args.severity != 0:
+                    if args.severity != severity:
+                        _logger(f"Jumping Sev: {severity}")
+                        continue
                 _logger.info(f"Running {dname} with {cname} and severity {severity}")
                 corruption_transform = get_corruption_transform(clip_transform, ccorr, severity)
                 dataset = dset(data_path=Config.DATAPATH,
@@ -91,6 +95,7 @@ def main():
     parser.add_argument("--split", type=int)
     parser.add_argument("--shorten", type=int, default=0)
     parser.add_argument("--corruption", type=str, default=None)
+    parser.add_argument("--severity", type=int, default=0)
 
     args = parser.parse_args()
 
