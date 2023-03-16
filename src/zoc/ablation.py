@@ -517,7 +517,7 @@ def kshot_adapter_zoc_ablation(dset,
             # set init residual ratio to 1 ( new & old knowledge balanced)
             init_alpha = 1.
             # set sharpness nearly balanced
-            init_beta = 1.17
+            init_beta = 1.0
             tipf_alpha, tipf_beta, tipf_adapter = run_tip_adapter_finetuned(tip_train_set, clip_model,
                                                                             val_features, val_labels,
                                                                             zeroshot_weights, cache_keys,
