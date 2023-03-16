@@ -69,7 +69,7 @@ def full_clip_tip_classification(dataset, kshots, train_epochs, lr, eps, augment
                                          lr, temperature, test_features, test_labels, train_epochs, train_set,
                                          val_features, val_labels)
     results['shots_per_class'] = len(train_set.data) // len(train_set.classes)
-
+    return results
 
 def run_full_tip_from_features(cache_keys, cache_values, clip_model, eps, label_features, lr,
                                temperature, test_features, test_labels, train_epochs, train_set, val_features,
