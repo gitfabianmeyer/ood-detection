@@ -475,10 +475,7 @@ def kshot_adapter_zoc_ablation(dset,
         num_ood_classes = shorten_classes - num_id_classes
     _logger.info(f"ID classes: {num_id_classes}, OOD classes: {num_ood_classes}")
 
-    all_seen_descriptions = [f"This is a photo of a {label}" for label in dataset.classes]
-    zoc_unique_entities = get_zoc_unique_entities(dataset, all_seen_descriptions, clip_model, clip_tokenizer,
-                                                  bert_tokenizer,
-                                                  bert_model)
+    zoc_unique_entities = get_zoc_unique_entities(dataset, clip_model, bert_tokenizer, bert_model)
 
     isolated_classes_slow_loader = IsolatedClasses(dataset,
                                                    batch_size=1,
