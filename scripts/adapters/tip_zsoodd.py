@@ -1,18 +1,13 @@
-import os
-import random
+import logging
 
-os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
-os.environ["CUDA_VISIBLE_DEVICES"] = "0"
+
+
+from adapters.oodd import adapter_zoc
 
 import argparse
-import logging
 
 import clip
 from clip.simple_tokenizer import SimpleTokenizer
-
-import torch
-import wandb
-from clearml import Task
 from datasets.config import DATASETS_DICT, HalfOneDict
 from datasets.zoc_loader import IsolatedClasses
 from metrics.metrics_logging import wandb_log
@@ -34,16 +29,16 @@ def run_single_dataset_ood_tip(isolated_classes, dataset, clip_model, clip_token
     # first train here
     # some to do here
     # then pass the adapter model as param
-    metrics = tip_image_decoder(clip_model=clip_model,
-                                clip_tokenizer=clip_tokenizer,
-                                bert_tokenizer=bert_tokenizer,
-                                bert_model=bert_model,
-                                device=Config.DEVICE,
-                                isolated_classes=isolated_classes,
-                                dataset=dataset,
-                                id_classes=id_classes,
-                                ood_classes=ood_classes,
-                                runs=runs)
+    metrics = adapter_zoc(clip_model=clip_model,
+                          clip_tokenizer=clip_tokenizer,
+                          bert_tokenizer=bert_tokenizer,
+                          bert_model=bert_model,
+                          device=Config.DEVICE,
+                          isolated_classes=isolated_classes,
+                          dataset=dataset,
+                          id_classes=id_classes,
+                          ood_classes=ood_classes,
+                          runs=runs)
     metrics['num_runs'] = runs
     metrics['id_classes'] = id_classes
     metrics['ood_classes'] = ood_classes

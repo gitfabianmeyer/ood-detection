@@ -1,46 +1,42 @@
-import os
-
-os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
-os.environ["CUDA_VISIBLE_DEVICES"] = "0"
-
 import logging
 
-import wandb
-from datasets.config import DATASETS_DICT
-
-from adapters.tip_adapter import full_clip_tip_classification
-
-logging.basicConfig(level=logging.INFO)
 _logger = logging.getLogger(__name__)
-run_clearml = False
-
-kshots = 16
-train_epochs = 20
-lr = 0.001
-eps = 1e-4
-augment_epochs = 10
 
 
-def main():
+def main(args):
+    from adapters.tip_adapter import full_clip_tip_classification
+    from datasets.config import DATASETS_DICT
+    import wandb
+
     failed = []
 
-    for dname, dset in DATASETS_DICT.items():
+    if args.split == 0:
+        datasets = DATASETS_DICT.keys()
+    else:
+        import numpy as np
+        datasets_splits = np.array_split(list(DATASETS_DICT.keys()), args.max_split)
+        datasets = datasets_splits[args.split - 1]
+        _logger.info(f"Current split: {args.split}: {datasets}")
+
+    for dname in datasets:
+        dset = DATASETS_DICT[dname]
         _logger.info(f"\t\tStarting {dname} run...")
         try:
             results = full_clip_tip_classification(dataset=dset,
-                                                   kshots=kshots,
-                                                   train_epochs=train_epochs,
-                                                   lr=lr,
-                                                   eps=eps,
-                                                   augment_epochs=augment_epochs)
+                                                   kshots=args.kshots,
+                                                   train_epochs=args.train_epochs,
+                                                   lr=args.lr,
+                                                   eps=args.eps,
+                                                   augment_epochs=args.augment_epochs)
             print(results)
         except Exception as e:
 
             failed.append(dname)
             raise e
-        run = wandb.init(project=f"thesis-tip-adapters-{kshots}_shots-test",
+        run = wandb.init(project=f"thesis-tip-adapters-{args.kshots}_shots-test",
                          entity="wandbefab",
-                         name=dname)
+                         name=dname,
+                         config=args.__dict__)
         run.log(results)
         run.finish()
 
@@ -48,11 +44,24 @@ def main():
 
 
 if __name__ == '__main__':
+    import argparse
 
-    if run_clearml:
-        from clearml import Task
+    parser = argparse.ArgumentParser()
 
-        print("running clearml")
-        task = Task.init(project_name="ma_fmeyer", task_name="tip adapter testing")
-        task.execute_remotely('5e62040adb57476ea12e8593fa612186')
-    main()
+    parser.add_argument('--gpu', type=str, required=True)
+    parser.add_argument('--runs', type=int, default=10)
+    parser.add_argument("--kshots", type=int, default=16)
+    parser.add_argument("--train_epochs", type=int, default=20)
+    parser.add_argument("--eps", type=float, default=1e-4)
+    parser.add_argument("--lr", type=float, default=0.001)
+    parser.add_argument("--augment_epochs", type=int, default=10)
+    parser.add_argument("--split", type=int, default=0)
+    parser.add_argument("--max_split", type=int, default=0)
+    parser.add_argument()
+    args = parser.parse_args()
+    import os
+
+    os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
+    os.environ["CUDA_VISIBLE_DEVICES"] = args.gpu
+
+    main(args)

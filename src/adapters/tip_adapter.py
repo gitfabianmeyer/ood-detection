@@ -37,8 +37,6 @@ class WeightAdapter(nn.Module):
         return self.linear1(x)
 
 
-
-
 def get_acc_f1_for_adapter(image_features, cache_keys, cache_values, clip_logits, targets, alpha, beta, adapter=None):
     if adapter:
         affinity = adapter(image_features)
@@ -67,10 +65,10 @@ def full_clip_tip_classification(dataset, kshots, train_epochs, lr, eps, augment
     test_features, test_labels, _, _ = get_dataset_features_with_split(dataset, clip_model,
                                                                        clip_transform,
                                                                        'test')
-    # zeroshot
-    return run_full_tip_from_features(cache_keys, cache_values, clip_model, eps, label_features,
-                                      lr, temperature, test_features, test_labels, train_epochs, train_set,
-                                      val_features, val_labels)
+    results = run_full_tip_from_features(cache_keys, cache_values, clip_model, eps, label_features,
+                                         lr, temperature, test_features, test_labels, train_epochs, train_set,
+                                         val_features, val_labels)
+    results['shots_per_class'] = len(train_set.data) // len(train_set.classes)
 
 
 def run_full_tip_from_features(cache_keys, cache_values, clip_model, eps, label_features, lr,
@@ -205,7 +203,6 @@ def create_tip_train_set(dataset, seen_labels, kshots, split='train'):
 
 
 def get_dataset_with_shorted_classes(dataset, seen_labels, split):
-
     _logger.info(f"Creating {split} set for the seen labels")
     new_class_to_idx = {seen_labels[i]: i for i in range(len(seen_labels))}
     new_idx_to_class = {value: key for (key, value) in new_class_to_idx.items()}
