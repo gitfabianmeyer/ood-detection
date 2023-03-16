@@ -34,7 +34,7 @@ def main(args):
                                                        eps=args.eps,
                                                        augment_epochs=args.augment_epochs,
                                                        temperature=args.temp)
-                run.log(results)
+                wandb.log(results)
 
         except Exception as e:
 
