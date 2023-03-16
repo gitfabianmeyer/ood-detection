@@ -57,7 +57,6 @@ if __name__ == '__main__':
     parser.add_argument("--augment_epochs", type=int, default=10)
     parser.add_argument("--split", type=int, default=0)
     parser.add_argument("--max_split", type=int, default=0)
-    parser.add_argument()
     args = parser.parse_args()
     import os
 
