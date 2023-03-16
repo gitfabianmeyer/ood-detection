@@ -505,7 +505,10 @@ def kshot_adapter_zoc_ablation(dset,
             cache_keys, cache_values = get_cache_model(tip_train_set, clip_model, augment_epochs=augment_epochs)
 
             # get shorted val set for the
-            tip_val_set = get_dataset_with_shorted_classes(dset, seen_labels, 'val')
+            val_dataset = dset(Config.DATAPATH,
+                               split='val',
+                               transform=clip_transform)
+            tip_val_set = get_dataset_with_shorted_classes(val_dataset, seen_labels, 'val')
             # get features from the shorted val set
             val_features, val_labels, label_features, classes = get_dataset_features_from_dataset_with_split(
                 tip_val_set,
