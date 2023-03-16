@@ -21,23 +21,26 @@ def main(args):
     for dname in datasets:
         dset = DATASETS_DICT[dname]
         _logger.info(f"\t\tStarting {dname} run...")
+        run = wandb.init(project=f"thesis-tip-adapters-{args.kshots}_shots-temp_{args.temp}",
+                         entity="wandbefab",
+                         name=dname,
+                         config=args.__dict__)
         try:
-            results = full_clip_tip_classification(dataset=dset,
-                                                   kshots=args.kshots,
-                                                   train_epochs=args.train_epochs,
-                                                   lr=args.lr,
-                                                   eps=args.eps,
-                                                   augment_epochs=args.augment_epochs)
-            print(results)
+            for i in range(args.runs):
+                results = full_clip_tip_classification(dataset=dset,
+                                                       kshots=args.kshots,
+                                                       train_epochs=args.train_epochs,
+                                                       lr=args.lr,
+                                                       eps=args.eps,
+                                                       augment_epochs=args.augment_epochs,
+                                                       temperature=args.temp)
+                run.log(results)
+
         except Exception as e:
 
             failed.append(dname)
             raise e
-        run = wandb.init(project=f"thesis-tip-adapters-{args.kshots}_shots-test",
-                         entity="wandbefab",
-                         name=dname,
-                         config=args.__dict__)
-        run.log(results)
+
         run.finish()
 
     print(f"Failed: {failed}")
@@ -57,6 +60,7 @@ if __name__ == '__main__':
     parser.add_argument("--augment_epochs", type=int, default=10)
     parser.add_argument("--split", type=int, default=0)
     parser.add_argument("--max_split", type=int, default=0)
+    parser.add_argument("--temp", type=float, default=0.01)
     args = parser.parse_args()
     import os
 
