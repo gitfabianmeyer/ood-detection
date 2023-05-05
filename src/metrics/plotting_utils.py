@@ -4,6 +4,7 @@ import pandas as pd
 from datasets.config import DATASETS_DICT
 from ood_detection.config import Config
 import wandb
+import tikzplotlib
 
 
 def get_history_from_project(project, set_name_index=True, drop_subs=True):
@@ -47,18 +48,38 @@ def get_dataset_name_mapping():
             'svhn': 'SVHN'}
 
 
-def save_plot(plot, name, chapter, dpi, test_version):
+def save_plot(plot, name, chapter, test_version):
     if test_version:
         plot_path = os.path.join(Config.DATAPATH, 'plots', 'low_res', chapter)
         os.makedirs(plot_path, exist_ok=True)
         plot.savefig(os.path.join(plot_path, name) + '.jpeg', bbox_inches='tight')
         print(f"Saved to {plot_path}")
 
+
     else:
+
+        try:
+            tikzplotlib.clean_figure()
+            tikz_path = os.path.join(Config.DATAPATH, 'plots', 'tickz', chapter)
+            os.makedirs(tikz_path, exist_ok=True)
+            tikzplotlib.save(os.path.join(tikz_path, f"{name}.tex"), figure=plot, axis_width='15cm', axis_height='6cm')
+            print(f"Saved to {tikz_path}")
+        except ValueError as ve:
+            print("Tikzplotlib failed", ve)
+
+
+        svg_path = os.path.join(Config.DATAPATH, 'plots', 'svg', chapter)
+        os.makedirs(svg_path, exist_ok=True)
+        plot.savefig(os.path.join(svg_path, name) + '.svg', bbox_inches='tight')
+        print(f"Saved to {svg_path}")
+
         plot_path = os.path.join(Config.DATAPATH, 'plots', chapter)
         os.makedirs(plot_path, exist_ok=True)
-        plot.savefig(os.path.join(plot_path, name), bbox_inches='tight', dpi=dpi)
+        plot.savefig(os.path.join(plot_path, name) + '.pdf', bbox_inches='tight', dpi=1000)
+        plot.savefig(os.path.join(plot_path, name) + '.png', bbox_inches='tight', dpi=1000)
+
         print(f"Saved to {plot_path}")
+
         return True
 
 

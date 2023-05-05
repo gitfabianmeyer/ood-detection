@@ -18,4 +18,5 @@ transformers
 numpy
 wandb
 clearml
+tikzplotlib
 ./
